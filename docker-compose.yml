@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: insurance-mis-server
+    restart: unless-stopped
+    ports:
+      - '5004:5004'
+    environment:
+      NODE_ENV: production
+      PORT: 5004
+      MONGODB_URI: ${MONGODB_URI}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-refresh}
+      FRONTEND_URL: http://localhost:5176
+    volumes:
+      - ./server/uploads:/app/uploads
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: insurance-mis-client
+    restart: unless-stopped
+    ports:
+      - '8084:80'
+    depends_on:
+      - server
