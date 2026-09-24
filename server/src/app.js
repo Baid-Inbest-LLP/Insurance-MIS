@@ -11,9 +11,16 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 const app = express();
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+// In development any localhost port is allowed, so a Vite port change or 127.0.0.1 doesn't break login.
+const LOCAL_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+const isAllowedOrigin = (origin) =>
+  !origin ||
+  origin === config.clientUrl ||
+  (config.env === 'development' && LOCAL_ORIGIN.test(origin));
+
 app.use(
   cors({
-    origin: config.clientUrl,
+    origin: (origin, callback) => callback(null, isAllowedOrigin(origin)),
     credentials: true,
     exposedHeaders: ['Content-Disposition'],
   }),
