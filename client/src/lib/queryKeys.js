@@ -4,4 +4,5 @@ export const queryKeys = {
 	companies: (params) => ["companies", "list", params ?? {}],
 	users: ["masters", "users"],
 	locationCities: ["masters", "locationCities"],
+	catalogItems: (section, slug, activeOnly = true) => ["masters", "catalog", section, slug, { activeOnly }],
 };

@@ -18,6 +18,46 @@ export const useLocationCities = (enabled = true) =>
 		staleTime: 5 * 60 * 1000,
 	});
 
+export const useMasterItems = (section, slug, { activeOnly = true, enabled = true } = {}) =>
+	useQuery({
+		queryKey: queryKeys.catalogItems(section, slug, activeOnly),
+		queryFn: async () =>
+			(await masterApi.listCatalogItems(section, slug, { activeOnly })).data.data.items ?? [],
+		enabled: Boolean(section) && Boolean(slug) && enabled,
+		staleTime: 5 * 60 * 1000,
+	});
+
+const invalidateMasterItems = (queryClient, section, slug) =>
+	queryClient.invalidateQueries({ queryKey: ["masters", "catalog", section, slug] });
+
+export const useCreateMasterItem = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: async ({ section, slug, data }) =>
+			(await masterApi.createCatalogItem(section, slug, data)).data.data,
+		onSuccess: (_data, { section, slug }) => invalidateMasterItems(queryClient, section, slug),
+	});
+};
+
+export const useUpdateMasterItem = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: async ({ section, slug, itemId, data }) =>
+			(await masterApi.updateCatalogItem(section, slug, itemId, data)).data.data,
+		onSuccess: (_data, { section, slug }) => invalidateMasterItems(queryClient, section, slug),
+	});
+};
+
+export const useDeleteMasterItem = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: async ({ section, slug, itemId }) => {
+			await masterApi.deleteCatalogItem(section, slug, itemId);
+		},
+		onSuccess: (_data, { section, slug }) => invalidateMasterItems(queryClient, section, slug),
+	});
+};
+
 export const useUpdateUser = () => {
 	const queryClient = useQueryClient();
 	return useMutation({
