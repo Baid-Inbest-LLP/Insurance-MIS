@@ -1,8 +1,7 @@
 import mongoose from 'mongoose';
 import { MASTER_SECTIONS, MASTER_SLUGS } from '../constants/masterSlugs.js';
 
-// Each master category is one document. Values are embedded so a category and
-// its values can be read and maintained together.
+// Each master category is one document. Values are embedded so a category and its values can be read and maintained together.
 const masterItemSchema = new mongoose.Schema(
   {
     name: {
