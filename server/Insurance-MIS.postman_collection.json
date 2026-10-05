@@ -1,0 +1,1037 @@
+{
+	"info": {
+		"name": "Insurance MIS API",
+		"description": "All Insurance MIS endpoints, grouped by section.\n\n1. Start the server (default http://localhost:5004).\n2. Run Auth > Login as superadmin. It stores accessToken and refreshToken as collection variables.\n3. Every other request inherits Bearer {{accessToken}} from the collection.\n4. List/create requests store ids (companyId, locationId, userId, itemId, cityId) for the requests that follow them.\n\nEdit the variables (baseUrl, section, slug, credentials) on the collection's Variables tab.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{accessToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5004/api/v1"
+		},
+		{
+			"key": "username",
+			"value": "superadmin"
+		},
+		{
+			"key": "password",
+			"value": "super123"
+		},
+		{
+			"key": "accessToken",
+			"value": ""
+		},
+		{
+			"key": "refreshToken",
+			"value": ""
+		},
+		{
+			"key": "section",
+			"value": "li",
+			"description": "li or gi"
+		},
+		{
+			"key": "slug",
+			"value": "insurer",
+			"description": "lob | insurer | business-type | insurance-type | agent"
+		},
+		{
+			"key": "itemId",
+			"value": ""
+		},
+		{
+			"key": "companyId",
+			"value": ""
+		},
+		{
+			"key": "locationId",
+			"value": ""
+		},
+		{
+			"key": "cityId",
+			"value": ""
+		},
+		{
+			"key": "userId",
+			"value": ""
+		}
+	],
+	"item": [
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "Health check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"auth": {
+							"type": "noauth"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["health"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const body = pm.response.json();",
+									"if (body.success) {",
+									"  pm.collectionVariables.set('accessToken', body.data.accessToken);",
+									"  pm.collectionVariables.set('refreshToken', body.data.refreshToken);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"auth": {
+							"type": "noauth"
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userName\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Refresh token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const body = pm.response.json();",
+									"if (body.success) pm.collectionVariables.set('accessToken', body.data.accessToken);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"auth": {
+							"type": "noauth"
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/refresh",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "refresh"]
+						}
+					}
+				},
+				{
+					"name": "Register user (superadmin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Test Accountant\",\n  \"userName\": \"accountant1\",\n  \"password\": \"secret123\",\n  \"locationCity\": \"{{cityId}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "register"]
+						},
+						"description": "Run Masters > Location cities first so {{cityId}} is set. Role is forced to accountant by the service."
+					}
+				},
+				{
+					"name": "Get my profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/me",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "me"]
+						}
+					}
+				},
+				{
+					"name": "Change password",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"currentPassword\": \"{{password}}\",\n  \"newPassword\": \"newSecret123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/change-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "change-password"]
+						}
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/logout",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "logout"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Master",
+			"item": [
+				{
+					"name": "Companies",
+					"item": [
+						{
+							"name": "List companies",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"if (body.success && body.data.length) pm.collectionVariables.set('companyId', body.data[0]._id);"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/companies?page=1&limit=50&search=&isActive=true",
+									"host": ["{{baseUrl}}"],
+									"path": ["companies"],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "50"
+										},
+										{
+											"key": "search",
+											"value": "",
+											"disabled": true
+										},
+										{
+											"key": "isActive",
+											"value": "true",
+											"disabled": true
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Create company (superadmin)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"if (body.success) pm.collectionVariables.set('companyId', body.data._id);"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Sample Insurance Co\",\n  \"companyCode\": \"SIC\",\n  \"email\": \"info@sample-insurance.test\",\n  \"phone\": \"9000000000\",\n  \"taxId\": \"ABCDE1234F\",\n  \"isActive\": true,\n  \"locations\": [\n    {\n      \"label\": \"Head Office\",\n      \"street\": \"1 Main Road\",\n      \"city\": \"{{cityId}}\",\n      \"state\": \"West Bengal\",\n      \"zipCode\": \"700001\",\n      \"country\": \"India\",\n      \"isDefault\": true\n    }\n  ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/companies",
+									"host": ["{{baseUrl}}"],
+									"path": ["companies"]
+								},
+								"description": "Run Masters > Location cities first so {{cityId}} is set. At least one location is required."
+							}
+						},
+						{
+							"name": "Update company (superadmin)",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"phone\": \"9111111111\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/companies/{{companyId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["companies", "{{companyId}}"]
+								},
+								"description": "Omit \"locations\" to leave branches untouched. If sent, the array replaces the full set."
+							}
+						},
+						{
+							"name": "Delete company (superadmin)",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/companies/{{companyId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["companies", "{{companyId}}"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Locations (branches)",
+					"item": [
+						{
+							"name": "List locations",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"if (body.success && body.data.length) pm.collectionVariables.set('locationId', body.data[0]._id);"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/masters/locations?activeOnly=false",
+									"host": ["{{baseUrl}}"],
+									"path": ["masters", "locations"],
+									"query": [
+										{
+											"key": "activeOnly",
+											"value": "false"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Create location (superadmin)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"if (body.success) pm.collectionVariables.set('locationId', body.data._id);"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"company\": \"{{companyId}}\",\n  \"label\": \"Branch One\",\n  \"name\": \"Branch One\",\n  \"code\": \"B1\",\n  \"street\": \"1 Main Road\",\n  \"city\": \"{{cityId}}\",\n  \"state\": \"West Bengal\",\n  \"zipCode\": \"700001\",\n  \"country\": \"India\",\n  \"isDefault\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/masters/locations",
+									"host": ["{{baseUrl}}"],
+									"path": ["masters", "locations"]
+								}
+							}
+						},
+						{
+							"name": "Update location (superadmin)",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"street\": \"2 Park Street\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/masters/locations/{{locationId}}",
+									"host": ["{{baseUrl}}"],
+									"path": [
+										"masters",
+										"locations",
+										"{{locationId}}"
+									]
+								}
+							}
+						},
+						{
+							"name": "Delete location (superadmin)",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/masters/locations/{{locationId}}",
+									"host": ["{{baseUrl}}"],
+									"path": [
+										"masters",
+										"locations",
+										"{{locationId}}"
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Lookups & Cities",
+					"item": [
+						{
+							"name": "Lookups",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/masters/lookups",
+									"host": ["{{baseUrl}}"],
+									"path": ["masters", "lookups"]
+								}
+							}
+						},
+						{
+							"name": "Location cities",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"if (body.success && body.data.length) pm.collectionVariables.set('cityId', body.data[0]._id);"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/masters/location-cities",
+									"host": ["{{baseUrl}}"],
+									"path": ["masters", "location-cities"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Catalog (li/gi values)",
+					"item": [
+						{
+							"name": "List items",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"if (body.success && body.data.items.length) pm.collectionVariables.set('itemId', body.data.items[0]._id);"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/masters/catalog/{{section}}/{{slug}}?activeOnly=false",
+									"host": ["{{baseUrl}}"],
+									"path": [
+										"masters",
+										"catalog",
+										"{{section}}",
+										"{{slug}}"
+									],
+									"query": [
+										{
+											"key": "activeOnly",
+											"value": "false"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Create item (superadmin)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"if (body.success) pm.collectionVariables.set('itemId', body.data.item._id);"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Sample Value\",\n  \"isActive\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/masters/catalog/{{section}}/{{slug}}",
+									"host": ["{{baseUrl}}"],
+									"path": [
+										"masters",
+										"catalog",
+										"{{section}}",
+										"{{slug}}"
+									]
+								}
+							}
+						},
+						{
+							"name": "Update item (superadmin)",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Sample Value (renamed)\",\n  \"isActive\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/masters/catalog/{{section}}/{{slug}}/{{itemId}}",
+									"host": ["{{baseUrl}}"],
+									"path": [
+										"masters",
+										"catalog",
+										"{{section}}",
+										"{{slug}}",
+										"{{itemId}}"
+									]
+								}
+							}
+						},
+						{
+							"name": "Deactivate item (superadmin)",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"isActive\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/masters/catalog/{{section}}/{{slug}}/{{itemId}}",
+									"host": ["{{baseUrl}}"],
+									"path": [
+										"masters",
+										"catalog",
+										"{{section}}",
+										"{{slug}}",
+										"{{itemId}}"
+									]
+								}
+							}
+						},
+						{
+							"name": "Delete item (superadmin)",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/masters/catalog/{{section}}/{{slug}}/{{itemId}}",
+									"host": ["{{baseUrl}}"],
+									"path": [
+										"masters",
+										"catalog",
+										"{{section}}",
+										"{{slug}}",
+										"{{itemId}}"
+									]
+								}
+							}
+						},
+						{
+							"name": "Quick lists per slug",
+							"item": [
+								{
+									"name": "LI / lob",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/masters/catalog/li/lob?activeOnly=false",
+											"host": ["{{baseUrl}}"],
+											"path": [
+												"masters",
+												"catalog",
+												"li",
+												"lob"
+											],
+											"query": [
+												{
+													"key": "activeOnly",
+													"value": "false"
+												}
+											]
+										}
+									}
+								},
+								{
+									"name": "GI / lob",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/masters/catalog/gi/lob?activeOnly=false",
+											"host": ["{{baseUrl}}"],
+											"path": [
+												"masters",
+												"catalog",
+												"gi",
+												"lob"
+											],
+											"query": [
+												{
+													"key": "activeOnly",
+													"value": "false"
+												}
+											]
+										}
+									}
+								},
+								{
+									"name": "LI / insurer",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/masters/catalog/li/insurer?activeOnly=false",
+											"host": ["{{baseUrl}}"],
+											"path": [
+												"masters",
+												"catalog",
+												"li",
+												"insurer"
+											],
+											"query": [
+												{
+													"key": "activeOnly",
+													"value": "false"
+												}
+											]
+										}
+									}
+								},
+								{
+									"name": "GI / insurer",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/masters/catalog/gi/insurer?activeOnly=false",
+											"host": ["{{baseUrl}}"],
+											"path": [
+												"masters",
+												"catalog",
+												"gi",
+												"insurer"
+											],
+											"query": [
+												{
+													"key": "activeOnly",
+													"value": "false"
+												}
+											]
+										}
+									}
+								},
+								{
+									"name": "LI / business-type",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/masters/catalog/li/business-type?activeOnly=false",
+											"host": ["{{baseUrl}}"],
+											"path": [
+												"masters",
+												"catalog",
+												"li",
+												"business-type"
+											],
+											"query": [
+												{
+													"key": "activeOnly",
+													"value": "false"
+												}
+											]
+										}
+									}
+								},
+								{
+									"name": "GI / business-type",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/masters/catalog/gi/business-type?activeOnly=false",
+											"host": ["{{baseUrl}}"],
+											"path": [
+												"masters",
+												"catalog",
+												"gi",
+												"business-type"
+											],
+											"query": [
+												{
+													"key": "activeOnly",
+													"value": "false"
+												}
+											]
+										}
+									}
+								},
+								{
+									"name": "LI / insurance-type",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/masters/catalog/li/insurance-type?activeOnly=false",
+											"host": ["{{baseUrl}}"],
+											"path": [
+												"masters",
+												"catalog",
+												"li",
+												"insurance-type"
+											],
+											"query": [
+												{
+													"key": "activeOnly",
+													"value": "false"
+												}
+											]
+										}
+									}
+								},
+								{
+									"name": "GI / insurance-type",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/masters/catalog/gi/insurance-type?activeOnly=false",
+											"host": ["{{baseUrl}}"],
+											"path": [
+												"masters",
+												"catalog",
+												"gi",
+												"insurance-type"
+											],
+											"query": [
+												{
+													"key": "activeOnly",
+													"value": "false"
+												}
+											]
+										}
+									}
+								},
+								{
+									"name": "LI / agent",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/masters/catalog/li/agent?activeOnly=false",
+											"host": ["{{baseUrl}}"],
+											"path": [
+												"masters",
+												"catalog",
+												"li",
+												"agent"
+											],
+											"query": [
+												{
+													"key": "activeOnly",
+													"value": "false"
+												}
+											]
+										}
+									}
+								},
+								{
+									"name": "GI / agent",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/masters/catalog/gi/agent?activeOnly=false",
+											"host": ["{{baseUrl}}"],
+											"path": [
+												"masters",
+												"catalog",
+												"gi",
+												"agent"
+											],
+											"query": [
+												{
+													"key": "activeOnly",
+													"value": "false"
+												}
+											]
+										}
+									}
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Users",
+					"item": [
+						{
+							"name": "List users (superadmin)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"if (body.success) {",
+											"  const u = body.data.find((x) => x.role === 'accountant');",
+											"  if (u) pm.collectionVariables.set('userId', u._id);",
+											"}"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/masters/users",
+									"host": ["{{baseUrl}}"],
+									"path": ["masters", "users"]
+								}
+							}
+						},
+						{
+							"name": "Update user (superadmin)",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Renamed Accountant\",\n  \"isActive\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/masters/users/{{userId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["masters", "users", "{{userId}}"]
+								}
+							}
+						},
+						{
+							"name": "Reset password (superadmin)",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/masters/users/{{userId}}/reset-password",
+									"host": ["{{baseUrl}}"],
+									"path": [
+										"masters",
+										"users",
+										"{{userId}}",
+										"reset-password"
+									]
+								}
+							}
+						},
+						{
+							"name": "Delete user (superadmin)",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/masters/users/{{userId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["masters", "users", "{{userId}}"]
+								}
+							}
+						}
+					]
+				}
+			]
+		}
+	]
+}
