@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { isAuthenticated } from './lib/session';
-import { DEPARTMENT_VIEW_ROLES } from './constants/roles';
+import { CATALOG_TABS } from './constants/catalogs';
+import { MASTER_VIEW_ROLES } from './constants/roles';
 import AppLayout from './components/layout/AppLayout';
 import ProtectedRoute from './routes/ProtectedRoute';
 import LoginPage from './pages/auth/LoginPage';
@@ -9,6 +10,7 @@ import SettingsPage from './pages/settings/SettingsPage';
 import ControlCenterLayout from './pages/control-center/ControlCenterLayout';
 import CompanyListPage from './pages/control-center/CompanyListPage';
 import DepartmentListPage from './pages/control-center/DepartmentListPage';
+import CatalogListPage from './pages/control-center/CatalogListPage';
 
 function PublicOnly({ children }) {
   if (isAuthenticated()) return <Navigate to="/" replace />;
@@ -41,11 +43,22 @@ export default function App() {
             <Route
               path="departments"
               element={
-                <ProtectedRoute roles={DEPARTMENT_VIEW_ROLES}>
+                <ProtectedRoute roles={MASTER_VIEW_ROLES}>
                   <DepartmentListPage />
                 </ProtectedRoute>
               }
             />
+            {CATALOG_TABS.map(({ slug, label, path }) => (
+              <Route
+                key={path}
+                path={path}
+                element={
+                  <ProtectedRoute roles={MASTER_VIEW_ROLES}>
+                    <CatalogListPage key={slug} slug={slug} title={label} />
+                  </ProtectedRoute>
+                }
+              />
+            ))}
           </Route>
           <Route path="settings" element={<SettingsPage />} />
         </Route>

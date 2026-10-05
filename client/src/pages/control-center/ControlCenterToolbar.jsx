@@ -7,6 +7,7 @@ export default function ControlCenterToolbar({
   search,
   onSearchChange,
   searchPlaceholder = 'Search...',
+  filters = null,
   actionLabel,
   onAction,
   showAction = false,
@@ -22,6 +23,7 @@ export default function ControlCenterToolbar({
         </div>
 
         <div className="flex sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
+          {filters}
           <input
             className="input-field w-full sm:w-64"
             placeholder={searchPlaceholder}

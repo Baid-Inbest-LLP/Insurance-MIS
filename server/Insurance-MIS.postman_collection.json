@@ -38,7 +38,7 @@
 		{
 			"key": "slug",
 			"value": "insurer",
-			"description": "lob | insurer | business-type | insurance-type | agent"
+			"description": "lob | insurer | business-type | agent"
 		},
 		{
 			"key": "itemId",
