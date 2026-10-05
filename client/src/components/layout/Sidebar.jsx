@@ -1,25 +1,39 @@
 import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useMe } from '../../hooks/useAuth';
+import { ROUTES } from '../../constants';
 import { roleLabel } from '../../constants/roles';
 import {
   ChevronRightIcon,
   ControlCenterIcon,
   DashboardIcon,
+  ReportsIcon,
   SettingsIcon,
+  TransactionsIcon,
 } from '../icons/sidebarIcons';
 
-// Groups take `children` (rendered as a collapsible section), e.g.
-// { label: 'Reports', basePath: '/reports', Icon: ReportsIcon, children: [{ to, label }] }
+// Groups take `children` (rendered as a collapsible section).
 const navItems = [
-  { to: '/', label: 'Dashboard', end: true, Icon: DashboardIcon },
+  { to: ROUTES.HOME, label: 'Dashboard', end: true, Icon: DashboardIcon },
+  { to: ROUTES.TRANSACTIONS, label: 'Transactions', Icon: TransactionsIcon },
   {
-    to: '/control-center/companies',
-    basePath: '/control-center',
+    label: 'Reports',
+    basePath: ROUTES.REPORTS,
+    Icon: ReportsIcon,
+    children: [
+      { to: ROUTES.REPORT_LOB_WISE, label: 'LOB Wise Report' },
+      { to: ROUTES.REPORT_OFFICE_WISE, label: 'Office Wise Report' },
+      { to: ROUTES.REPORT_AGENT_WISE, label: 'Agent Wise Report' },
+      { to: ROUTES.REPORT_INSURER_WISE, label: 'Insurer Wise Report' },
+    ],
+  },
+  {
+    to: ROUTES.CONTROL_CENTER_COMPANIES,
+    basePath: ROUTES.CONTROL_CENTER,
     label: 'Control Center',
     Icon: ControlCenterIcon,
   },
-  { to: '/settings', label: 'Settings', Icon: SettingsIcon },
+  { to: ROUTES.SETTINGS, label: 'Settings', Icon: SettingsIcon },
 ];
 
 const linkClass = (isOpen, isActive) =>
@@ -35,7 +49,7 @@ const Sidebar = ({ isOpen = true }) => {
   const { data: user } = useMe();
   const location = useLocation();
   const navigate = useNavigate();
-  const [reportsOpen, setReportsOpen] = useState(() => location.pathname.startsWith('/reports'));
+  const [reportsOpen, setReportsOpen] = useState(() => location.pathname.startsWith(ROUTES.REPORTS));
 
   return (
     <aside

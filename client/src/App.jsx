@@ -6,6 +6,11 @@ import AppLayout from './components/layout/AppLayout';
 import ProtectedRoute from './routes/ProtectedRoute';
 import LoginPage from './pages/auth/LoginPage';
 import HomePage from './pages/home/HomePage';
+import Transactions from './pages/transactions/Transactions';
+import LobWiseReport from './pages/reports/LobWiseReport';
+import OfficeWiseReport from './pages/reports/OfficeWiseReport';
+import AgentWiseReport from './pages/reports/AgentWiseReport';
+import InsurerWiseReport from './pages/reports/InsurerWiseReport';
 import SettingsPage from './pages/settings/SettingsPage';
 import ControlCenterLayout from './pages/control-center/ControlCenterLayout';
 import CompanyListPage from './pages/control-center/CompanyListPage';
@@ -37,6 +42,14 @@ export default function App() {
           }
         >
           <Route index element={<HomePage />} />
+          <Route path="transactions" element={<Transactions />} />
+          <Route path="reports">
+            <Route index element={<Navigate to="lob-wise" replace />} />
+            <Route path="lob-wise" element={<LobWiseReport />} />
+            <Route path="office-wise" element={<OfficeWiseReport />} />
+            <Route path="agent-wise" element={<AgentWiseReport />} />
+            <Route path="insurer-wise" element={<InsurerWiseReport />} />
+          </Route>
           <Route path="control-center" element={<ControlCenterLayout />}>
             <Route index element={<Navigate to="companies" replace />} />
             <Route path="companies" element={<CompanyListPage />} />
