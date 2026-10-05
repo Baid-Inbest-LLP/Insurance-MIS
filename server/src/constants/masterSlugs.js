@@ -5,5 +5,3 @@ export const MASTER_SLUGS = [
   'insurance-type',
   'agent',
 ];
-
-export const MASTER_SECTIONS = ['li', 'gi'];

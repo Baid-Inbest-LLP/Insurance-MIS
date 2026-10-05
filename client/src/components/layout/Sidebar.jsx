@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useMe } from '../../hooks/useAuth';
+import { roleLabel } from '../../constants/roles';
 import {
   ChevronRightIcon,
   ControlCenterIcon,
@@ -20,12 +21,6 @@ const navItems = [
   },
   { to: '/settings', label: 'Settings', Icon: SettingsIcon },
 ];
-
-const roleLabel = (role) => {
-  if (role === 'superadmin') return 'Superadmin';
-  if (role === 'accountant') return 'Accountant';
-  return role || '';
-};
 
 const linkClass = (isOpen, isActive) =>
   `sidebar-nav-link flex min-w-0 items-center overflow-hidden rounded-lg text-md font-medium transition-colors ${

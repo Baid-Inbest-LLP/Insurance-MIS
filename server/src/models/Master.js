@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
-import { MASTER_SECTIONS, MASTER_SLUGS } from '../constants/masterSlugs.js';
+import { DEPARTMENTS } from '../constants/departments.js';
+import { MASTER_SLUGS } from '../constants/masterSlugs.js';
 
 // Each master category is one document. Values are embedded so a category and its values can be read and maintained together.
 const masterItemSchema = new mongoose.Schema(
@@ -23,12 +24,12 @@ const masterItemSchema = new mongoose.Schema(
 
 const masterSchema = new mongoose.Schema(
   {
-    section: {
+    department: {
       type: String,
       required: true,
       trim: true,
       lowercase: true,
-      enum: MASTER_SECTIONS,
+      enum: DEPARTMENTS,
     },
     slug: {
       type: String,
@@ -43,6 +44,6 @@ const masterSchema = new mongoose.Schema(
 );
 
 // A category can exist once in LI and once in GI, with independent items.
-masterSchema.index({ section: 1, slug: 1 }, { unique: true });
+masterSchema.index({ department: 1, slug: 1 }, { unique: true });
 
 export const Master = mongoose.model('Master', masterSchema);

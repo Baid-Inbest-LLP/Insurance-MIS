@@ -1,5 +1,6 @@
 import { User } from '../models/User.js';
 import { ApiError } from '../utils/ApiError.js';
+import { isStaffRole, isSuperAdmin } from '../constants/roles.js';
 import { generatePassword } from '../utils/passwordUtils.js';
 import {
   generateAccessToken,
@@ -15,6 +16,7 @@ const toAuthUser = (user) => ({
   userName: user.userName,
   role: user.role,
   ...(user.locationCity !== undefined ? { locationCity: user.locationCity } : {}),
+  ...(user.department !== undefined ? { department: user.department } : {}),
 });
 
 /** Normalize legacy string | string[] | null refreshToken storage. */
@@ -33,7 +35,7 @@ const rememberRefreshToken = (user, token) => {
 export const login = async (userName, password) => {
   const normalizedUserName = String(userName).trim().toLowerCase();
   const user = await User.findOne({ userName: normalizedUserName })
-    .select('name userName role isActive password refreshToken locationCity')
+    .select('name userName role isActive password refreshToken locationCity department')
     .populate('locationCity', 'name');
   if (!user || !(await user.comparePassword(password))) {
     throw ApiError.unauthorized('Invalid username or password');
@@ -76,15 +78,15 @@ export const registerUser = async (data, requestedBy) => {
   const exists = await User.findOne({ userName: data.userName });
   if (exists) throw ApiError.conflict('User name already registered');
 
-  if (requestedBy.role !== 'superadmin') {
+  if (!isSuperAdmin(requestedBy.role)) {
     throw ApiError.forbidden('Only superadmin can create users');
   }
 
-  if (data.role === 'superadmin') {
-    throw ApiError.forbidden('Only one superadmin account can exist');
-  }
-
-  return User.create({ ...data, role: 'accountant' });
+  await User.create({
+    ...data,
+    locationCity: isStaffRole(data.role) ? data.locationCity : null,
+    department: isStaffRole(data.role) ? data.department : null,
+  });
 };
 
 export const changePassword = async (userId, currentPassword, newPassword) => {
@@ -99,7 +101,7 @@ export const changePassword = async (userId, currentPassword, newPassword) => {
 };
 
 export const resetUserPassword = async (targetUserId, requestedBy) => {
-  if (requestedBy.role !== 'superadmin') {
+  if (!isSuperAdmin(requestedBy.role)) {
     throw ApiError.forbidden('Only superadmin can reset passwords');
   }
   if (String(targetUserId) === String(requestedBy._id)) {
@@ -108,7 +110,7 @@ export const resetUserPassword = async (targetUserId, requestedBy) => {
 
   const user = await User.findById(targetUserId).select('role refreshToken');
   if (!user) throw ApiError.notFound('User not found');
-  if (user.role !== 'accountant') {
+  if (isSuperAdmin(user.role)) {
     throw ApiError.forbidden('You do not have permission to reset this user\'s password');
   }
 
@@ -122,7 +124,7 @@ export const resetUserPassword = async (targetUserId, requestedBy) => {
 
 export const getProfile = async (userId) => {
   const user = await User.findById(userId)
-    .select('name userName role locationCity')
+    .select('name userName role locationCity department')
     .populate('locationCity', 'name');
   if (!user) throw ApiError.notFound('User not found');
   return toAuthUser(user);

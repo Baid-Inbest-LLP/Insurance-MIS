@@ -3,7 +3,12 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { Company, Location, LocationCity, User } from "../models/index.js";
 import { normalizeBranchLabel } from "../utils/locationFormat.js";
 import { ApiError } from "../utils/ApiError.js";
-import { USER_ROLES } from "../constants/roles.js";
+import {
+	ROLES,
+	USER_ROLES,
+	isStaffRole,
+	isSuperAdmin,
+} from "../constants/roles.js";
 import { resetUserPassword } from "../services/auth.service.js";
 
 const crud = (Model, name) => ({
@@ -34,10 +39,10 @@ const crud = (Model, name) => ({
 
 export const locationController = crud(Location, "Location");
 
-// Accountants only see their own assigned locationCity; superadmin sees every active locationCity.
+// City-scoped roles only see their own assigned locationCity; other roles see every active locationCity.
 export const getLocationCities = asyncHandler(async (req, res) => {
 	const filter = { isActive: true };
-	if (req.user.role === "accountant") {
+	if (isStaffRole(req.user.role)) {
 		filter._id = req.user.locationCity;
 	}
 	const cities = await LocationCity.find(filter)
@@ -107,15 +112,14 @@ export const getLookupData = asyncHandler(async (_req, res) => {
 });
 
 const canManageUser = (actorRole, targetRole) =>
-	actorRole === "superadmin" && targetRole === "accountant";
+	isSuperAdmin(actorRole) && targetRole !== ROLES.SUPERADMIN;
 
 export const listUsers = asyncHandler(async (req, res) => {
 	const users = await User.find()
-		.select(
-			"name userName role isActive locationCity lastLogin createdAt updatedAt",
-		)
+		.select("name userName role isActive locationCity department")
 		.populate("locationCity", "name")
-		.sort({ createdAt: 1 });
+		.sort({ createdAt: 1 })
+		.lean();
 	ApiResponse.success(res, users);
 });
 
@@ -131,9 +135,11 @@ export const updateUser = asyncHandler(async (req, res) => {
 		);
 	}
 
-	const { name, userName, isActive, locationCity } = req.body;
+	const { name, userName, isActive, locationCity, department } = req.body;
 	if (name !== undefined) user.name = name;
-	if (locationCity !== undefined && user.role === "accountant")
+	if (department !== undefined && isStaffRole(user.role))
+		user.department = department;
+	if (locationCity !== undefined && isStaffRole(user.role))
 		user.locationCity = locationCity;
 	if (userName !== undefined) {
 		const normalized = String(userName).trim().toLowerCase();
@@ -152,7 +158,7 @@ export const updateUser = asyncHandler(async (req, res) => {
 	}
 
 	await user.save();
-	ApiResponse.success(res, user, "User updated");
+	ApiResponse.success(res, null, "User updated");
 });
 
 export const deleteUser = asyncHandler(async (req, res) => {
@@ -162,9 +168,6 @@ export const deleteUser = asyncHandler(async (req, res) => {
 
 	if (user._id.equals(actor._id)) {
 		throw ApiError.forbidden("You cannot delete your own account");
-	}
-	if (user.role === "superadmin") {
-		throw ApiError.forbidden("Superadmin users cannot be deleted");
 	}
 	if (!canManageUser(actor.role, user.role)) {
 		throw ApiError.forbidden(

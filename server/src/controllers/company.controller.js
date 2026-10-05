@@ -2,6 +2,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import { Company, Location, LocationCity } from "../models/index.js";
+import { isStaffRole } from "../constants/roles.js";
 import { buildLocationName } from "../utils/locationFormat.js";
 import { escapeRegex } from "../utils/searchUtils.js";
 
@@ -135,8 +136,8 @@ export const getCompanies = asyncHandler(async (req, res) => {
 		];
 	}
 
-	// Accountants only ever see companies that have a branch in their own city.
-	const scopedCity = req.user.role === "accountant" ? req.user.locationCity : null;
+	// City-scoped roles only ever see companies that have a branch in their own city.
+	const scopedCity = isStaffRole(req.user.role) ? req.user.locationCity : null;
 
 	if (scopedCity) {
 		const visibleCompanyIds = await Location.distinct("company", {

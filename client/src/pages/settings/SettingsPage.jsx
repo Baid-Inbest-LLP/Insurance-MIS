@@ -15,18 +15,19 @@ import PageBanner from '../../components/common/PageBanner';
 import PasswordInput from '../../components/common/PasswordInput';
 import RowActions from '../../components/common/RowActions';
 import Skeleton, { SkeletonText } from '../../components/common/Skeleton';
-import { isSuperAdmin } from '../../constants/roles';
+import StaffFields from './StaffFields';
+import {
+  ASSIGNABLE_ROLES,
+  departmentLabel,
+  isStaffRole,
+  isSuperAdmin,
+  roleLabel,
+} from '../../constants/roles';
 
 const USER_NAME_PATTERN = /^[a-zA-Z0-9._-]+$/;
 const PASSWORD_POLICY_LABEL = 'Min 8 chars, with uppercase, lowercase, number, special character';
 const STRONG_PASSWORD_PATTERN =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[ !"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]).{8,}$/;
-
-const roleLabel = (role) => {
-  if (role === 'superadmin') return 'Superadmin';
-  if (role === 'accountant') return 'Accountant';
-  return role || '';
-};
 
 export default function SettingsPage() {
   const { data: user } = useMe();
@@ -54,15 +55,19 @@ export default function SettingsPage() {
     register: registerCreate,
     handleSubmit: handleSubmitCreate,
     reset: resetCreate,
+    watch: watchCreate,
     formState: { errors: createErrors, isSubmitting: createSubmitting },
   } = useForm({
     defaultValues: {
       name: '',
       userName: '',
       password: '',
+      role: '',
       locationCity: '',
+      department: '',
     },
   });
+  const createRole = watchCreate('role');
 
   const {
     register: registerPwd,
@@ -83,9 +88,9 @@ export default function SettingsPage() {
     handleSubmit: handleSubmitEdit,
     reset: resetEdit,
     control: controlEdit,
-    formState: { errors: editErrors, isSubmitting: editSubmitting },
+    formState: { errors: editErrors, isSubmitting: editSubmitting, isDirty: editDirty },
   } = useForm({
-    defaultValues: { name: '', userName: '', isActive: true, locationCity: '' },
+    defaultValues: { name: '', userName: '', isActive: true, locationCity: '', department: '' },
   });
 
   const onCreateUser = async (data) => {
@@ -94,11 +99,13 @@ export default function SettingsPage() {
         name: data.name,
         userName: data.userName,
         password: data.password,
-        role: 'accountant',
-        locationCity: data.locationCity,
+        role: data.role,
+        ...(isStaffRole(data.role)
+          ? { locationCity: data.locationCity, department: data.department }
+          : {}),
       });
       notifications.show({
-        message: 'Accountant account created',
+        message: 'User created',
         color: 'green',
       });
       setShowCreate(false);
@@ -135,7 +142,7 @@ export default function SettingsPage() {
 
   const closeCreateModal = () => {
     setShowCreate(false);
-    resetCreate({ name: '', userName: '', password: '', locationCity: '' });
+    resetCreate({ name: '', userName: '', password: '', role: '', locationCity: '', department: '' });
   };
 
   const closePasswordModal = () => {
@@ -150,16 +157,22 @@ export default function SettingsPage() {
       userName: u.userName || '',
       isActive: u.isActive !== false,
       locationCity: u.locationCity?._id || u.locationCity || '',
+      department: u.department || '',
     });
   };
 
   const closeEditUser = () => {
     setEditingUser(null);
-    resetEdit({ name: '', userName: '', isActive: true, locationCity: '' });
+    resetEdit({ name: '', userName: '', isActive: true, locationCity: '', department: '' });
   };
 
   const onUpdateUser = async (data) => {
     if (!editingUser) return;
+    if (!editDirty) {
+      notifications.show({ message: 'No changes to save', color: 'blue' });
+      closeEditUser();
+      return;
+    }
     try {
       await updateUserMutation.mutateAsync({
         id: editingUser._id,
@@ -167,7 +180,9 @@ export default function SettingsPage() {
           name: data.name,
           userName: data.userName,
           isActive: Boolean(data.isActive),
-          ...(editingUser.role === 'accountant' ? { locationCity: data.locationCity } : {}),
+          ...(isStaffRole(editingUser.role)
+            ? { locationCity: data.locationCity, department: data.department }
+            : {}),
         },
       });
       notifications.show({ message: 'User updated', color: 'green' });
@@ -282,7 +297,7 @@ export default function SettingsPage() {
                 <div className="company-form-header">
                   <div>
                     <h2 id="create-user-title" className="company-form-title">Create User</h2>
-                    <p className="company-form-subtitle">Create an accountant account</p>
+                    <p className="company-form-subtitle">Create a user account</p>
                   </div>
                   <button
                     type="button"
@@ -332,26 +347,29 @@ export default function SettingsPage() {
 
                   <div>
                     <label className="company-form-field-label">Role</label>
-                    <input className="settings-readonly-role" value="Accountant" readOnly />
-                  </div>
-
-                  <div>
-                    <label className="company-form-field-label">Location</label>
                     <select
                       className="input-field"
-                      {...registerCreate('locationCity', { required: 'Location is required' })}
+                      {...registerCreate('role', { required: 'Role is required' })}
                     >
-                      <option value="">Select location</option>
-                      {locationCities.map((c) => (
-                        <option key={c._id} value={c._id}>
-                          {c.name}
+                      <option value="">Select role</option>
+                      {ASSIGNABLE_ROLES.map((role) => (
+                        <option key={role} value={role}>
+                          {roleLabel(role)}
                         </option>
                       ))}
                     </select>
-                    {createErrors.locationCity && (
-                      <p className="text-red-500 text-xs mt-1">{createErrors.locationCity.message}</p>
+                    {createErrors.role && (
+                      <p className="text-red-500 text-xs mt-1">{createErrors.role.message}</p>
                     )}
                   </div>
+
+                  {isStaffRole(createRole) && (
+                    <StaffFields
+                      register={registerCreate}
+                      errors={createErrors}
+                      cities={locationCities}
+                    />
+                  )}
 
                   <div>
                     <label className="company-form-field-label">Password</label>
@@ -416,14 +434,15 @@ export default function SettingsPage() {
               </div>
             ) : (
               <div className="table-wrapper">
-                <table>
+                <table style={{ tableLayout: 'auto' }}>
                   <thead>
                     <tr>
                       <th className="text-center">S.No.</th>
-                      <th className="text-left">Name</th>
+                      <th className="text-center">Name</th>
                       <th className="text-center">User Name</th>
                       <th className="text-center">Role</th>
                       <th className="text-center">Location</th>
+                      <th className="text-center">Department</th>
                       <th className="text-center">Status</th>
                       <th className="text-center">Actions</th>
                     </tr>
@@ -443,6 +462,7 @@ export default function SettingsPage() {
                             <span className="settings-role-badge">{roleLabel(u.role)}</span>
                           </td>
                           <td className="text-center">{u.locationCity?.name || '—'}</td>
+                          <td className="text-center whitespace-nowrap">{departmentLabel(u.department) || '—'}</td>
                           <td className="text-center">
                             <span
                               className={
@@ -561,24 +581,12 @@ export default function SettingsPage() {
                       <p className="text-red-500 text-xs mt-1">{editErrors.userName.message}</p>
                     )}
                   </div>
-                  {editingUser?.role === 'accountant' && (
-                    <div>
-                      <label className="company-form-field-label">Location</label>
-                      <select
-                        className="input-field"
-                        {...registerEdit('locationCity', { required: 'Location is required' })}
-                      >
-                        <option value="">Select location</option>
-                        {editUserLocationOptions.map((c) => (
-                          <option key={c._id} value={c._id}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
-                      {editErrors.locationCity && (
-                        <p className="text-red-500 text-xs mt-1">{editErrors.locationCity.message}</p>
-                      )}
-                    </div>
+                  {isStaffRole(editingUser?.role) && (
+                    <StaffFields
+                      register={registerEdit}
+                      errors={editErrors}
+                      cities={editUserLocationOptions}
+                    />
                   )}
                   <div>
                     <label className="company-form-field-label">Status</label>

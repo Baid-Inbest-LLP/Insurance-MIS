@@ -30,18 +30,18 @@ const ensureUniqueName = (master, name, excludedItemId = null) => {
 };
 
 // Returns the live items of a master list, optionally including inactive ones.
-export const listItems = async ({ section, slug, includeInactive = false }) => {
-	const master = await Master.findOne({ section, slug }).lean();
+export const listItems = async ({ department, slug, includeInactive = false }) => {
+	const master = await Master.findOne({ department, slug }).lean();
 	return (master?.items || [])
 		.filter((item) => isLive(item) && (includeInactive || item.isActive))
 		.map(toItemDto);
 };
 
 // Adds an item, creating the master document if needed.
-export const createItem = async ({ section, slug, name, isActive }) => {
+export const createItem = async ({ department, slug, name, isActive }) => {
 	const master =
-		(await Master.findOne({ section, slug })) ||
-		new Master({ section, slug });
+		(await Master.findOne({ department, slug })) ||
+		new Master({ department, slug });
 	ensureUniqueName(master, name);
 
 	master.items.push({ name, isActive });
@@ -52,13 +52,13 @@ export const createItem = async ({ section, slug, name, isActive }) => {
 
 // Updates an item's name or active status.
 export const updateItem = async ({
-	section,
+	department,
 	slug,
 	itemId,
 	name,
 	isActive,
 }) => {
-	const master = await Master.findOne({ section, slug });
+	const master = await Master.findOne({ department, slug });
 	const item = getLiveItem(master, itemId);
 
 	if (name !== undefined) {
@@ -72,8 +72,8 @@ export const updateItem = async ({
 };
 
 // Soft-deletes an item.
-export const deleteItem = async ({ section, slug, itemId }) => {
-	const master = await Master.findOne({ section, slug });
+export const deleteItem = async ({ department, slug, itemId }) => {
+	const master = await Master.findOne({ department, slug });
 	const item = getLiveItem(master, itemId);
 
 	item.deletedAt = new Date();

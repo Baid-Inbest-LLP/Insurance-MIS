@@ -25,8 +25,8 @@ export const getMe = asyncHandler(async (req, res) => {
 });
 
 export const register = asyncHandler(async (req, res) => {
-  const user = await authService.registerUser(req.body, req.user);
-  ApiResponse.created(res, user, 'User registered');
+  await authService.registerUser(req.body, req.user);
+  ApiResponse.created(res, null, 'User registered');
 });
 
 export const changePassword = asyncHandler(async (req, res) => {

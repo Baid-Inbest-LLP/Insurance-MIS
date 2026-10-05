@@ -25,27 +25,27 @@ router.delete('/locations/:id', authorize('superadmin'), master.locationControll
 router.get('/location-cities', master.getLocationCities);
 
 router.get(
-  '/catalog/:section/:slug',
+  '/catalog/:department/:slug',
   validate(masterSlugParamsSchema, 'params'),
   validate(masterItemsQuerySchema, 'query'),
   masterValues.listMasterItems,
 );
 router.post(
-  '/catalog/:section/:slug',
+  '/catalog/:department/:slug',
   authorize('superadmin'),
   validate(masterSlugParamsSchema, 'params'),
   validate(createMasterItemSchema),
   masterValues.createMasterItem,
 );
 router.put(
-  '/catalog/:section/:slug/:itemId',
+  '/catalog/:department/:slug/:itemId',
   authorize('superadmin'),
   validate(masterItemParamsSchema, 'params'),
   validate(updateMasterItemSchema),
   masterValues.updateMasterItem,
 );
 router.delete(
-  '/catalog/:section/:slug/:itemId',
+  '/catalog/:department/:slug/:itemId',
   authorize('superadmin'),
   validate(masterItemParamsSchema, 'params'),
   masterValues.deleteMasterItem,

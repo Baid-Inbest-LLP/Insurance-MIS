@@ -124,6 +124,10 @@
     @apply w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:border-primary-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500;
   }
 
+  select.input-field {
+    @apply cursor-pointer disabled:cursor-not-allowed;
+  }
+
   .login-input {
     background: transparent;
     width: 100%;
@@ -751,7 +755,7 @@
   }
 
   .settings-user-name {
-    @apply text-left font-semibold text-gray-800;
+    @apply text-center font-semibold text-gray-800;
   }
 
   .settings-user-email {
@@ -784,10 +788,6 @@
 
   .settings-action-btn--disabled {
     @apply text-gray-300 cursor-not-allowed;
-  }
-
-  .settings-readonly-role {
-    @apply input-field bg-gray-50;
   }
 
   .summary-head-report-total-row td {
@@ -1778,11 +1778,6 @@
 
 [data-theme='dark'] #root .settings-action-btn--disabled {
   color: #495057 !important;
-}
-
-[data-theme='dark'] #root .settings-readonly-role {
-  background-color: #2c2e33 !important;
-  color: #909296 !important;
 }
 
 [data-theme='dark'] ::-webkit-scrollbar-track {

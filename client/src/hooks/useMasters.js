@@ -9,7 +9,7 @@ export const useUsers = (enabled = true) =>
 		enabled,
 	});
 
-// Accountants get only their own assigned city; superadmin gets every active city.
+// City-scoped roles get only their own assigned city; other roles get every active city.
 export const useLocationCities = (enabled = true) =>
 	useQuery({
 		queryKey: queryKeys.locationCities,
@@ -18,43 +18,43 @@ export const useLocationCities = (enabled = true) =>
 		staleTime: 5 * 60 * 1000,
 	});
 
-export const useMasterItems = (section, slug, { activeOnly = true, enabled = true } = {}) =>
+export const useMasterItems = (department, slug, { activeOnly = true, enabled = true } = {}) =>
 	useQuery({
-		queryKey: queryKeys.catalogItems(section, slug, activeOnly),
+		queryKey: queryKeys.catalogItems(department, slug, activeOnly),
 		queryFn: async () =>
-			(await masterApi.listCatalogItems(section, slug, { activeOnly })).data.data.items ?? [],
-		enabled: Boolean(section) && Boolean(slug) && enabled,
+			(await masterApi.listCatalogItems(department, slug, { activeOnly })).data.data.items ?? [],
+		enabled: Boolean(department) && Boolean(slug) && enabled,
 		staleTime: 5 * 60 * 1000,
 	});
 
-const invalidateMasterItems = (queryClient, section, slug) =>
-	queryClient.invalidateQueries({ queryKey: ["masters", "catalog", section, slug] });
+const invalidateMasterItems = (queryClient, department, slug) =>
+	queryClient.invalidateQueries({ queryKey: ["masters", "catalog", department, slug] });
 
 export const useCreateMasterItem = () => {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: async ({ section, slug, data }) =>
-			(await masterApi.createCatalogItem(section, slug, data)).data.data,
-		onSuccess: (_data, { section, slug }) => invalidateMasterItems(queryClient, section, slug),
+		mutationFn: async ({ department, slug, data }) =>
+			(await masterApi.createCatalogItem(department, slug, data)).data.data,
+		onSuccess: (_data, { department, slug }) => invalidateMasterItems(queryClient, department, slug),
 	});
 };
 
 export const useUpdateMasterItem = () => {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: async ({ section, slug, itemId, data }) =>
-			(await masterApi.updateCatalogItem(section, slug, itemId, data)).data.data,
-		onSuccess: (_data, { section, slug }) => invalidateMasterItems(queryClient, section, slug),
+		mutationFn: async ({ department, slug, itemId, data }) =>
+			(await masterApi.updateCatalogItem(department, slug, itemId, data)).data.data,
+		onSuccess: (_data, { department, slug }) => invalidateMasterItems(queryClient, department, slug),
 	});
 };
 
 export const useDeleteMasterItem = () => {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: async ({ section, slug, itemId }) => {
-			await masterApi.deleteCatalogItem(section, slug, itemId);
+		mutationFn: async ({ department, slug, itemId }) => {
+			await masterApi.deleteCatalogItem(department, slug, itemId);
 		},
-		onSuccess: (_data, { section, slug }) => invalidateMasterItems(queryClient, section, slug),
+		onSuccess: (_data, { department, slug }) => invalidateMasterItems(queryClient, department, slug),
 	});
 };
 

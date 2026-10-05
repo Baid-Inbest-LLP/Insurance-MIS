@@ -1,7 +1,7 @@
 {
 	"info": {
 		"name": "Insurance MIS API",
-		"description": "All Insurance MIS endpoints, grouped by section.\n\n1. Start the server (default http://localhost:5004).\n2. Run Auth > Login as superadmin. It stores accessToken and refreshToken as collection variables.\n3. Every other request inherits Bearer {{accessToken}} from the collection.\n4. List/create requests store ids (companyId, locationId, userId, itemId, cityId) for the requests that follow them.\n\nEdit the variables (baseUrl, section, slug, credentials) on the collection's Variables tab.",
+		"description": "All Insurance MIS endpoints, grouped by section.\n\n1. Start the server (default http://localhost:5004).\n2. Run Auth > Login as superadmin. It stores accessToken and refreshToken as collection variables.\n3. Every other request inherits Bearer {{accessToken}} from the collection.\n4. List/create requests store ids (companyId, locationId, userId, itemId, cityId) for the requests that follow them.\n\nEdit the variables (baseUrl, department, slug, credentials) on the collection's Variables tab.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"auth": {
@@ -36,7 +36,7 @@
 			"value": ""
 		},
 		{
-			"key": "section",
+			"key": "department",
 			"value": "li",
 			"description": "li or gi"
 		},
@@ -187,7 +187,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"Test Accountant\",\n  \"userName\": \"accountant1\",\n  \"password\": \"secret123\",\n  \"locationCity\": \"{{cityId}}\"\n}",
+							"raw": "{\n  \"name\": \"Test Employee\",\n  \"userName\": \"employee1\",\n  \"password\": \"secret123\",\n  \"role\": \"emp-premium\",\n  \"department\": \"li\",\n  \"locationCity\": \"{{cityId}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -199,7 +199,7 @@
 							"host": ["{{baseUrl}}"],
 							"path": ["auth", "register"]
 						},
-						"description": "Run Masters > Location cities first so {{cityId}} is set. Role is forced to accountant by the service."
+						"description": "Run Masters > Location cities first so {{cityId}} is set. role is one of admin, hod, emp-premium, emp-commission. locationCity and department (gi or li) are required for hod, emp-premium and emp-commission; leave both out for admin."
 					}
 				},
 				{
@@ -565,12 +565,12 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{baseUrl}}/masters/catalog/{{section}}/{{slug}}?activeOnly=false",
+									"raw": "{{baseUrl}}/masters/catalog/{{department}}/{{slug}}?activeOnly=false",
 									"host": ["{{baseUrl}}"],
 									"path": [
 										"masters",
 										"catalog",
-										"{{section}}",
+										"{{department}}",
 										"{{slug}}"
 									],
 									"query": [
@@ -614,12 +614,12 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseUrl}}/masters/catalog/{{section}}/{{slug}}",
+									"raw": "{{baseUrl}}/masters/catalog/{{department}}/{{slug}}",
 									"host": ["{{baseUrl}}"],
 									"path": [
 										"masters",
 										"catalog",
-										"{{section}}",
+										"{{department}}",
 										"{{slug}}"
 									]
 								}
@@ -645,12 +645,12 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseUrl}}/masters/catalog/{{section}}/{{slug}}/{{itemId}}",
+									"raw": "{{baseUrl}}/masters/catalog/{{department}}/{{slug}}/{{itemId}}",
 									"host": ["{{baseUrl}}"],
 									"path": [
 										"masters",
 										"catalog",
-										"{{section}}",
+										"{{department}}",
 										"{{slug}}",
 										"{{itemId}}"
 									]
@@ -677,12 +677,12 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseUrl}}/masters/catalog/{{section}}/{{slug}}/{{itemId}}",
+									"raw": "{{baseUrl}}/masters/catalog/{{department}}/{{slug}}/{{itemId}}",
 									"host": ["{{baseUrl}}"],
 									"path": [
 										"masters",
 										"catalog",
-										"{{section}}",
+										"{{department}}",
 										"{{slug}}",
 										"{{itemId}}"
 									]
@@ -695,12 +695,12 @@
 								"method": "DELETE",
 								"header": [],
 								"url": {
-									"raw": "{{baseUrl}}/masters/catalog/{{section}}/{{slug}}/{{itemId}}",
+									"raw": "{{baseUrl}}/masters/catalog/{{department}}/{{slug}}/{{itemId}}",
 									"host": ["{{baseUrl}}"],
 									"path": [
 										"masters",
 										"catalog",
-										"{{section}}",
+										"{{department}}",
 										"{{slug}}",
 										"{{itemId}}"
 									]
@@ -957,7 +957,7 @@
 										"exec": [
 											"const body = pm.response.json();",
 											"if (body.success) {",
-											"  const u = body.data.find((x) => x.role === 'accountant');",
+											"  const u = body.data.find((x) => x.role !== 'superadmin');",
 											"  if (u) pm.collectionVariables.set('userId', u._id);",
 											"}"
 										]

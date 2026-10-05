@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import { DEPARTMENTS } from "../constants/departments.js";
+import { USER_ROLES, isStaffRole } from "../constants/roles.js";
 
 const userSchema = new mongoose.Schema(
 	{
@@ -14,14 +16,22 @@ const userSchema = new mongoose.Schema(
 		password: { type: String, required: true, minlength: 6, select: false },
 		role: {
 			type: String,
-			enum: ["superadmin", "accountant"],
-			default: "accountant",
+			enum: USER_ROLES,
+			required: true,
 		},
 		locationCity: {
 			type: mongoose.Schema.Types.ObjectId,
 			ref: "LocationCity",
 			required() {
-				return this.role === "accountant";
+				return isStaffRole(this.role);
+			},
+			default: null,
+		},
+		department: {
+			type: String,
+			enum: DEPARTMENTS,
+			required() {
+				return isStaffRole(this.role);
 			},
 			default: null,
 		},

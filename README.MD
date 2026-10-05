@@ -61,7 +61,7 @@ A superadmin is created automatically on boot when none exists (override with `S
 | ---------- | ---------- | -------- |
 | Superadmin | superadmin | super123 |
 
-Accountant users are created from **Settings** and must be assigned a location city.
+Users are created from **Settings** with one of these roles: `superadmin`, `admin`, `hod`, `emp-premium` or `emp-commission`. Only the superadmin can create and manage users. `hod`, `emp-premium` and `emp-commission` must be assigned a location city (and only see data for that city) and a department (`gi` or `li`).
 
 ## Included modules
 
