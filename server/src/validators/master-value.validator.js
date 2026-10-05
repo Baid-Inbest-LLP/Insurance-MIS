@@ -1,16 +1,14 @@
 import { z } from 'zod';
-import { DEPARTMENTS } from '../constants/departments.js';
 import { MASTER_SLUGS } from '../constants/masterSlugs.js';
-
-const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid item id');
+import { objectId } from './common.validator.js';
 
 export const masterSlugParamsSchema = z.object({
-  department: z.enum(DEPARTMENTS, { message: 'Department must be li or gi' }),
+  departmentId: objectId('department'),
   slug: z.enum(MASTER_SLUGS, { message: 'Unsupported master slug' }),
 }).strict();
 
 export const masterItemParamsSchema = masterSlugParamsSchema.extend({
-  itemId: objectId,
+  itemId: objectId('item'),
 }).strict();
 
 const itemNameSchema = z

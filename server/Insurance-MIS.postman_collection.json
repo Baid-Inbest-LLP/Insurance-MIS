@@ -36,11 +36,6 @@
 			"value": ""
 		},
 		{
-			"key": "department",
-			"value": "li",
-			"description": "li or gi"
-		},
-		{
 			"key": "slug",
 			"value": "insurer",
 			"description": "lob | insurer | business-type | insurance-type | agent"
@@ -64,6 +59,11 @@
 		{
 			"key": "userId",
 			"value": ""
+		},
+		{
+			"key": "departmentId",
+			"value": "",
+			"description": "department id; List departments sets it from the first department"
 		}
 	],
 	"item": [
@@ -80,8 +80,12 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/health",
-							"host": ["{{baseUrl}}"],
-							"path": ["health"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"health"
+							]
 						}
 					}
 				}
@@ -129,8 +133,13 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/auth/login",
-							"host": ["{{baseUrl}}"],
-							"path": ["auth", "login"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
 						}
 					}
 				},
@@ -170,8 +179,13 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/auth/refresh",
-							"host": ["{{baseUrl}}"],
-							"path": ["auth", "refresh"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"refresh"
+							]
 						}
 					}
 				},
@@ -187,7 +201,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"Test Employee\",\n  \"userName\": \"employee1\",\n  \"password\": \"secret123\",\n  \"role\": \"emp-premium\",\n  \"department\": \"li\",\n  \"locationCity\": \"{{cityId}}\"\n}",
+							"raw": "{\n  \"name\": \"Test Employee\",\n  \"userName\": \"employee1\",\n  \"password\": \"secret123\",\n  \"role\": \"emp-premium\",\n  \"department\": \"{{departmentId}}\",\n  \"locationCity\": \"{{cityId}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -196,10 +210,15 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/auth/register",
-							"host": ["{{baseUrl}}"],
-							"path": ["auth", "register"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
 						},
-						"description": "Run Masters > Location cities first so {{cityId}} is set. role is one of admin, hod, emp-premium, emp-commission. locationCity and department (gi or li) are required for hod, emp-premium and emp-commission; leave both out for admin."
+						"description": "Run Masters > Location cities first so {{cityId}} is set. role is one of admin, hod, emp-premium, emp-commission. locationCity and department (a department id from Master > Departments) are required for hod, emp-premium and emp-commission; leave both out for admin."
 					}
 				},
 				{
@@ -209,8 +228,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/auth/me",
-							"host": ["{{baseUrl}}"],
-							"path": ["auth", "me"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
 						}
 					}
 				},
@@ -235,8 +259,13 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/auth/change-password",
-							"host": ["{{baseUrl}}"],
-							"path": ["auth", "change-password"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"change-password"
+							]
 						}
 					}
 				},
@@ -247,8 +276,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/auth/logout",
-							"host": ["{{baseUrl}}"],
-							"path": ["auth", "logout"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"logout"
+							]
 						}
 					}
 				}
@@ -279,8 +313,12 @@
 								"header": [],
 								"url": {
 									"raw": "{{baseUrl}}/companies?page=1&limit=50&search=&isActive=true",
-									"host": ["{{baseUrl}}"],
-									"path": ["companies"],
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"companies"
+									],
 									"query": [
 										{
 											"key": "page",
@@ -337,8 +375,12 @@
 								},
 								"url": {
 									"raw": "{{baseUrl}}/companies",
-									"host": ["{{baseUrl}}"],
-									"path": ["companies"]
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"companies"
+									]
 								},
 								"description": "Run Masters > Location cities first so {{cityId}} is set. At least one location is required."
 							}
@@ -364,8 +406,13 @@
 								},
 								"url": {
 									"raw": "{{baseUrl}}/companies/{{companyId}}",
-									"host": ["{{baseUrl}}"],
-									"path": ["companies", "{{companyId}}"]
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"companies",
+										"{{companyId}}"
+									]
 								},
 								"description": "Omit \"locations\" to leave branches untouched. If sent, the array replaces the full set."
 							}
@@ -377,8 +424,13 @@
 								"header": [],
 								"url": {
 									"raw": "{{baseUrl}}/companies/{{companyId}}",
-									"host": ["{{baseUrl}}"],
-									"path": ["companies", "{{companyId}}"]
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"companies",
+										"{{companyId}}"
+									]
 								}
 							}
 						}
@@ -406,8 +458,13 @@
 								"header": [],
 								"url": {
 									"raw": "{{baseUrl}}/masters/locations?activeOnly=false",
-									"host": ["{{baseUrl}}"],
-									"path": ["masters", "locations"],
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"masters",
+										"locations"
+									],
 									"query": [
 										{
 											"key": "activeOnly",
@@ -450,8 +507,13 @@
 								},
 								"url": {
 									"raw": "{{baseUrl}}/masters/locations",
-									"host": ["{{baseUrl}}"],
-									"path": ["masters", "locations"]
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"masters",
+										"locations"
+									]
 								}
 							}
 						},
@@ -476,7 +538,9 @@
 								},
 								"url": {
 									"raw": "{{baseUrl}}/masters/locations/{{locationId}}",
-									"host": ["{{baseUrl}}"],
+									"host": [
+										"{{baseUrl}}"
+									],
 									"path": [
 										"masters",
 										"locations",
@@ -492,7 +556,9 @@
 								"header": [],
 								"url": {
 									"raw": "{{baseUrl}}/masters/locations/{{locationId}}",
-									"host": ["{{baseUrl}}"],
+									"host": [
+										"{{baseUrl}}"
+									],
 									"path": [
 										"masters",
 										"locations",
@@ -513,8 +579,13 @@
 								"header": [],
 								"url": {
 									"raw": "{{baseUrl}}/masters/lookups",
-									"host": ["{{baseUrl}}"],
-									"path": ["masters", "lookups"]
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"masters",
+										"lookups"
+									]
 								}
 							}
 						},
@@ -537,15 +608,126 @@
 								"header": [],
 								"url": {
 									"raw": "{{baseUrl}}/masters/location-cities",
-									"host": ["{{baseUrl}}"],
-									"path": ["masters", "location-cities"]
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"masters",
+										"location-cities"
+									]
 								}
 							}
 						}
 					]
 				},
 				{
-					"name": "Catalog (li/gi values)",
+					"name": "Departments",
+					"item": [
+						{
+							"name": "List departments",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"if (body.success && body.data.length) pm.collectionVariables.set('departmentId', body.data[0]._id);"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/masters/departments?activeOnly=false",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"masters",
+										"departments"
+									],
+									"query": [
+										{
+											"key": "activeOnly",
+											"value": "false"
+										}
+									]
+								},
+								"description": "Stores the first department as {{departmentId}} for the requests that follow (catalog, update department, register user)."
+							}
+						},
+						{
+							"name": "Create department (superadmin)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"General Insurance\",\n  \"code\": \"GI\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/masters/departments",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"masters",
+										"departments"
+									]
+								},
+								"description": "The code is saved in capitals (letters, numbers and hyphens). Run List departments afterwards to pick it up."
+							}
+						},
+						{
+							"name": "Update department (superadmin)",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"General Insurance (renamed)\",\n  \"isActive\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/masters/departments/{{departmentId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"masters",
+										"departments",
+										"{{departmentId}}"
+									]
+								},
+								"description": "The name, code and active status can change. Inactive departments cannot be assigned to new users or master items."
+							}
+						}
+					]
+				},
+				{
+					"name": "Catalog (by department)",
 					"item": [
 						{
 							"name": "List items",
@@ -565,12 +747,14 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{baseUrl}}/masters/catalog/{{department}}/{{slug}}?activeOnly=false",
-									"host": ["{{baseUrl}}"],
+									"raw": "{{baseUrl}}/masters/catalog/{{departmentId}}/{{slug}}?activeOnly=false",
+									"host": [
+										"{{baseUrl}}"
+									],
 									"path": [
 										"masters",
 										"catalog",
-										"{{department}}",
+										"{{departmentId}}",
 										"{{slug}}"
 									],
 									"query": [
@@ -614,12 +798,14 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseUrl}}/masters/catalog/{{department}}/{{slug}}",
-									"host": ["{{baseUrl}}"],
+									"raw": "{{baseUrl}}/masters/catalog/{{departmentId}}/{{slug}}",
+									"host": [
+										"{{baseUrl}}"
+									],
 									"path": [
 										"masters",
 										"catalog",
-										"{{department}}",
+										"{{departmentId}}",
 										"{{slug}}"
 									]
 								}
@@ -645,12 +831,14 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseUrl}}/masters/catalog/{{department}}/{{slug}}/{{itemId}}",
-									"host": ["{{baseUrl}}"],
+									"raw": "{{baseUrl}}/masters/catalog/{{departmentId}}/{{slug}}/{{itemId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
 									"path": [
 										"masters",
 										"catalog",
-										"{{department}}",
+										"{{departmentId}}",
 										"{{slug}}",
 										"{{itemId}}"
 									]
@@ -677,12 +865,14 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseUrl}}/masters/catalog/{{department}}/{{slug}}/{{itemId}}",
-									"host": ["{{baseUrl}}"],
+									"raw": "{{baseUrl}}/masters/catalog/{{departmentId}}/{{slug}}/{{itemId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
 									"path": [
 										"masters",
 										"catalog",
-										"{{department}}",
+										"{{departmentId}}",
 										"{{slug}}",
 										"{{itemId}}"
 									]
@@ -695,252 +885,19 @@
 								"method": "DELETE",
 								"header": [],
 								"url": {
-									"raw": "{{baseUrl}}/masters/catalog/{{department}}/{{slug}}/{{itemId}}",
-									"host": ["{{baseUrl}}"],
+									"raw": "{{baseUrl}}/masters/catalog/{{departmentId}}/{{slug}}/{{itemId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
 									"path": [
 										"masters",
 										"catalog",
-										"{{department}}",
+										"{{departmentId}}",
 										"{{slug}}",
 										"{{itemId}}"
 									]
 								}
 							}
-						},
-						{
-							"name": "Quick lists per slug",
-							"item": [
-								{
-									"name": "LI / lob",
-									"request": {
-										"method": "GET",
-										"header": [],
-										"url": {
-											"raw": "{{baseUrl}}/masters/catalog/li/lob?activeOnly=false",
-											"host": ["{{baseUrl}}"],
-											"path": [
-												"masters",
-												"catalog",
-												"li",
-												"lob"
-											],
-											"query": [
-												{
-													"key": "activeOnly",
-													"value": "false"
-												}
-											]
-										}
-									}
-								},
-								{
-									"name": "GI / lob",
-									"request": {
-										"method": "GET",
-										"header": [],
-										"url": {
-											"raw": "{{baseUrl}}/masters/catalog/gi/lob?activeOnly=false",
-											"host": ["{{baseUrl}}"],
-											"path": [
-												"masters",
-												"catalog",
-												"gi",
-												"lob"
-											],
-											"query": [
-												{
-													"key": "activeOnly",
-													"value": "false"
-												}
-											]
-										}
-									}
-								},
-								{
-									"name": "LI / insurer",
-									"request": {
-										"method": "GET",
-										"header": [],
-										"url": {
-											"raw": "{{baseUrl}}/masters/catalog/li/insurer?activeOnly=false",
-											"host": ["{{baseUrl}}"],
-											"path": [
-												"masters",
-												"catalog",
-												"li",
-												"insurer"
-											],
-											"query": [
-												{
-													"key": "activeOnly",
-													"value": "false"
-												}
-											]
-										}
-									}
-								},
-								{
-									"name": "GI / insurer",
-									"request": {
-										"method": "GET",
-										"header": [],
-										"url": {
-											"raw": "{{baseUrl}}/masters/catalog/gi/insurer?activeOnly=false",
-											"host": ["{{baseUrl}}"],
-											"path": [
-												"masters",
-												"catalog",
-												"gi",
-												"insurer"
-											],
-											"query": [
-												{
-													"key": "activeOnly",
-													"value": "false"
-												}
-											]
-										}
-									}
-								},
-								{
-									"name": "LI / business-type",
-									"request": {
-										"method": "GET",
-										"header": [],
-										"url": {
-											"raw": "{{baseUrl}}/masters/catalog/li/business-type?activeOnly=false",
-											"host": ["{{baseUrl}}"],
-											"path": [
-												"masters",
-												"catalog",
-												"li",
-												"business-type"
-											],
-											"query": [
-												{
-													"key": "activeOnly",
-													"value": "false"
-												}
-											]
-										}
-									}
-								},
-								{
-									"name": "GI / business-type",
-									"request": {
-										"method": "GET",
-										"header": [],
-										"url": {
-											"raw": "{{baseUrl}}/masters/catalog/gi/business-type?activeOnly=false",
-											"host": ["{{baseUrl}}"],
-											"path": [
-												"masters",
-												"catalog",
-												"gi",
-												"business-type"
-											],
-											"query": [
-												{
-													"key": "activeOnly",
-													"value": "false"
-												}
-											]
-										}
-									}
-								},
-								{
-									"name": "LI / insurance-type",
-									"request": {
-										"method": "GET",
-										"header": [],
-										"url": {
-											"raw": "{{baseUrl}}/masters/catalog/li/insurance-type?activeOnly=false",
-											"host": ["{{baseUrl}}"],
-											"path": [
-												"masters",
-												"catalog",
-												"li",
-												"insurance-type"
-											],
-											"query": [
-												{
-													"key": "activeOnly",
-													"value": "false"
-												}
-											]
-										}
-									}
-								},
-								{
-									"name": "GI / insurance-type",
-									"request": {
-										"method": "GET",
-										"header": [],
-										"url": {
-											"raw": "{{baseUrl}}/masters/catalog/gi/insurance-type?activeOnly=false",
-											"host": ["{{baseUrl}}"],
-											"path": [
-												"masters",
-												"catalog",
-												"gi",
-												"insurance-type"
-											],
-											"query": [
-												{
-													"key": "activeOnly",
-													"value": "false"
-												}
-											]
-										}
-									}
-								},
-								{
-									"name": "LI / agent",
-									"request": {
-										"method": "GET",
-										"header": [],
-										"url": {
-											"raw": "{{baseUrl}}/masters/catalog/li/agent?activeOnly=false",
-											"host": ["{{baseUrl}}"],
-											"path": [
-												"masters",
-												"catalog",
-												"li",
-												"agent"
-											],
-											"query": [
-												{
-													"key": "activeOnly",
-													"value": "false"
-												}
-											]
-										}
-									}
-								},
-								{
-									"name": "GI / agent",
-									"request": {
-										"method": "GET",
-										"header": [],
-										"url": {
-											"raw": "{{baseUrl}}/masters/catalog/gi/agent?activeOnly=false",
-											"host": ["{{baseUrl}}"],
-											"path": [
-												"masters",
-												"catalog",
-												"gi",
-												"agent"
-											],
-											"query": [
-												{
-													"key": "activeOnly",
-													"value": "false"
-												}
-											]
-										}
-									}
-								}
-							]
 						}
 					]
 				},
@@ -969,8 +926,13 @@
 								"header": [],
 								"url": {
 									"raw": "{{baseUrl}}/masters/users",
-									"host": ["{{baseUrl}}"],
-									"path": ["masters", "users"]
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"masters",
+										"users"
+									]
 								}
 							}
 						},
@@ -995,8 +957,14 @@
 								},
 								"url": {
 									"raw": "{{baseUrl}}/masters/users/{{userId}}",
-									"host": ["{{baseUrl}}"],
-									"path": ["masters", "users", "{{userId}}"]
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"masters",
+										"users",
+										"{{userId}}"
+									]
 								}
 							}
 						},
@@ -1007,7 +975,9 @@
 								"header": [],
 								"url": {
 									"raw": "{{baseUrl}}/masters/users/{{userId}}/reset-password",
-									"host": ["{{baseUrl}}"],
+									"host": [
+										"{{baseUrl}}"
+									],
 									"path": [
 										"masters",
 										"users",
@@ -1024,8 +994,14 @@
 								"header": [],
 								"url": {
 									"raw": "{{baseUrl}}/masters/users/{{userId}}",
-									"host": ["{{baseUrl}}"],
-									"path": ["masters", "users", "{{userId}}"]
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"masters",
+										"users",
+										"{{userId}}"
+									]
 								}
 							}
 						}

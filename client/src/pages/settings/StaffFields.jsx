@@ -1,7 +1,5 @@
-import { DEPARTMENTS } from '../../constants/roles';
-
 // Location and department selects, shown for roles tied to a city and a department.
-export default function StaffFields({ register, errors, cities }) {
+export default function StaffFields({ register, errors, cities, departments }) {
   return (
     <>
       <div>
@@ -29,9 +27,9 @@ export default function StaffFields({ register, errors, cities }) {
           {...register('department', { required: 'Department is required' })}
         >
           <option value="">Select department</option>
-          {DEPARTMENTS.map((d) => (
-            <option key={d.value} value={d.value}>
-              {d.label}
+          {departments.map((d) => (
+            <option key={d._id} value={d._id}>
+              {d.name}
             </option>
           ))}
         </select>

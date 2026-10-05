@@ -1,6 +1,7 @@
 import { User } from '../models/User.js';
 import { ApiError } from '../utils/ApiError.js';
 import { isStaffRole, isSuperAdmin } from '../constants/roles.js';
+import { assertActiveDepartment } from './department.service.js';
 import { generatePassword } from '../utils/passwordUtils.js';
 import {
   generateAccessToken,
@@ -36,7 +37,8 @@ export const login = async (userName, password) => {
   const normalizedUserName = String(userName).trim().toLowerCase();
   const user = await User.findOne({ userName: normalizedUserName })
     .select('name userName role isActive password refreshToken locationCity department')
-    .populate('locationCity', 'name');
+    .populate('locationCity', 'name')
+    .populate('department', 'name');
   if (!user || !(await user.comparePassword(password))) {
     throw ApiError.unauthorized('Invalid username or password');
   }
@@ -82,6 +84,8 @@ export const registerUser = async (data, requestedBy) => {
     throw ApiError.forbidden('Only superadmin can create users');
   }
 
+  if (isStaffRole(data.role)) await assertActiveDepartment(data.department);
+
   await User.create({
     ...data,
     locationCity: isStaffRole(data.role) ? data.locationCity : null,
@@ -125,7 +129,8 @@ export const resetUserPassword = async (targetUserId, requestedBy) => {
 export const getProfile = async (userId) => {
   const user = await User.findById(userId)
     .select('name userName role locationCity department')
-    .populate('locationCity', 'name');
+    .populate('locationCity', 'name')
+    .populate('department', 'name');
   if (!user) throw ApiError.notFound('User not found');
   return toAuthUser(user);
 };

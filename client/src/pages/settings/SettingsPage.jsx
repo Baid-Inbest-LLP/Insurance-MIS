@@ -4,6 +4,7 @@ import { notifications } from '@mantine/notifications';
 import { useChangePassword, useMe, useRegister } from '../../hooks/useAuth';
 import {
   useDeleteUser,
+  useDepartments,
   useLocationCities,
   useResetUserPassword,
   useUpdateUser,
@@ -18,7 +19,6 @@ import Skeleton, { SkeletonText } from '../../components/common/Skeleton';
 import StaffFields from './StaffFields';
 import {
   ASSIGNABLE_ROLES,
-  departmentLabel,
   isStaffRole,
   isSuperAdmin,
   roleLabel,
@@ -45,6 +45,10 @@ export default function SettingsPage() {
   const { data: locationCities = [] } = useLocationCities(
     canManageUsers && (showCreate || Boolean(editingUser)),
   );
+  const { data: departments = [] } = useDepartments({
+    includeInactive: true,
+    enabled: canManageUsers,
+  });
   const registerUser = useRegister();
   const changePassword = useChangePassword();
   const updateUserMutation = useUpdateUser();
@@ -157,7 +161,7 @@ export default function SettingsPage() {
       userName: u.userName || '',
       isActive: u.isActive !== false,
       locationCity: u.locationCity?._id || u.locationCity || '',
-      department: u.department || '',
+      department: u.department?._id || '',
     });
   };
 
@@ -194,6 +198,13 @@ export default function SettingsPage() {
       });
     }
   };
+
+  const activeDepartments = useMemo(() => departments.filter((d) => d.isActive), [departments]);
+
+  const editUserDepartmentOptions = useMemo(
+    () => departments.filter((d) => d.isActive || d._id === editingUser?.department?._id),
+    [departments, editingUser],
+  );
 
   const editUserLocationOptions = useMemo(() => {
     const ownLocation = editingUser?.locationCity;
@@ -257,7 +268,7 @@ export default function SettingsPage() {
       {!canManageUsers && user && (
         <div className="card overflow-hidden p-6 space-y-4">
           <h2 className="company-form-title">My Details</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="company-form-field-label">Full Name</label>
               <p className="text-left font-semibold settings-detail-blue">{user.name}</p>
@@ -265,6 +276,12 @@ export default function SettingsPage() {
             <div>
               <label className="company-form-field-label">Username</label>
               <p className="text-left font-semibold settings-detail-purple">{user.userName}</p>
+            </div>
+            <div>
+              <label className="company-form-field-label">Department</label>
+              <p className="text-left font-semibold settings-detail-blue">
+                {user.department?.name || '—'}
+              </p>
             </div>
             <div>
               <label className="company-form-field-label">Role</label>
@@ -368,6 +385,7 @@ export default function SettingsPage() {
                       register={registerCreate}
                       errors={createErrors}
                       cities={locationCities}
+                      departments={activeDepartments}
                     />
                   )}
 
@@ -462,7 +480,7 @@ export default function SettingsPage() {
                             <span className="settings-role-badge">{roleLabel(u.role)}</span>
                           </td>
                           <td className="text-center">{u.locationCity?.name || '—'}</td>
-                          <td className="text-center whitespace-nowrap">{departmentLabel(u.department) || '—'}</td>
+                          <td className="text-center whitespace-nowrap">{u.department?.name || '—'}</td>
                           <td className="text-center">
                             <span
                               className={
@@ -586,6 +604,7 @@ export default function SettingsPage() {
                       register={registerEdit}
                       errors={editErrors}
                       cities={editUserLocationOptions}
+                      departments={editUserDepartmentOptions}
                     />
                   )}
                   <div>

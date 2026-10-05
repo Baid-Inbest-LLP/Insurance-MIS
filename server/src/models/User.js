@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
-import { DEPARTMENTS } from "../constants/departments.js";
 import { USER_ROLES, isStaffRole } from "../constants/roles.js";
 
 const userSchema = new mongoose.Schema(
@@ -28,8 +27,8 @@ const userSchema = new mongoose.Schema(
 			default: null,
 		},
 		department: {
-			type: String,
-			enum: DEPARTMENTS,
+			type: mongoose.Schema.Types.ObjectId,
+			ref: "Department",
 			required() {
 				return isStaffRole(this.role);
 			},

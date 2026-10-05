@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { DEPARTMENTS } from '../constants/departments.js';
 import { ASSIGNABLE_ROLES, isStaffRole } from '../constants/roles.js';
+import { objectId } from './common.validator.js';
 
 export const loginSchema = z.object({
   userName: z.string().trim().min(1, 'User name is required').toLowerCase(),
@@ -16,9 +16,7 @@ export const registerSchema = z
       message: `Role must be one of: ${ASSIGNABLE_ROLES.join(', ')}`,
     }),
     locationCity: z.string().trim().min(1, 'Location is required').optional(),
-    department: z
-      .enum(DEPARTMENTS, { message: `Department must be one of: ${DEPARTMENTS.join(', ')}` })
-      .optional(),
+    department: objectId('department').optional(),
   })
   .refine((value) => !isStaffRole(value.role) || value.locationCity, {
     message: 'Location is required for this role',

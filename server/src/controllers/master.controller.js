@@ -10,6 +10,7 @@ import {
 	isSuperAdmin,
 } from "../constants/roles.js";
 import { resetUserPassword } from "../services/auth.service.js";
+import { assertActiveDepartment } from "../services/department.service.js";
 
 const crud = (Model, name) => ({
 	list: asyncHandler(async (req, res) => {
@@ -118,6 +119,7 @@ export const listUsers = asyncHandler(async (req, res) => {
 	const users = await User.find()
 		.select("name userName role isActive locationCity department")
 		.populate("locationCity", "name")
+		.populate("department", "name")
 		.sort({ createdAt: 1 })
 		.lean();
 	ApiResponse.success(res, users);
@@ -137,24 +139,29 @@ export const updateUser = asyncHandler(async (req, res) => {
 
 	const { name, userName, isActive, locationCity, department } = req.body;
 	if (name !== undefined) user.name = name;
-	if (department !== undefined && isStaffRole(user.role))
+	if (
+		department !== undefined &&
+		!user.department?.equals(department) &&
+		isStaffRole(user.role)
+	) {
+		await assertActiveDepartment(department);
 		user.department = department;
+	}
 	if (locationCity !== undefined && isStaffRole(user.role))
 		user.locationCity = locationCity;
 	if (userName !== undefined) {
-		const normalized = String(userName).trim().toLowerCase();
 		const existing = await User.findOne({
-			userName: normalized,
+			userName,
 			_id: { $ne: user._id },
 		});
 		if (existing) throw ApiError.conflict("User name already in use");
-		user.userName = normalized;
+		user.userName = userName;
 	}
 	if (isActive !== undefined) {
 		if (isSelf && !isActive) {
 			throw ApiError.forbidden("You cannot deactivate your own account");
 		}
-		user.isActive = Boolean(isActive);
+		user.isActive = isActive;
 	}
 
 	await user.save();

@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import { DEPARTMENTS } from '../constants/departments.js';
 import { MASTER_SLUGS } from '../constants/masterSlugs.js';
 
 // Each master category is one document. Values are embedded so a category and its values can be read and maintained together.
@@ -25,11 +24,9 @@ const masterItemSchema = new mongoose.Schema(
 const masterSchema = new mongoose.Schema(
   {
     department: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Department',
       required: true,
-      trim: true,
-      lowercase: true,
-      enum: DEPARTMENTS,
     },
     slug: {
       type: String,
@@ -43,7 +40,7 @@ const masterSchema = new mongoose.Schema(
   { timestamps: true, strict: 'throw' },
 );
 
-// A category can exist once in LI and once in GI, with independent items.
+// A category can exist once per department, with independent items.
 masterSchema.index({ department: 1, slug: 1 }, { unique: true });
 
 export const Master = mongoose.model('Master', masterSchema);

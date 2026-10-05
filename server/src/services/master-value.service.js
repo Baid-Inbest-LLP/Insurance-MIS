@@ -1,5 +1,6 @@
 import { Master } from "../models/index.js";
 import { ApiError } from "../utils/ApiError.js";
+import { assertActiveDepartment } from "./department.service.js";
 
 // Picks the fields exposed to API clients.
 const toItemDto = ({ _id, name, isActive }) => ({ _id, name, isActive });
@@ -30,18 +31,20 @@ const ensureUniqueName = (master, name, excludedItemId = null) => {
 };
 
 // Returns the live items of a master list, optionally including inactive ones.
-export const listItems = async ({ department, slug, includeInactive = false }) => {
-	const master = await Master.findOne({ department, slug }).lean();
+export const listItems = async ({ departmentId, slug, includeInactive = false }) => {
+	const master = await Master.findOne({ department: departmentId, slug }).lean();
 	return (master?.items || [])
 		.filter((item) => isLive(item) && (includeInactive || item.isActive))
 		.map(toItemDto);
 };
 
-// Adds an item, creating the master document if needed.
-export const createItem = async ({ department, slug, name, isActive }) => {
-	const master =
-		(await Master.findOne({ department, slug })) ||
-		new Master({ department, slug });
+// Adds an item to an active department, creating the master document if needed.
+export const createItem = async ({ departmentId, slug, name, isActive }) => {
+	const [existingMaster] = await Promise.all([
+		Master.findOne({ department: departmentId, slug }),
+		assertActiveDepartment(departmentId),
+	]);
+	const master = existingMaster || new Master({ department: departmentId, slug });
 	ensureUniqueName(master, name);
 
 	master.items.push({ name, isActive });
@@ -52,13 +55,13 @@ export const createItem = async ({ department, slug, name, isActive }) => {
 
 // Updates an item's name or active status.
 export const updateItem = async ({
-	department,
+	departmentId,
 	slug,
 	itemId,
 	name,
 	isActive,
 }) => {
-	const master = await Master.findOne({ department, slug });
+	const master = await Master.findOne({ department: departmentId, slug });
 	const item = getLiveItem(master, itemId);
 
 	if (name !== undefined) {
@@ -72,8 +75,8 @@ export const updateItem = async ({
 };
 
 // Soft-deletes an item.
-export const deleteItem = async ({ department, slug, itemId }) => {
-	const master = await Master.findOne({ department, slug });
+export const deleteItem = async ({ departmentId, slug, itemId }) => {
+	const master = await Master.findOne({ department: departmentId, slug });
 	const item = getLiveItem(master, itemId);
 
 	item.deletedAt = new Date();

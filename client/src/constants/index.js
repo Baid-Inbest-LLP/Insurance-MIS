@@ -12,6 +12,7 @@ export const ROUTES = {
   HOME: '/',
   CONTROL_CENTER: '/control-center',
   CONTROL_CENTER_COMPANIES: '/control-center/companies',
+  CONTROL_CENTER_DEPARTMENTS: '/control-center/departments',
   SETTINGS: '/settings',
 };
 

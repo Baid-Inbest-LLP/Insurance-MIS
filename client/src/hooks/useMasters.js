@@ -18,43 +18,79 @@ export const useLocationCities = (enabled = true) =>
 		staleTime: 5 * 60 * 1000,
 	});
 
-export const useMasterItems = (department, slug, { activeOnly = true, enabled = true } = {}) =>
+// Superadmins can include inactive departments; other roles only ever get active ones.
+export const useDepartments = ({ includeInactive = false, enabled = true } = {}) =>
 	useQuery({
-		queryKey: queryKeys.catalogItems(department, slug, activeOnly),
+		queryKey: [...queryKeys.departments, { includeInactive }],
 		queryFn: async () =>
-			(await masterApi.listCatalogItems(department, slug, { activeOnly })).data.data.items ?? [],
-		enabled: Boolean(department) && Boolean(slug) && enabled,
+			(
+				await masterApi.departments(
+					includeInactive ? { activeOnly: false } : undefined,
+				)
+			).data.data ?? [],
+		enabled,
 		staleTime: 5 * 60 * 1000,
 	});
 
-const invalidateMasterItems = (queryClient, department, slug) =>
-	queryClient.invalidateQueries({ queryKey: ["masters", "catalog", department, slug] });
+export const useCreateDepartment = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: async (data) => {
+			await masterApi.createDepartment(data);
+		},
+		onSuccess: () =>
+			queryClient.invalidateQueries({ queryKey: queryKeys.departments }),
+	});
+};
+
+export const useUpdateDepartment = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: async ({ id, data }) => {
+			await masterApi.updateDepartment(id, data);
+		},
+		onSuccess: () =>
+			queryClient.invalidateQueries({ queryKey: queryKeys.departments }),
+	});
+};
+
+export const useMasterItems =(departmentId, slug, { activeOnly = true, enabled = true } = {}) =>
+	useQuery({
+		queryKey: queryKeys.catalogItems(departmentId, slug, activeOnly),
+		queryFn: async () =>
+			(await masterApi.listCatalogItems(departmentId, slug, { activeOnly })).data.data.items ?? [],
+		enabled: Boolean(departmentId) && Boolean(slug) && enabled,
+		staleTime: 5 * 60 * 1000,
+	});
+
+const invalidateMasterItems = (queryClient, departmentId, slug) =>
+	queryClient.invalidateQueries({ queryKey: ["masters", "catalog", departmentId, slug] });
 
 export const useCreateMasterItem = () => {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: async ({ department, slug, data }) =>
-			(await masterApi.createCatalogItem(department, slug, data)).data.data,
-		onSuccess: (_data, { department, slug }) => invalidateMasterItems(queryClient, department, slug),
+		mutationFn: async ({ departmentId, slug, data }) =>
+			(await masterApi.createCatalogItem(departmentId, slug, data)).data.data,
+		onSuccess: (_data, { departmentId, slug }) => invalidateMasterItems(queryClient, departmentId, slug),
 	});
 };
 
 export const useUpdateMasterItem = () => {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: async ({ department, slug, itemId, data }) =>
-			(await masterApi.updateCatalogItem(department, slug, itemId, data)).data.data,
-		onSuccess: (_data, { department, slug }) => invalidateMasterItems(queryClient, department, slug),
+		mutationFn: async ({ departmentId, slug, itemId, data }) =>
+			(await masterApi.updateCatalogItem(departmentId, slug, itemId, data)).data.data,
+		onSuccess: (_data, { departmentId, slug }) => invalidateMasterItems(queryClient, departmentId, slug),
 	});
 };
 
 export const useDeleteMasterItem = () => {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: async ({ department, slug, itemId }) => {
-			await masterApi.deleteCatalogItem(department, slug, itemId);
+		mutationFn: async ({ departmentId, slug, itemId }) => {
+			await masterApi.deleteCatalogItem(departmentId, slug, itemId);
 		},
-		onSuccess: (_data, { department, slug }) => invalidateMasterItems(queryClient, department, slug),
+		onSuccess: (_data, { departmentId, slug }) => invalidateMasterItems(queryClient, departmentId, slug),
 	});
 };
 

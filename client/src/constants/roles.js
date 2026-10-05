@@ -22,16 +22,12 @@ export const ASSIGNABLE_ROLES = [
 	ROLES.EMP_COMMISSION,
 ];
 
+// Roles that can open the Departments tab in Control Center.
+export const DEPARTMENT_VIEW_ROLES = [ROLES.SUPERADMIN, ROLES.ADMIN];
+
 // Roles tied to a city and a department.
 export const STAFF_ROLES = [ROLES.HOD, ROLES.EMP_PREMIUM, ROLES.EMP_COMMISSION];
-
-export const DEPARTMENTS = [
-	{ value: "gi", label: "General Insurance (GI)" },
-	{ value: "li", label: "Life Insurance (LI)" },
-];
 
 export const isSuperAdmin = (role) => role === ROLES.SUPERADMIN;
 export const isStaffRole = (role) => STAFF_ROLES.includes(role);
 export const roleLabel = (role) => ROLE_LABELS[role] || role || "";
-export const departmentLabel = (department) =>
-	DEPARTMENTS.find((d) => d.value === department)?.label || "";

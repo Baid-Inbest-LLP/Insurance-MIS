@@ -12,7 +12,7 @@ export const authenticate = asyncHandler(async (req, _res, next) => {
   const token = authHeader.split(' ')[1];
   const decoded = verifyAccessToken(token);
   const user = await User.findById(decoded.id).select(
-    'role isActive passwordChangedAt locationCity department',
+    'role isActive passwordChangedAt locationCity',
   );
 
   if (!user || !user.isActive) {
