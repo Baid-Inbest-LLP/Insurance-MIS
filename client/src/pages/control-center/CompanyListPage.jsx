@@ -64,7 +64,7 @@ export default function CompanyListPage() {
 		<div>
 			<ControlCenterToolbar
 				title="Companies"
-				subtitle={`Legal entities and branch locations · ${total} compan${total !== 1 ? "ies" : "y"}`}
+				subtitle={`Legal entities and branches · ${total} compan${total !== 1 ? "ies" : "y"}`}
 				search={search}
 				onSearchChange={setSearch}
 				searchPlaceholder="Search companies..."
@@ -101,9 +101,9 @@ export default function CompanyListPage() {
 							<div>
 								<Skeleton className="h-3 w-32 mb-3" />
 								<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-									{[0, 1, 2].map((loc) => (
+									{[0, 1, 2].map((branch) => (
 										<div
-											key={loc}
+											key={branch}
 											className="company-location-card"
 										>
 											<div className="flex items-center justify-between mb-2">
@@ -266,46 +266,46 @@ export default function CompanyListPage() {
 
 							<div>
 								<p className="company-section-label">
-									Locations
+									Branches
 								</p>
 								<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-									{company.locations?.map((loc) => (
+									{company.branches?.map((branch) => (
 										<div
-											key={loc._id}
+											key={branch._id}
 											className={`company-location-card ${
-												loc.isDefault
+												branch.isDefault
 													? "company-location-card--default"
 													: ""
 											}`}
 										>
 											<div className="flex items-center justify-between mb-1">
 												<span className="company-location-name">
-													{loc.label?.toUpperCase?.() ||
+													{branch.label?.toUpperCase?.() ||
 														""}
 												</span>
-												{loc.isDefault && (
+												{branch.isDefault && (
 													<span className="company-location-default-badge">
 														Default
 													</span>
 												)}
 											</div>
-											{loc.street && (
+											{branch.street && (
 												<p className="company-location-text">
-													{loc.street}
+													{branch.street}
 												</p>
 											)}
-											{loc.cityName && (
+											{branch.cityName && (
 												<p className="company-location-text">
-													{loc.cityName}
-													{loc.state
-														? `, ${loc.state}`
+													{branch.cityName}
+													{branch.state
+														? `, ${branch.state}`
 														: ""}{" "}
-													{loc.zipCode}
+													{branch.zipCode}
 												</p>
 											)}
-											{loc.country && (
+											{branch.country && (
 												<p className="company-location-text-muted">
-													{loc.country}
+													{branch.country}
 												</p>
 											)}
 										</div>

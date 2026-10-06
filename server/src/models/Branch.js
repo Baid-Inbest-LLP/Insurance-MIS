@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const locationSchema = new mongoose.Schema(
+const branchSchema = new mongoose.Schema(
 	{
 		company: {
 			type: mongoose.Schema.Types.ObjectId,
@@ -25,6 +25,6 @@ const locationSchema = new mongoose.Schema(
 	{ timestamps: true },
 );
 
-locationSchema.index({ company: 1, label: 1 }, { unique: true });
+branchSchema.index({ company: 1, label: 1 }, { unique: true });
 
-export const Location = mongoose.model("Location", locationSchema);
+export const Branch = mongoose.model("Branch", branchSchema);

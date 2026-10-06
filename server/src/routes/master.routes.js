@@ -25,10 +25,10 @@ router.use(authenticate);
 
 router.get('/lookups', master.getLookupData);
 
-router.get('/locations', master.locationController.list);
-router.post('/locations', authorize('superadmin'), master.locationController.create);
-router.put('/locations/:id', authorize('superadmin'), master.locationController.update);
-router.delete('/locations/:id', authorize('superadmin'), master.locationController.remove);
+router.get('/branches', master.branchController.list);
+router.post('/branches', authorize('superadmin'), master.branchController.create);
+router.put('/branches/:id', authorize('superadmin'), master.branchController.update);
+router.delete('/branches/:id', authorize('superadmin'), master.branchController.remove);
 
 router.get('/location-cities', master.getLocationCities);
 

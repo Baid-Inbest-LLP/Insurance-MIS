@@ -70,7 +70,7 @@ Users are created from **Settings** with one of these roles: `superadmin`, `admi
 | Auth      | Login, JWT access + refresh, role-based access                       |
 | Layout    | Navbar header, collapsible gradient sidebar, light/dark theme toggle |
 | Dashboard | Placeholder KPI tiles for policies, premium, claims, renewals        |
-| Companies | CRUD for companies and branch locations (Control Center)             |
+| Companies | CRUD for companies and branches (Control Center)             |
 | Settings  | User management (create/edit/deactivate/delete), change password     |
 
 ## Adding a module

@@ -1,30 +1,30 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
-import { Company, Location, LocationCity } from "../models/index.js";
+import { Company, Branch, LocationCity } from "../models/index.js";
 import { isStaffRole } from "../constants/roles.js";
-import { buildLocationName } from "../utils/locationFormat.js";
+import { buildBranchName } from "../utils/branchFormat.js";
 import { escapeRegex } from "../utils/searchUtils.js";
 
-const toLocationDto = (loc) => ({
-	_id: loc._id,
-	label: loc.label,
-	street: loc.street || "",
-	city: loc.city?._id || loc.city || "",
-	cityName: loc.city?.name || "",
-	state: loc.state || "",
-	zipCode: loc.zipCode || "",
-	country: loc.country || "",
-	isDefault: Boolean(loc.isDefault),
+const toBranchDto = (branch) => ({
+	_id: branch._id,
+	label: branch.label,
+	street: branch.street || "",
+	city: branch.city?._id || branch.city || "",
+	cityName: branch.city?.name || "",
+	state: branch.state || "",
+	zipCode: branch.zipCode || "",
+	country: branch.country || "",
+	isDefault: Boolean(branch.isDefault),
 });
 
-const toPublicCompany = (company, locations = []) => {
+const toPublicCompany = (company, branches = []) => {
 	const doc = company?.toObject ? company.toObject() : { ...company };
 	const { code, ...rest } = doc;
 	return {
 		...rest,
 		companyCode: code,
-		locations: locations.map(toLocationDto),
+		branches: branches.map(toBranchDto),
 	};
 };
 
@@ -37,8 +37,8 @@ const normalizeCompanyFields = (body = {}) => ({
 	isActive: body.isActive !== false,
 });
 
-const loadCompanyLocations = (companyId) =>
-	Location.find({ company: companyId, isActive: true })
+const loadCompanyBranches = (companyId) =>
+	Branch.find({ company: companyId, isActive: true })
 		.sort({ isDefault: -1, label: 1 })
 		.populate("city", "name")
 		.lean();
@@ -46,66 +46,66 @@ const loadCompanyLocations = (companyId) =>
 const assertActiveLocationCity = async (cityId) => {
 	const exists = await LocationCity.exists({ _id: cityId, isActive: true });
 	if (!exists)
-		throw ApiError.badRequest("A valid city is required for each location");
+		throw ApiError.badRequest("A valid city is required for each branch");
 };
 
-const syncLocations = async (companyId, locations = []) => {
-	if (!locations.length) {
-		throw ApiError.badRequest("At least one location is required");
+const syncBranches = async (companyId, branches = []) => {
+	if (!branches.length) {
+		throw ApiError.badRequest("At least one branch is required");
 	}
 
 	await Promise.all(
-		locations.map((loc) => assertActiveLocationCity(loc.city)),
+		branches.map((branch) => assertActiveLocationCity(branch.city)),
 	);
 
-	const existing = await Location.find({ company: companyId })
+	const existing = await Branch.find({ company: companyId })
 		.select("_id")
 		.lean();
 	const incomingIds = new Set(
-		locations.filter((l) => l._id).map((l) => String(l._id)),
+		branches.filter((l) => l._id).map((l) => String(l._id)),
 	);
 	const remainingCount =
 		existing.filter((l) => incomingIds.has(String(l._id))).length +
-		locations.filter((l) => !l._id).length;
+		branches.filter((l) => !l._id).length;
 
 	if (remainingCount < 1) {
-		throw ApiError.badRequest("Company must have at least one location");
+		throw ApiError.badRequest("Company must have at least one branch");
 	}
 
 	const idsToDelete = existing
 		.filter((l) => !incomingIds.has(String(l._id)))
 		.map((l) => l._id);
 	if (idsToDelete.length) {
-		await Location.deleteMany({ _id: { $in: idsToDelete } });
+		await Branch.deleteMany({ _id: { $in: idsToDelete } });
 	}
 
-	const firstDefaultIndex = locations.findIndex((l) => l.isDefault);
+	const firstDefaultIndex = branches.findIndex((l) => l.isDefault);
 	const defaultIndex = firstDefaultIndex === -1 ? 0 : firstDefaultIndex;
-	const normalizedLocations = locations.map((loc, index) => ({
-		...loc,
+	const normalizedBranches = branches.map((branch, index) => ({
+		...branch,
 		isDefault: index === defaultIndex,
 	}));
 
 	const updates = [];
 	const creates = [];
-	for (const loc of normalizedLocations) {
+	for (const branch of normalizedBranches) {
 		const payload = {
 			company: companyId,
-			label: String(loc.label || "").trim(),
-			name: buildLocationName(loc.label),
-			code: String(loc.label || "").trim(),
-			street: loc.street?.trim() || "",
-			city: loc.city,
-			state: loc.state?.trim() || "",
-			zipCode: loc.zipCode?.trim() || "",
-			country: loc.country?.trim() || "India",
-			isDefault: Boolean(loc.isDefault),
+			label: String(branch.label || "").trim(),
+			name: buildBranchName(branch.label),
+			code: String(branch.label || "").trim(),
+			street: branch.street?.trim() || "",
+			city: branch.city,
+			state: branch.state?.trim() || "",
+			zipCode: branch.zipCode?.trim() || "",
+			country: branch.country?.trim() || "India",
+			isDefault: Boolean(branch.isDefault),
 			isActive: true,
 		};
 
-		if (loc._id) {
+		if (branch._id) {
 			updates.push(
-				Location.findByIdAndUpdate(loc._id, payload, {
+				Branch.findByIdAndUpdate(branch._id, payload, {
 					runValidators: true,
 				}),
 			);
@@ -116,7 +116,7 @@ const syncLocations = async (companyId, locations = []) => {
 
 	await Promise.all([
 		...updates,
-		...(creates.length ? [Location.insertMany(creates)] : []),
+		...(creates.length ? [Branch.insertMany(creates)] : []),
 	]);
 };
 
@@ -140,7 +140,7 @@ export const getCompanies = asyncHandler(async (req, res) => {
 	const scopedCity = isStaffRole(req.user.role) ? req.user.locationCity : null;
 
 	if (scopedCity) {
-		const visibleCompanyIds = await Location.distinct("company", {
+		const visibleCompanyIds = await Branch.distinct("company", {
 			city: scopedCity,
 			isActive: true,
 		});
@@ -155,23 +155,23 @@ export const getCompanies = asyncHandler(async (req, res) => {
 		.lean();
 
 	const companyIds = companies.map((c) => c._id);
-	const locationFilter = { company: { $in: companyIds }, isActive: true };
-	if (scopedCity) locationFilter.city = scopedCity;
+	const branchFilter = { company: { $in: companyIds }, isActive: true };
+	if (scopedCity) branchFilter.city = scopedCity;
 
-	const locationDocs = await Location.find(locationFilter)
+	const branchDocs = await Branch.find(branchFilter)
 		.sort({ isDefault: -1, label: 1 })
 		.populate("city", "name")
 		.lean();
 
-	const locationsByCompany = locationDocs.reduce((acc, loc) => {
-		const key = String(loc.company);
+	const branchesByCompany = branchDocs.reduce((acc, branch) => {
+		const key = String(branch.company);
 		if (!acc[key]) acc[key] = [];
-		acc[key].push(loc);
+		acc[key].push(branch);
 		return acc;
 	}, {});
 
 	const payload = companies.map((company) =>
-		toPublicCompany(company, locationsByCompany[String(company._id)] || []),
+		toPublicCompany(company, branchesByCompany[String(company._id)] || []),
 	);
 
 	ApiResponse.paginated(res, payload, {
@@ -183,27 +183,27 @@ export const getCompanies = asyncHandler(async (req, res) => {
 });
 
 export const createCompany = asyncHandler(async (req, res) => {
-	const { locations = [], ...companyBody } = req.body;
+	const { branches = [], ...companyBody } = req.body;
 	const fields = normalizeCompanyFields(companyBody);
 
 	const company = await Company.create(fields);
 	try {
-		await syncLocations(company._id, locations);
+		await syncBranches(company._id, branches);
 	} catch (err) {
 		await Company.findByIdAndDelete(company._id);
 		if (err instanceof ApiError) throw err;
 		throw ApiError.badRequest(err.message || "Failed to create company");
 	}
 
-	const locs = await loadCompanyLocations(company._id);
-	ApiResponse.created(res, toPublicCompany(company, locs), "Company created");
+	const savedBranches = await loadCompanyBranches(company._id);
+	ApiResponse.created(res, toPublicCompany(company, savedBranches), "Company created");
 });
 
 export const updateCompany = asyncHandler(async (req, res) => {
 	const company = await Company.findById(req.params.id);
 	if (!company) throw ApiError.notFound("Company not found");
 
-	const { locations, ...companyBody } = req.body;
+	const { branches, ...companyBody } = req.body;
 	Object.assign(
 		company,
 		normalizeCompanyFields({ ...company.toObject(), ...companyBody }),
@@ -211,19 +211,19 @@ export const updateCompany = asyncHandler(async (req, res) => {
 
 	await company.save();
 
-	if (Array.isArray(locations)) {
-		await syncLocations(company._id, locations);
+	if (Array.isArray(branches)) {
+		await syncBranches(company._id, branches);
 	}
 
-	const locs = await loadCompanyLocations(company._id);
-	ApiResponse.success(res, toPublicCompany(company, locs), "Company updated");
+	const savedBranches = await loadCompanyBranches(company._id);
+	ApiResponse.success(res, toPublicCompany(company, savedBranches), "Company updated");
 });
 
 export const deleteCompany = asyncHandler(async (req, res) => {
 	const company = await Company.findById(req.params.id);
 	if (!company) throw ApiError.notFound("Company not found");
 
-	await Location.deleteMany({ company: company._id });
+	await Branch.deleteMany({ company: company._id });
 	await Company.findByIdAndDelete(company._id);
 	ApiResponse.success(res, null, "Company deleted successfully");
 });

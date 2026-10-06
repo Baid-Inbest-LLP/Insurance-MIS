@@ -25,7 +25,7 @@ export default function ControlCenterLayout() {
       <PageBanner
         className="mb-4"
         title="Control Center"
-        subtitle="Legal entities, branch locations, and master data"
+        subtitle="Legal entities, branches, and master data"
       />
 
       <div className="control-center-tabs-shell mb-4">

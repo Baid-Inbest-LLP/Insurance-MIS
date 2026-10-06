@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import { Company, Location, LocationCity, User } from "../models/index.js";
-import { normalizeBranchLabel } from "../utils/locationFormat.js";
+import { Company, Branch, LocationCity, User } from "../models/index.js";
+import { normalizeBranchLabel } from "../utils/branchFormat.js";
 import { ApiError } from "../utils/ApiError.js";
 import {
 	ROLES,
@@ -42,7 +42,7 @@ const crud = (Model, name) => ({
 	}),
 });
 
-export const locationController = crud(Location, "Location");
+export const branchController = crud(Branch, "Branch");
 
 // City-scoped roles only see their own assigned locationCity; other roles see every active locationCity.
 export const getLocationCities = asyncHandler(async (req, res) => {
@@ -58,30 +58,30 @@ export const getLocationCities = asyncHandler(async (req, res) => {
 });
 
 export const getLookupData = asyncHandler(async (_req, res) => {
-	const [companies, locationDocs] = await Promise.all([
+	const [companies, branchDocs] = await Promise.all([
 		Company.find({ isActive: true })
 			.select("name code")
 			.sort({ name: 1 })
 			.lean(),
-		Location.find({ isActive: true })
+		Branch.find({ isActive: true })
 			.populate("company", "name")
 			.select("name label company isDefault")
 			.sort({ label: 1 })
 			.lean(),
 	]);
 
-	const companyLocations = {};
-	for (const loc of locationDocs) {
-		const companyName = loc.company?.name;
+	const companyBranches = {};
+	for (const branch of branchDocs) {
+		const companyName = branch.company?.name;
 		if (!companyName) continue;
-		if (!companyLocations[companyName]) companyLocations[companyName] = [];
-		const branchLabel = normalizeBranchLabel(loc.label);
-		if (branchLabel) companyLocations[companyName].push(branchLabel);
+		if (!companyBranches[companyName]) companyBranches[companyName] = [];
+		const branchLabel = normalizeBranchLabel(branch.label);
+		if (branchLabel) companyBranches[companyName].push(branchLabel);
 	}
 
 	const branchLabels = [
 		...new Set(
-			locationDocs
+			branchDocs
 				.map((l) => normalizeBranchLabel(l.label))
 				.filter(Boolean),
 		),
@@ -94,8 +94,8 @@ export const getLookupData = asyncHandler(async (_req, res) => {
 				.filter((c) => c.name && c.code)
 				.map((c) => [c.name, c.code]),
 		),
-		locations: branchLabels,
-		companyLocations,
+		branches: branchLabels,
+		companyBranches,
 		paymentMethods: ["Bank", "Cash", "UPI", "Debit/Credit Card"],
 		roles: USER_ROLES,
 		months: [

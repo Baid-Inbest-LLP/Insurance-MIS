@@ -1,13 +1,13 @@
 import api from "./axios";
 
 export const masterApi = {
-	locations: () => api.get("/masters/locations"),
+	branches: () => api.get("/masters/branches"),
 	locationCities: () => api.get("/masters/location-cities"),
 	departments: (params) => api.get("/masters/departments", { params }),
 	createDepartment: (data) => api.post("/masters/departments", data),
 	updateDepartment: (id, data) => api.put(`/masters/departments/${id}`, data),
 	users: () => api.get("/masters/users"),
-	createLocation: (data) => api.post("/masters/locations", data),
+	createBranch: (data) => api.post("/masters/branches", data),
 	updateUser: (id, data) => api.put(`/masters/users/${id}`, data),
 	deleteUser: (id) => api.delete(`/masters/users/${id}`),
 	resetUserPassword: (id) => api.post(`/masters/users/${id}/reset-password`),

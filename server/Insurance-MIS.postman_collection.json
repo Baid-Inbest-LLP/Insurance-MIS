@@ -1,7 +1,7 @@
 {
 	"info": {
 		"name": "Insurance MIS API",
-		"description": "All Insurance MIS endpoints, grouped by section.\n\n1. Start the server (default http://localhost:5004).\n2. Run Auth > Login as superadmin. It stores accessToken and refreshToken as collection variables.\n3. Every other request inherits Bearer {{accessToken}} from the collection.\n4. List/create requests store ids (companyId, locationId, userId, itemId, cityId) for the requests that follow them.\n\nEdit the variables (baseUrl, department, slug, credentials) on the collection's Variables tab.",
+		"description": "All Insurance MIS endpoints, grouped by section.\n\n1. Start the server (default http://localhost:5004).\n2. Run Auth > Login as superadmin. It stores accessToken and refreshToken as collection variables.\n3. Every other request inherits Bearer {{accessToken}} from the collection.\n4. List/create requests store ids (companyId, branchId, userId, itemId, cityId) for the requests that follow them.\n\nEdit the variables (baseUrl, department, slug, credentials) on the collection's Variables tab.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"auth": {
@@ -49,7 +49,7 @@
 			"value": ""
 		},
 		{
-			"key": "locationId",
+			"key": "branchId",
 			"value": ""
 		},
 		{
@@ -366,7 +366,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"name\": \"Sample Insurance Co\",\n  \"companyCode\": \"SIC\",\n  \"email\": \"info@sample-insurance.test\",\n  \"phone\": \"9000000000\",\n  \"taxId\": \"ABCDE1234F\",\n  \"isActive\": true,\n  \"locations\": [\n    {\n      \"label\": \"Head Office\",\n      \"street\": \"1 Main Road\",\n      \"city\": \"{{cityId}}\",\n      \"state\": \"West Bengal\",\n      \"zipCode\": \"700001\",\n      \"country\": \"India\",\n      \"isDefault\": true\n    }\n  ]\n}",
+									"raw": "{\n  \"name\": \"Sample Insurance Co\",\n  \"companyCode\": \"SIC\",\n  \"email\": \"info@sample-insurance.test\",\n  \"phone\": \"9000000000\",\n  \"taxId\": \"ABCDE1234F\",\n  \"isActive\": true,\n  \"branches\": [\n    {\n      \"label\": \"Head Office\",\n      \"street\": \"1 Main Road\",\n      \"city\": \"{{cityId}}\",\n      \"state\": \"West Bengal\",\n      \"zipCode\": \"700001\",\n      \"country\": \"India\",\n      \"isDefault\": true\n    }\n  ]\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -382,7 +382,7 @@
 										"companies"
 									]
 								},
-								"description": "Run Masters > Location cities first so {{cityId}} is set. At least one location is required."
+								"description": "Run Masters > Location cities first so {{cityId}} is set. At least one branch is required."
 							}
 						},
 						{
@@ -414,7 +414,7 @@
 										"{{companyId}}"
 									]
 								},
-								"description": "Omit \"locations\" to leave branches untouched. If sent, the array replaces the full set."
+								"description": "Omit \"branches\" to leave branches untouched. If sent, the array replaces the full set."
 							}
 						},
 						{
@@ -437,10 +437,10 @@
 					]
 				},
 				{
-					"name": "Locations (branches)",
+					"name": "Branches",
 					"item": [
 						{
-							"name": "List locations",
+							"name": "List branches",
 							"event": [
 								{
 									"listen": "test",
@@ -448,7 +448,7 @@
 										"type": "text/javascript",
 										"exec": [
 											"const body = pm.response.json();",
-											"if (body.success && body.data.length) pm.collectionVariables.set('locationId', body.data[0]._id);"
+											"if (body.success && body.data.length) pm.collectionVariables.set('branchId', body.data[0]._id);"
 										]
 									}
 								}
@@ -457,13 +457,13 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{baseUrl}}/masters/locations?activeOnly=false",
+									"raw": "{{baseUrl}}/masters/branches?activeOnly=false",
 									"host": [
 										"{{baseUrl}}"
 									],
 									"path": [
 										"masters",
-										"locations"
+										"branches"
 									],
 									"query": [
 										{
@@ -475,7 +475,7 @@
 							}
 						},
 						{
-							"name": "Create location (superadmin)",
+							"name": "Create branch (superadmin)",
 							"event": [
 								{
 									"listen": "test",
@@ -483,7 +483,7 @@
 										"type": "text/javascript",
 										"exec": [
 											"const body = pm.response.json();",
-											"if (body.success) pm.collectionVariables.set('locationId', body.data._id);"
+											"if (body.success) pm.collectionVariables.set('branchId', body.data._id);"
 										]
 									}
 								}
@@ -506,19 +506,19 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseUrl}}/masters/locations",
+									"raw": "{{baseUrl}}/masters/branches",
 									"host": [
 										"{{baseUrl}}"
 									],
 									"path": [
 										"masters",
-										"locations"
+										"branches"
 									]
 								}
 							}
 						},
 						{
-							"name": "Update location (superadmin)",
+							"name": "Update branch (superadmin)",
 							"request": {
 								"method": "PUT",
 								"header": [
@@ -537,32 +537,32 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseUrl}}/masters/locations/{{locationId}}",
+									"raw": "{{baseUrl}}/masters/branches/{{branchId}}",
 									"host": [
 										"{{baseUrl}}"
 									],
 									"path": [
 										"masters",
-										"locations",
-										"{{locationId}}"
+										"branches",
+										"{{branchId}}"
 									]
 								}
 							}
 						},
 						{
-							"name": "Delete location (superadmin)",
+							"name": "Delete branch (superadmin)",
 							"request": {
 								"method": "DELETE",
 								"header": [],
 								"url": {
-									"raw": "{{baseUrl}}/masters/locations/{{locationId}}",
+									"raw": "{{baseUrl}}/masters/branches/{{branchId}}",
 									"host": [
 										"{{baseUrl}}"
 									],
 									"path": [
 										"masters",
-										"locations",
-										"{{locationId}}"
+										"branches",
+										"{{branchId}}"
 									]
 								}
 							}

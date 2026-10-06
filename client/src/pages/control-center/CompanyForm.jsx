@@ -12,7 +12,7 @@ const PHONE_REGEX = /^(\+91|91)?[6-9]\d{9}$/;
 const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const emptyLocation = (isFirst = false) => ({
+const emptyBranch = (isFirst = false) => ({
   label: isFirst ? 'HQ' : '',
   street: '',
   city: '',
@@ -29,9 +29,9 @@ const buildDefaultValues = (company) => ({
   phone: company?.phone || '',
   taxId: company?.taxId || '',
   isActive: company ? company.isActive !== false : true,
-  locations: company?.locations?.length
-    ? company.locations.map((l) => ({ ...l, label: (l.label || '').toUpperCase() }))
-    : [emptyLocation(true)],
+  branches: company?.branches?.length
+    ? company.branches.map((l) => ({ ...l, label: (l.label || '').toUpperCase() }))
+    : [emptyBranch(true)],
 });
 
 export default function CompanyForm({ company, onClose }) {
@@ -50,14 +50,14 @@ export default function CompanyForm({ company, onClose }) {
     formState: { errors },
   } = useForm({ defaultValues: buildDefaultValues(company) });
 
-  const { fields, append, remove } = useFieldArray({ control, name: 'locations' });
+  const { fields, append, remove } = useFieldArray({ control, name: 'branches' });
   // fields[] only holds each row's initial values; watch for the live values (badges, headers).
-  const locations = useWatch({ control, name: 'locations' }) || [];
+  const branches = useWatch({ control, name: 'branches' }) || [];
 
-  const cityOptionsFor = (loc) => {
+  const cityOptionsFor = (branch) => {
     const options = [...locationCities];
-    if (loc.city && !options.some((c) => c._id === loc.city)) {
-      options.push({ _id: loc.city, name: loc.cityName || '' });
+    if (branch.city && !options.some((c) => c._id === branch.city)) {
+      options.push({ _id: branch.city, name: branch.cityName || '' });
     }
     return options;
   };
@@ -74,20 +74,20 @@ export default function CompanyForm({ company, onClose }) {
   };
 
   const setDefault = (idx) => {
-    locations.forEach((_, i) => setValue(`locations.${i}.isDefault`, i === idx));
+    branches.forEach((_, i) => setValue(`branches.${i}.isDefault`, i === idx));
   };
 
-  const addLocation = () => append(emptyLocation(false));
+  const addBranch = () => append(emptyBranch(false));
 
-  const removeLocation = (idx) => {
+  const removeBranch = (idx) => {
     if (fields.length <= 1) {
-      notifications.show({ message: 'At least one location required', color: 'red' });
+      notifications.show({ message: 'At least one branch required', color: 'red' });
       return;
     }
     remove(idx);
-    const remaining = getValues('locations');
+    const remaining = getValues('branches');
     if (remaining.length && !remaining.some((l) => l.isDefault)) {
-      setValue('locations.0.isDefault', true);
+      setValue('branches.0.isDefault', true);
     }
   };
 
@@ -127,7 +127,7 @@ export default function CompanyForm({ company, onClose }) {
       gap="lg"
       title={isEdit ? 'Edit Company' : 'Add New Company'}
       subtitle={
-        isEdit ? 'Update company info and locations' : 'Add company details and branch locations'
+        isEdit ? 'Update company info and branches' : 'Add company details and branches'
       }
       onClose={onClose}
       onSubmit={handleSubmit(onSubmit)}
@@ -201,41 +201,41 @@ export default function CompanyForm({ company, onClose }) {
       </FormSection>
 
       <FormSection
-        title="Locations / Branch Addresses"
-        hint="Add one or more locations for this company"
+        title="Branches"
+        hint="Add one or more branches for this company"
         action={
-          <button type="button" onClick={addLocation} className="btn-secondary text-xs py-1.5 px-3">
-            + Add Location
+          <button type="button" onClick={addBranch} className="btn-secondary text-xs py-1.5 px-3">
+            + Add Branch
           </button>
         }
       >
         <div className="space-y-4">
           {fields.map((field, idx) => {
-            const loc = locations[idx] || field;
-            const locErrors = errors.locations?.[idx] || {};
+            const branch = branches[idx] || field;
+            const branchErrors = errors.branches?.[idx] || {};
             return (
               <div
                 key={field.id}
                 className={`company-location-form-card ${
-                  loc.isDefault ? 'company-location-form-card--default' : ''
+                  branch.isDefault ? 'company-location-form-card--default' : ''
                 }`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div
                       className={`company-location-index ${
-                        loc.isDefault ? 'company-location-index--default' : ''
+                        branch.isDefault ? 'company-location-index--default' : ''
                       }`}
                     >
                       {idx + 1}
                     </div>
                     <span className="company-location-form-title">
-                      {(loc.label || `Location ${idx + 1}`)?.toUpperCase?.()}
+                      {(branch.label || `Branch ${idx + 1}`)?.toUpperCase?.()}
                     </span>
-                    {loc.isDefault && <span className="company-location-default-pill">Default</span>}
+                    {branch.isDefault && <span className="company-location-default-pill">Default</span>}
                   </div>
                   <div className="flex items-center gap-2">
-                    {!loc.isDefault && (
+                    {!branch.isDefault && (
                       <button
                         type="button"
                         onClick={() => setDefault(idx)}
@@ -247,7 +247,7 @@ export default function CompanyForm({ company, onClose }) {
                     {fields.length > 1 && (
                       <button
                         type="button"
-                        onClick={() => removeLocation(idx)}
+                        onClick={() => removeBranch(idx)}
                         className="company-location-remove-btn"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -264,33 +264,33 @@ export default function CompanyForm({ company, onClose }) {
                 </div>
 
                 <FormGrid columns={2} gap="sm">
-                  <FormField label="Location Name" required error={locErrors.label} span="full">
+                  <FormField label="Branch Name" required error={branchErrors.label} span="full">
                     <input
-                      className={inputCls(locErrors.label)}
+                      className={inputCls(branchErrors.label)}
                       placeholder='e.g. "HQ", "BRO 1"'
-                      {...registerUpper(`locations.${idx}.label`, {
-                        required: 'Location name is required',
+                      {...registerUpper(`branches.${idx}.label`, {
+                        required: 'Branch name is required',
                       })}
                     />
                   </FormField>
 
-                  <FormField label="Street Address" required error={locErrors.street} span="full">
+                  <FormField label="Street Address" required error={branchErrors.street} span="full">
                     <input
-                      className={inputCls(locErrors.street)}
+                      className={inputCls(branchErrors.street)}
                       placeholder="123 Main Street"
-                      {...register(`locations.${idx}.street`, {
+                      {...register(`branches.${idx}.street`, {
                         required: 'Street address is required',
                       })}
                     />
                   </FormField>
 
-                  <FormField label="City" required error={locErrors.city}>
+                  <FormField label="City" required error={branchErrors.city}>
                     <select
-                      className={inputCls(locErrors.city)}
-                      {...register(`locations.${idx}.city`, { required: 'City is required' })}
+                      className={inputCls(branchErrors.city)}
+                      {...register(`branches.${idx}.city`, { required: 'City is required' })}
                     >
                       <option value="">Select city</option>
-                      {cityOptionsFor(loc).map((c) => (
+                      {cityOptionsFor(branch).map((c) => (
                         <option key={c._id} value={c._id}>
                           {c.name}
                         </option>
@@ -298,27 +298,27 @@ export default function CompanyForm({ company, onClose }) {
                     </select>
                   </FormField>
 
-                  <FormField label="State / Province" required error={locErrors.state}>
+                  <FormField label="State / Province" required error={branchErrors.state}>
                     <input
-                      className={inputCls(locErrors.state)}
+                      className={inputCls(branchErrors.state)}
                       placeholder="State"
-                      {...register(`locations.${idx}.state`, { required: 'State is required' })}
+                      {...register(`branches.${idx}.state`, { required: 'State is required' })}
                     />
                   </FormField>
 
-                  <FormField label="ZIP / Postal Code" required error={locErrors.zipCode}>
+                  <FormField label="ZIP / Postal Code" required error={branchErrors.zipCode}>
                     <input
-                      className={inputCls(locErrors.zipCode)}
+                      className={inputCls(branchErrors.zipCode)}
                       placeholder="ZIP Code"
-                      {...register(`locations.${idx}.zipCode`, { required: 'ZIP code is required' })}
+                      {...register(`branches.${idx}.zipCode`, { required: 'ZIP code is required' })}
                     />
                   </FormField>
 
-                  <FormField label="Country" required error={locErrors.country}>
+                  <FormField label="Country" required error={branchErrors.country}>
                     <input
-                      className={inputCls(locErrors.country)}
+                      className={inputCls(branchErrors.country)}
                       placeholder="Country"
-                      {...register(`locations.${idx}.country`, { required: 'Country is required' })}
+                      {...register(`branches.${idx}.country`, { required: 'Country is required' })}
                     />
                   </FormField>
                 </FormGrid>
