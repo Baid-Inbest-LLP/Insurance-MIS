@@ -13,6 +13,8 @@ import { getApiErrorMessage } from "../../lib/queryClient";
 import ControlCenterToolbar from "./ControlCenterToolbar";
 import ConfirmModal from "../../components/common/ConfirmModal";
 import RowActions from "../../components/common/RowActions";
+import FormField from "../../components/common/form/FormField";
+import FormModal from "../../components/common/form/FormModal";
 import Skeleton from "../../components/common/Skeleton";
 
 const EMPTY_FORM = { name: "", departmentId: "", isActive: true };
@@ -233,150 +235,74 @@ export default function CatalogListPage({ slug, title }) {
 				onCancel={() => setConfirmDelete(null)}
 			/>
 
-			{editing && (
-				<div
-					className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-					onClick={isSubmitting ? undefined : closeModal}
-				>
-					<div
-						className="company-form-panel max-w-lg"
-						role="dialog"
-						aria-modal="true"
-						aria-labelledby="catalog-modal-title"
-						onClick={(e) => e.stopPropagation()}
-					>
-						<div className="company-form-header">
-							<div>
-								<h2 id="catalog-modal-title" className="company-form-title">
-									{isNew ? `Add ${title}` : `Edit ${title}`}
-								</h2>
-								<p className="company-form-subtitle">
-									{isNew ? "Choose the department and enter a name" : department?.name}
-								</p>
-							</div>
-							<button
-								type="button"
-								onClick={closeModal}
-								disabled={isSubmitting}
-								className="company-form-close-btn"
-								aria-label="Close"
-							>
-								<svg
-									className="w-5 h-5"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-								>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M6 18L18 6M6 6l12 12"
-									/>
-								</svg>
-							</button>
-						</div>
+			<FormModal
+				open={Boolean(editing)}
+				title={isNew ? `Add ${title}` : `Edit ${title}`}
+				subtitle={isNew ? "Enter a name and choose the department" : department?.name}
+				onClose={closeModal}
+				onSubmit={handleSubmit(onSubmit)}
+				submitting={isSubmitting}
+				submitLabel={isNew ? `Add ${title}` : "Save changes"}
+			>
+				<FormField label="Name" error={errors.name}>
+					<input
+						className="input-field"
+						placeholder={`Enter ${title.toLowerCase()}`}
+						{...register("name", {
+							required: "Name is required",
+							maxLength: {
+								value: 120,
+								message: "Name must not exceed 120 characters",
+							},
+						})}
+					/>
+				</FormField>
 
-						<form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
-							<div>
-								<label className="company-form-field-label">Name</label>
-								<input
+				<FormField label="Department" error={errors.departmentId}>
+					{isNew ? (
+						<select
+							className="input-field"
+							{...register("departmentId", {
+								required: "Department is required",
+							})}
+						>
+							<option value="">Select department</option>
+							{activeDepartments.map((d) => (
+								<option key={d._id} value={d._id}>
+									{d.name}
+								</option>
+							))}
+						</select>
+					) : (
+						<input
+							className="input-field"
+							value={department?.name ?? ""}
+							disabled
+							readOnly
+						/>
+					)}
+				</FormField>
+
+				{!isNew && (
+					<FormField label="Status">
+						<Controller
+							name="isActive"
+							control={control}
+							render={({ field }) => (
+								<select
 									className="input-field"
-									placeholder={`Enter ${title.toLowerCase()}`}
-									{...register("name", {
-										required: "Name is required",
-										maxLength: {
-											value: 120,
-											message: "Name must not exceed 120 characters",
-										},
-									})}
-								/>
-								{errors.name && (
-									<p className="text-red-500 text-xs mt-1">
-										{errors.name.message}
-									</p>
-								)}
-							</div>
-
-							<div>
-								<label className="company-form-field-label">Department</label>
-								{isNew ? (
-									<select
-										className="input-field"
-										{...register("departmentId", {
-											required: "Department is required",
-										})}
-									>
-										<option value="">Select department</option>
-										{activeDepartments.map((d) => (
-											<option key={d._id} value={d._id}>
-												{d.name}
-											</option>
-										))}
-									</select>
-								) : (
-									<input
-										className="input-field"
-										value={department?.name ?? ""}
-										disabled
-										readOnly
-									/>
-								)}
-								{errors.departmentId && (
-									<p className="text-red-500 text-xs mt-1">
-										{errors.departmentId.message}
-									</p>
-								)}
-							</div>
-
-							{!isNew && (
-								<div>
-									<label className="company-form-field-label">Status</label>
-									<Controller
-										name="isActive"
-										control={control}
-										render={({ field }) => (
-											<select
-												className="input-field"
-												value={field.value ? "true" : "false"}
-												onChange={(e) =>
-													field.onChange(e.target.value === "true")
-												}
-												disabled={isSubmitting}
-											>
-												<option value="true">Active</option>
-												<option value="false">Inactive</option>
-											</select>
-										)}
-									/>
-								</div>
+									value={field.value ? "true" : "false"}
+									onChange={(e) => field.onChange(e.target.value === "true")}
+									disabled={isSubmitting}
+								>
+									<option value="true">Active</option>
+									<option value="false">Inactive</option>
+								</select>
 							)}
-
-							<div className="company-form-footer">
-								<button
-									type="button"
-									onClick={closeModal}
-									disabled={isSubmitting}
-									className="btn-secondary"
-								>
-									Cancel
-								</button>
-								<button
-									type="submit"
-									disabled={isSubmitting}
-									className="btn-primary"
-								>
-									{isSubmitting
-										? "Saving..."
-										: isNew
-											? `Add ${title}`
-											: "Save changes"}
-								</button>
-							</div>
-						</form>
-					</div>
-				</div>
-			)}
+						/>
+					</FormField>
+				)}
+			</FormModal>
 		</div>
 	);
 }

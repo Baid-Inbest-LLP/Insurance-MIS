@@ -1,9 +1,11 @@
-// Location and department selects, shown for roles tied to a city and a department.
-export default function StaffFields({ register, errors, cities, departments }) {
+import { Controller } from 'react-hook-form';
+import FormField from '../../components/common/form/FormField';
+
+// Location select and department checkboxes, shown for roles tied to a city and departments.
+export default function StaffFields({ register, control, errors, cities, departments }) {
   return (
     <>
-      <div>
-        <label className="company-form-field-label">Location</label>
+      <FormField label="Location" error={errors.locationCity}>
         <select
           className="input-field"
           {...register('locationCity', { required: 'Location is required' })}
@@ -15,28 +17,36 @@ export default function StaffFields({ register, errors, cities, departments }) {
             </option>
           ))}
         </select>
-        {errors.locationCity && (
-          <p className="text-red-500 text-xs mt-1">{errors.locationCity.message}</p>
-        )}
-      </div>
+      </FormField>
 
-      <div>
-        <label className="company-form-field-label">Department</label>
-        <select
-          className="input-field"
-          {...register('department', { required: 'Department is required' })}
-        >
-          <option value="">Select department</option>
-          {departments.map((d) => (
-            <option key={d._id} value={d._id}>
-              {d.name}
-            </option>
-          ))}
-        </select>
-        {errors.department && (
-          <p className="text-red-500 text-xs mt-1">{errors.department.message}</p>
-        )}
-      </div>
+      <FormField label="Departments" error={errors.departments}>
+        <Controller
+          name="departments"
+          control={control}
+          rules={{ validate: (ids) => ids.length > 0 || 'Select at least one department' }}
+          render={({ field }) => (
+            <div className="checkbox-group">
+              {departments.length === 0 && <p className="text-gray-400">No active departments</p>}
+              {departments.map((d) => (
+                <label key={d._id} className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={field.value.includes(d._id)}
+                    onChange={() =>
+                      field.onChange(
+                        field.value.includes(d._id)
+                          ? field.value.filter((id) => id !== d._id)
+                          : [...field.value, d._id],
+                      )
+                    }
+                  />
+                  {d.name}
+                </label>
+              ))}
+            </div>
+          )}
+        />
+      </FormField>
     </>
   );
 }

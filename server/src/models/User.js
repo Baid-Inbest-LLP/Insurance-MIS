@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
-import { USER_ROLES, isStaffRole } from "../constants/roles.js";
+import { ROLES, USER_ROLES, isStaffRole } from "../constants/roles.js";
 
 const userSchema = new mongoose.Schema(
 	{
@@ -26,13 +26,15 @@ const userSchema = new mongoose.Schema(
 			},
 			default: null,
 		},
-		department: {
-			type: mongoose.Schema.Types.ObjectId,
-			ref: "Department",
-			required() {
-				return isStaffRole(this.role);
+		departments: {
+			type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Department" }],
+			default: [],
+			validate: {
+				validator(departments) {
+					return !isStaffRole(this.role) || departments.length > 0;
+				},
+				message: "At least one department is required for this role",
 			},
-			default: null,
 		},
 		isActive: { type: Boolean, default: true },
 		// Mixed: legacy string or string[] of active refresh tokens (multi-session).
@@ -46,6 +48,14 @@ const userSchema = new mongoose.Schema(
 
 userSchema.index({ role: 1 });
 userSchema.index({ locationCity: 1 });
+// One active HOD per department: no two active HODs can share a department.
+userSchema.index(
+	{ departments: 1 },
+	{
+		unique: true,
+		partialFilterExpression: { role: ROLES.HOD, isActive: true },
+	},
+);
 
 userSchema.pre("save", async function hashPassword(next) {
 	if (!this.isModified("password")) return next();

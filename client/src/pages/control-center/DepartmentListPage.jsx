@@ -10,6 +10,8 @@ import {
 import { getApiErrorMessage } from "../../lib/queryClient";
 import ControlCenterToolbar from "./ControlCenterToolbar";
 import RowActions from "../../components/common/RowActions";
+import FormField from "../../components/common/form/FormField";
+import FormModal from "../../components/common/form/FormModal";
 import Skeleton from "../../components/common/Skeleton";
 
 const CODE_PATTERN = /^[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*$/;
@@ -174,149 +176,72 @@ export default function DepartmentListPage() {
 				)}
 			</div>
 
-			{editing && (
-				<div
-					className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-					onClick={isSubmitting ? undefined : closeModal}
+			<FormModal
+				open={Boolean(editing)}
+				title={isNew ? "Add Department" : "Edit Department"}
+				subtitle={
+					isNew
+						? "Create a new department"
+						: "Update the name, code or status of this department"
+				}
+				onClose={closeModal}
+				onSubmit={handleSubmit(onSubmit)}
+				submitting={isSubmitting}
+				submitLabel={isNew ? "Add Department" : "Save changes"}
+			>
+				<FormField label="Name" error={errors.name}>
+					<input
+						className="input-field"
+						placeholder="e.g. General Insurance"
+						{...register("name", { required: "Name is required" })}
+					/>
+				</FormField>
+
+				<FormField
+					label="Code"
+					error={errors.code}
+					hint="A short unique key, saved in capitals."
 				>
-					<div
-						className="company-form-panel max-w-lg"
-						role="dialog"
-						aria-modal="true"
-						aria-labelledby="department-modal-title"
-						onClick={(e) => e.stopPropagation()}
+					<input
+						className="input-field"
+						placeholder="e.g. GI"
+						{...register("code", {
+							required: "Code is required",
+							maxLength: {
+								value: 20,
+								message: "Code must not exceed 20 characters",
+							},
+							pattern: {
+								value: CODE_PATTERN,
+								message: "Letters, numbers and hyphens only",
+							},
+						})}
+					/>
+				</FormField>
+
+				{!isNew && (
+					<FormField
+						label="Status"
+						hint="Existing users and master lists keep this department when it is made inactive."
 					>
-						<div className="company-form-header">
-							<div>
-								<h2
-									id="department-modal-title"
-									className="company-form-title"
-								>
-									{isNew ? "Add Department" : "Edit Department"}
-								</h2>
-								<p className="company-form-subtitle">
-									{isNew
-										? "Create a new department"
-										: "Update the name, code or status of this department"}
-								</p>
-							</div>
-							<button
-								type="button"
-								onClick={closeModal}
-								disabled={isSubmitting}
-								className="company-form-close-btn"
-								aria-label="Close"
-							>
-								<svg
-									className="w-5 h-5"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-								>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M6 18L18 6M6 6l12 12"
-									/>
-								</svg>
-							</button>
-						</div>
-
-						<form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
-							<div>
-								<label className="company-form-field-label">Name</label>
-								<input
+						<Controller
+							name="isActive"
+							control={control}
+							render={({ field }) => (
+								<select
 									className="input-field"
-									placeholder="e.g. General Insurance"
-									{...register("name", { required: "Name is required" })}
-								/>
-								{errors.name && (
-									<p className="text-red-500 text-xs mt-1">
-										{errors.name.message}
-									</p>
-								)}
-							</div>
-
-							<div>
-								<label className="company-form-field-label">Code</label>
-								<input
-									className="input-field"
-									placeholder="e.g. GI"
-									{...register("code", {
-										required: "Code is required",
-										maxLength: {
-											value: 20,
-											message: "Code must not exceed 20 characters",
-										},
-										pattern: {
-											value: CODE_PATTERN,
-											message: "Letters, numbers and hyphens only",
-										},
-									})}
-								/>
-								{errors.code && (
-									<p className="text-red-500 text-xs mt-1">
-										{errors.code.message}
-									</p>
-								)}
-								<p className="company-form-section-hint mt-1">
-									A short unique key, saved in capitals.
-								</p>
-							</div>
-
-							{!isNew && (
-								<div>
-									<label className="company-form-field-label">Status</label>
-									<Controller
-										name="isActive"
-										control={control}
-										render={({ field }) => (
-											<select
-												className="input-field"
-												value={field.value ? "true" : "false"}
-												onChange={(e) =>
-													field.onChange(e.target.value === "true")
-												}
-												disabled={isSubmitting}
-											>
-												<option value="true">Active</option>
-												<option value="false">Inactive</option>
-											</select>
-										)}
-									/>
-									<p className="company-form-section-hint mt-1">
-										Existing users and master lists keep this department when it
-										is made inactive.
-									</p>
-								</div>
+									value={field.value ? "true" : "false"}
+									onChange={(e) => field.onChange(e.target.value === "true")}
+									disabled={isSubmitting}
+								>
+									<option value="true">Active</option>
+									<option value="false">Inactive</option>
+								</select>
 							)}
-
-							<div className="company-form-footer">
-								<button
-									type="button"
-									onClick={closeModal}
-									disabled={isSubmitting}
-									className="btn-secondary"
-								>
-									Cancel
-								</button>
-								<button
-									type="submit"
-									disabled={isSubmitting}
-									className="btn-primary"
-								>
-									{isSubmitting
-										? "Saving..."
-										: isNew
-											? "Add Department"
-											: "Save changes"}
-								</button>
-							</div>
-						</form>
-					</div>
-				</div>
-			)}
+						/>
+					</FormField>
+				)}
+			</FormModal>
 		</div>
 	);
 }

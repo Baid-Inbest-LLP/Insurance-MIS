@@ -13,6 +13,9 @@ import {
 import { getApiErrorMessage } from '../../lib/queryClient';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import PageBanner from '../../components/common/PageBanner';
+import FormField from '../../components/common/form/FormField';
+import FormModal from '../../components/common/form/FormModal';
+import Modal from '../../components/common/Modal';
 import PasswordInput from '../../components/common/PasswordInput';
 import RowActions from '../../components/common/RowActions';
 import Skeleton, { SkeletonText } from '../../components/common/Skeleton';
@@ -60,6 +63,7 @@ export default function SettingsPage() {
     handleSubmit: handleSubmitCreate,
     reset: resetCreate,
     watch: watchCreate,
+    control: controlCreate,
     formState: { errors: createErrors, isSubmitting: createSubmitting },
   } = useForm({
     defaultValues: {
@@ -68,7 +72,7 @@ export default function SettingsPage() {
       password: '',
       role: '',
       locationCity: '',
-      department: '',
+      departments: [],
     },
   });
   const createRole = watchCreate('role');
@@ -91,11 +95,20 @@ export default function SettingsPage() {
     register: registerEdit,
     handleSubmit: handleSubmitEdit,
     reset: resetEdit,
+    watch: watchEdit,
     control: controlEdit,
     formState: { errors: editErrors, isSubmitting: editSubmitting, isDirty: editDirty },
   } = useForm({
-    defaultValues: { name: '', userName: '', isActive: true, locationCity: '', department: '' },
+    defaultValues: {
+      name: '',
+      userName: '',
+      role: '',
+      isActive: true,
+      locationCity: '',
+      departments: [],
+    },
   });
+  const editRole = watchEdit('role');
 
   const onCreateUser = async (data) => {
     try {
@@ -105,7 +118,7 @@ export default function SettingsPage() {
         password: data.password,
         role: data.role,
         ...(isStaffRole(data.role)
-          ? { locationCity: data.locationCity, department: data.department }
+          ? { locationCity: data.locationCity, departments: data.departments }
           : {}),
       });
       notifications.show({
@@ -146,7 +159,7 @@ export default function SettingsPage() {
 
   const closeCreateModal = () => {
     setShowCreate(false);
-    resetCreate({ name: '', userName: '', password: '', role: '', locationCity: '', department: '' });
+    resetCreate({ name: '', userName: '', password: '', role: '', locationCity: '', departments: [] });
   };
 
   const closePasswordModal = () => {
@@ -159,15 +172,23 @@ export default function SettingsPage() {
     resetEdit({
       name: u.name || '',
       userName: u.userName || '',
+      role: u.role,
       isActive: u.isActive !== false,
       locationCity: u.locationCity?._id || u.locationCity || '',
-      department: u.department?._id || '',
+      departments: (u.departments ?? []).map((d) => d._id),
     });
   };
 
   const closeEditUser = () => {
     setEditingUser(null);
-    resetEdit({ name: '', userName: '', isActive: true, locationCity: '', department: '' });
+    resetEdit({
+      name: '',
+      userName: '',
+      role: '',
+      isActive: true,
+      locationCity: '',
+      departments: [],
+    });
   };
 
   const onUpdateUser = async (data) => {
@@ -183,9 +204,10 @@ export default function SettingsPage() {
         data: {
           name: data.name,
           userName: data.userName,
+          ...(isSuperAdmin(editingUser.role) ? {} : { role: data.role }),
           isActive: Boolean(data.isActive),
-          ...(isStaffRole(editingUser.role)
-            ? { locationCity: data.locationCity, department: data.department }
+          ...(isStaffRole(data.role)
+            ? { locationCity: data.locationCity, departments: data.departments }
             : {}),
         },
       });
@@ -202,7 +224,10 @@ export default function SettingsPage() {
   const activeDepartments = useMemo(() => departments.filter((d) => d.isActive), [departments]);
 
   const editUserDepartmentOptions = useMemo(
-    () => departments.filter((d) => d.isActive || d._id === editingUser?.department?._id),
+    () =>
+      departments.filter(
+        (d) => d.isActive || editingUser?.departments?.some((own) => own._id === d._id),
+      ),
     [departments, editingUser],
   );
 
@@ -278,9 +303,9 @@ export default function SettingsPage() {
               <p className="text-left font-semibold settings-detail-purple">{user.userName}</p>
             </div>
             <div>
-              <label className="company-form-field-label">Department</label>
+              <label className="company-form-field-label">Departments</label>
               <p className="text-left font-semibold settings-detail-blue">
-                {user.department?.name || '—'}
+                {user.departments?.map((d) => d.name).join(', ') || '—'}
               </p>
             </div>
             <div>
@@ -299,124 +324,71 @@ export default function SettingsPage() {
 
       {canManageUsers && (
         <>
-          {showCreate && (
-            <div
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-              onClick={createSubmitting ? undefined : closeCreateModal}
-            >
-              <div
-                className="company-form-panel max-w-lg"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="create-user-title"
-                onClick={(e) => e.stopPropagation()}
+          <FormModal
+            open={showCreate}
+            title="Create User"
+            subtitle="Create a user account"
+            onClose={closeCreateModal}
+            onSubmit={handleSubmitCreate(onCreateUser)}
+            submitting={createSubmitting}
+            submitLabel="Create User"
+            submittingLabel="Creating user..."
+          >
+            <FormField label="Full Name" error={createErrors.name}>
+              <input
+                className="input-field"
+                placeholder="Enter full name"
+                {...registerCreate('name', { required: 'Name is required' })}
+              />
+            </FormField>
+
+            <FormField label="Username" error={createErrors.userName}>
+              <input
+                className="input-field"
+                placeholder="e.g. jdoe"
+                autoComplete="username"
+                {...registerCreate('userName', {
+                  required: 'User name is required',
+                  pattern: { value: USER_NAME_PATTERN, message: 'Letters, numbers, ., _ or - only' },
+                })}
+              />
+            </FormField>
+
+            <FormField label="Role" error={createErrors.role}>
+              <select
+                className="input-field"
+                {...registerCreate('role', { required: 'Role is required' })}
               >
-                <div className="company-form-header">
-                  <div>
-                    <h2 id="create-user-title" className="company-form-title">Create User</h2>
-                    <p className="company-form-subtitle">Create a user account</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={closeCreateModal}
-                    className="company-form-close-btn"
-                    aria-label="Close create user modal"
-                  >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
-                </div>
+                <option value="">Select role</option>
+                {ASSIGNABLE_ROLES.map((role) => (
+                  <option key={role} value={role}>
+                    {roleLabel(role)}
+                  </option>
+                ))}
+              </select>
+            </FormField>
 
-                <form onSubmit={handleSubmitCreate(onCreateUser)} className="p-6 space-y-4">
-                  <div>
-                    <label className="company-form-field-label">Full Name</label>
-                    <input
-                      className="input-field"
-                      placeholder="Enter full name"
-                      {...registerCreate('name', { required: 'Name is required' })}
-                    />
-                    {createErrors.name && (
-                      <p className="text-red-500 text-xs mt-1">{createErrors.name.message}</p>
-                    )}
-                  </div>
+            {isStaffRole(createRole) && (
+              <StaffFields
+                register={registerCreate}
+                control={controlCreate}
+                errors={createErrors}
+                cities={locationCities}
+                departments={activeDepartments}
+              />
+            )}
 
-                  <div>
-                    <label className="company-form-field-label">Username</label>
-                    <input
-                      className="input-field"
-                      placeholder="e.g. jdoe"
-                      autoComplete="username"
-                      {...registerCreate('userName', {
-                        required: 'User name is required',
-                        pattern: { value: USER_NAME_PATTERN, message: 'Letters, numbers, ., _ or - only' },
-                      })}
-                    />
-                    {createErrors.userName && (
-                      <p className="text-red-500 text-xs mt-1">{createErrors.userName.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="company-form-field-label">Role</label>
-                    <select
-                      className="input-field"
-                      {...registerCreate('role', { required: 'Role is required' })}
-                    >
-                      <option value="">Select role</option>
-                      {ASSIGNABLE_ROLES.map((role) => (
-                        <option key={role} value={role}>
-                          {roleLabel(role)}
-                        </option>
-                      ))}
-                    </select>
-                    {createErrors.role && (
-                      <p className="text-red-500 text-xs mt-1">{createErrors.role.message}</p>
-                    )}
-                  </div>
-
-                  {isStaffRole(createRole) && (
-                    <StaffFields
-                      register={registerCreate}
-                      errors={createErrors}
-                      cities={locationCities}
-                      departments={activeDepartments}
-                    />
-                  )}
-
-                  <div>
-                    <label className="company-form-field-label">Password</label>
-                    <PasswordInput
-                      placeholder="At least 8 characters"
-                      autoComplete="new-password"
-                      {...registerCreate('password', {
-                        required: 'Password is required',
-                        pattern: { value: STRONG_PASSWORD_PATTERN, message: PASSWORD_POLICY_LABEL },
-                      })}
-                    />
-                    {createErrors.password && (
-                      <p className="text-red-500 text-xs mt-1">{createErrors.password.message}</p>
-                    )}
-                    <p className="company-form-section-hint mt-1">{PASSWORD_POLICY_LABEL}</p>
-                  </div>
-
-                  <div className="company-form-footer">
-                    <button type="button" onClick={closeCreateModal} className="btn-secondary">
-                      Cancel
-                    </button>
-                    <button type="submit" disabled={createSubmitting} className="btn-primary">
-                      {createSubmitting ? 'Creating user...' : 'Create User'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
+            <FormField label="Password" error={createErrors.password} hint={PASSWORD_POLICY_LABEL}>
+              <PasswordInput
+                placeholder="At least 8 characters"
+                autoComplete="new-password"
+                {...registerCreate('password', {
+                  required: 'Password is required',
+                  pattern: { value: STRONG_PASSWORD_PATTERN, message: PASSWORD_POLICY_LABEL },
+                })}
+              />
+            </FormField>
+          </FormModal>
 
           <div className="card overflow-hidden">
             {loading ? (
@@ -460,7 +432,7 @@ export default function SettingsPage() {
                       <th className="text-center">User Name</th>
                       <th className="text-center">Role</th>
                       <th className="text-center">Location</th>
-                      <th className="text-center">Department</th>
+                      <th className="text-center">Departments</th>
                       <th className="text-center">Status</th>
                       <th className="text-center">Actions</th>
                     </tr>
@@ -480,7 +452,19 @@ export default function SettingsPage() {
                             <span className="settings-role-badge">{roleLabel(u.role)}</span>
                           </td>
                           <td className="text-center">{u.locationCity?.name || '—'}</td>
-                          <td className="text-center whitespace-nowrap">{u.department?.name || '—'}</td>
+                          <td className="text-center">
+                            {u.departments?.length ? (
+                              <div className="flex flex-wrap justify-center gap-1">
+                                {u.departments.map((d) => (
+                                  <span key={d._id} className="settings-role-badge whitespace-nowrap">
+                                    {d.name}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              '—'
+                            )}
+                          </td>
                           <td className="text-center">
                             <span
                               className={
@@ -537,311 +521,188 @@ export default function SettingsPage() {
             onCancel={() => setConfirmResetPassword(null)}
           />
 
-          {editingUser && (
-            <div
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-              onClick={editSubmitting ? undefined : closeEditUser}
+          <FormModal
+            open={Boolean(editingUser)}
+            title="Edit user"
+            subtitle="Update name, user name, role, or account status"
+            onClose={closeEditUser}
+            onSubmit={handleSubmitEdit(onUpdateUser)}
+            submitting={editSubmitting}
+            submitLabel="Save changes"
+            submittingLabel="Saving…"
+          >
+            <FormField label="Full name" error={editErrors.name}>
+              <input
+                className="input-field"
+                {...registerEdit('name', { required: 'Name is required' })}
+              />
+            </FormField>
+
+            <FormField label="Username" error={editErrors.userName}>
+              <input
+                type="text"
+                className="input-field"
+                autoComplete="off"
+                {...registerEdit('userName', {
+                  required: 'User name is required',
+                  pattern: { value: USER_NAME_PATTERN, message: 'Letters, numbers, ., _ or - only' },
+                })}
+              />
+            </FormField>
+
+            {!isSuperAdmin(editingUser?.role) && (
+              <FormField label="Role" error={editErrors.role}>
+                <select
+                  className="input-field"
+                  {...registerEdit('role', { required: 'Role is required' })}
+                >
+                  {ASSIGNABLE_ROLES.map((role) => (
+                    <option key={role} value={role}>
+                      {roleLabel(role)}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+            )}
+
+            {isStaffRole(editRole) && (
+              <StaffFields
+                register={registerEdit}
+                control={controlEdit}
+                errors={editErrors}
+                cities={editUserLocationOptions}
+                departments={editUserDepartmentOptions}
+              />
+            )}
+
+            <FormField
+              label="Status"
+              hint={
+                editingUser?._id === user?._id
+                  ? 'You cannot deactivate your own account.'
+                  : 'Inactive users cannot sign in.'
+              }
             >
-              <div
-                className="company-form-panel max-w-lg border border-gray-100"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="edit-user-title"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="company-form-header">
-                  <div>
-                    <h2 id="edit-user-title" className="company-form-title">
-                      Edit user
-                    </h2>
-                    <p className="company-form-subtitle">Update name, user name, or account status</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={closeEditUser}
-                    disabled={editSubmitting}
-                    className="company-form-close-btn"
-                    aria-label="Close"
+              <Controller
+                name="isActive"
+                control={controlEdit}
+                render={({ field }) => (
+                  <select
+                    className="input-field"
+                    value={field.value ? 'true' : 'false'}
+                    onChange={(e) => field.onChange(e.target.value === 'true')}
+                    disabled={editSubmitting || editingUser?._id === user?._id}
                   >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                  </select>
+                )}
+              />
+            </FormField>
+
+            {!isSuperAdmin(editingUser?.role) && editingUser?._id !== user?._id && (
+              <div className="col-span-full pt-4 company-form-divider flex items-center justify-between gap-3">
+                <div>
+                  <label className="company-form-field-label">Password</label>
+                  <p className="company-form-section-hint">Forgot their password?</p>
                 </div>
-                <form onSubmit={handleSubmitEdit(onUpdateUser)} className="p-6 space-y-4">
-                  <div>
-                    <label className="company-form-field-label">Full name</label>
-                    <input
-                      className="input-field"
-                      {...registerEdit('name', { required: 'Name is required' })}
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg px-3 py-1.5 transition-colors shrink-0"
+                  onClick={() =>
+                    setConfirmResetPassword({
+                      _id: editingUser._id,
+                      name: editingUser.name,
+                    })
+                  }
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 7a2 2 0 012 2m4 0a6 6 0 11-12 0 6 6 0 0112 0zM7 15l-4 4m0 0v-3m0 3h3"
                     />
-                    {editErrors.name && (
-                      <p className="text-red-500 text-xs mt-1">{editErrors.name.message}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="company-form-field-label">Username</label>
-                    <input
-                      type="text"
-                      className="input-field"
-                      autoComplete="off"
-                      {...registerEdit('userName', {
-                        required: 'User name is required',
-                        pattern: { value: USER_NAME_PATTERN, message: 'Letters, numbers, ., _ or - only' },
-                      })}
-                    />
-                    {editErrors.userName && (
-                      <p className="text-red-500 text-xs mt-1">{editErrors.userName.message}</p>
-                    )}
-                  </div>
-                  {isStaffRole(editingUser?.role) && (
-                    <StaffFields
-                      register={registerEdit}
-                      errors={editErrors}
-                      cities={editUserLocationOptions}
-                      departments={editUserDepartmentOptions}
-                    />
-                  )}
-                  <div>
-                    <label className="company-form-field-label">Status</label>
-                    <Controller
-                      name="isActive"
-                      control={controlEdit}
-                      render={({ field }) => (
-                        <select
-                          className="input-field"
-                          value={field.value ? 'true' : 'false'}
-                          onChange={(e) => field.onChange(e.target.value === 'true')}
-                          disabled={editSubmitting || editingUser?._id === user?._id}
-                        >
-                          <option value="true">Active</option>
-                          <option value="false">Inactive</option>
-                        </select>
-                      )}
-                    />
-                    <p className="company-form-section-hint mt-1">
-                      {editingUser?._id === user?._id
-                        ? 'You cannot deactivate your own account.'
-                        : 'Inactive users cannot sign in.'}
-                    </p>
-                  </div>
-                  {editingUser?.role !== 'superadmin' && editingUser?._id !== user?._id && (
-                    <div className="mt-4 pt-4 company-form-divider flex items-center justify-between gap-3">
-                      <div>
-                        <label className="company-form-field-label">Password</label>
-                        <p className="company-form-section-hint">Forgot their password?</p>
-                      </div>
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg px-3 py-1.5 transition-colors shrink-0"
-                        onClick={() =>
-                          setConfirmResetPassword({
-                            _id: editingUser._id,
-                            name: editingUser.name,
-                          })
-                        }
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 7a2 2 0 012 2m4 0a6 6 0 11-12 0 6 6 0 0112 0zM7 15l-4 4m0 0v-3m0 3h3"
-                          />
-                        </svg>
-                        Reset password
-                      </button>
-                    </div>
-                  )}
-                  <div className="company-form-footer">
-                    <button
-                      type="button"
-                      onClick={closeEditUser}
-                      disabled={editSubmitting}
-                      className="btn-secondary"
-                    >
-                      Cancel
-                    </button>
-                    <button type="submit" disabled={editSubmitting} className="btn-primary">
-                      {editSubmitting ? 'Saving…' : 'Save changes'}
-                    </button>
-                  </div>
-                </form>
+                  </svg>
+                  Reset password
+                </button>
               </div>
-            </div>
-          )}
+            )}
+          </FormModal>
         </>
       )}
 
-      {showPasswordModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-          onClick={pwdSubmitting ? undefined : closePasswordModal}
-        >
-          <div
-            className="company-form-panel max-w-lg border border-gray-100"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="change-password-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="company-form-header">
-              <div>
-                <h2 id="change-password-title" className="company-form-title">
-                  Change password
-                </h2>
-                <p className="company-form-subtitle">
-                  Enter your current password, then choose a new one (min. 6 characters).
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={closePasswordModal}
-                disabled={pwdSubmitting}
-                className="company-form-close-btn"
-                aria-label="Close"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-            <form onSubmit={handleSubmitPwd(onChangePassword)} className="p-6 space-y-4">
-              <div>
-                <label className="company-form-field-label">Current password</label>
-                <PasswordInput
-                  autoComplete="current-password"
-                  {...registerPwd('currentPassword', { required: 'Current password is required' })}
-                />
-                {pwdErrors.currentPassword && (
-                  <p className="text-red-500 text-xs mt-1">{pwdErrors.currentPassword.message}</p>
-                )}
-              </div>
-              <div>
-                <label className="company-form-field-label">New password</label>
-                <PasswordInput
-                  autoComplete="new-password"
-                  {...registerPwd('newPassword', {
-                    required: 'New password is required',
-                    minLength: { value: 6, message: 'Minimum 6 characters' },
-                  })}
-                />
-                {pwdErrors.newPassword && (
-                  <p className="text-red-500 text-xs mt-1">{pwdErrors.newPassword.message}</p>
-                )}
-              </div>
-              <div>
-                <label className="company-form-field-label">Confirm new password</label>
-                <PasswordInput
-                  autoComplete="new-password"
-                  {...registerPwd('confirmPassword', {
-                    required: 'Please confirm your new password',
-                    validate: (val) =>
-                      val === watchPwd('newPassword') || 'Does not match new password',
-                  })}
-                />
-                {pwdErrors.confirmPassword && (
-                  <p className="text-red-500 text-xs mt-1">{pwdErrors.confirmPassword.message}</p>
-                )}
-              </div>
-              <div className="company-form-footer">
-                <button
-                  type="button"
-                  onClick={closePasswordModal}
-                  disabled={pwdSubmitting}
-                  className="btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button type="submit" disabled={pwdSubmitting} className="btn-primary">
-                  {pwdSubmitting ? 'Updating…' : 'Update password'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormModal
+        open={showPasswordModal}
+        title="Change password"
+        subtitle="Enter your current password, then choose a new one (min. 6 characters)."
+        onClose={closePasswordModal}
+        onSubmit={handleSubmitPwd(onChangePassword)}
+        submitting={pwdSubmitting}
+        submitLabel="Update password"
+        submittingLabel="Updating…"
+      >
+        <FormField label="Current password" error={pwdErrors.currentPassword}>
+          <PasswordInput
+            autoComplete="current-password"
+            {...registerPwd('currentPassword', { required: 'Current password is required' })}
+          />
+        </FormField>
 
-      {generatedPassword && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-          onClick={() => setGeneratedPassword(null)}
-        >
-          <div
-            className="company-form-panel max-w-lg border border-gray-100"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="generated-password-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="company-form-header">
-              <div>
-                <h2 id="generated-password-title" className="company-form-title">
-                  New Password Generated
-                </h2>
-                <p className="company-form-subtitle">
-                  Share this with {generatedPassword.name} securely. It will not be shown again.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setGeneratedPassword(null)}
-                className="company-form-close-btn"
-                aria-label="Close"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="flex items-center gap-2">
-                <code className="input-field font-mono text-sm flex-1 select-all">
-                  {generatedPassword.password}
-                </code>
-                <button
-                  type="button"
-                  className="btn-secondary shrink-0"
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(generatedPassword.password);
-                      notifications.show({ message: 'Password copied', color: 'green' });
-                    } catch {
-                      notifications.show({ message: 'Could not copy password', color: 'red' });
-                    }
-                  }}
-                >
-                  Copy
-                </button>
-              </div>
-              <div className="company-form-footer">
-                <button
-                  type="button"
-                  className="btn-primary"
-                  onClick={() => setGeneratedPassword(null)}
-                >
-                  Done
-                </button>
-              </div>
-            </div>
+        <FormField label="New password" error={pwdErrors.newPassword}>
+          <PasswordInput
+            autoComplete="new-password"
+            {...registerPwd('newPassword', {
+              required: 'New password is required',
+              minLength: { value: 6, message: 'Minimum 6 characters' },
+            })}
+          />
+        </FormField>
+
+        <FormField label="Confirm new password" error={pwdErrors.confirmPassword}>
+          <PasswordInput
+            autoComplete="new-password"
+            {...registerPwd('confirmPassword', {
+              required: 'Please confirm your new password',
+              validate: (val) => val === watchPwd('newPassword') || 'Does not match new password',
+            })}
+          />
+        </FormField>
+      </FormModal>
+
+      <Modal
+        open={Boolean(generatedPassword)}
+        title="New Password Generated"
+        subtitle={`Share this with ${generatedPassword?.name} securely. It will not be shown again.`}
+        onClose={() => setGeneratedPassword(null)}
+      >
+        <div className="p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <code className="input-field font-mono text-sm flex-1 select-all">
+              {generatedPassword?.password}
+            </code>
+            <button
+              type="button"
+              className="btn-secondary shrink-0"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(generatedPassword.password);
+                  notifications.show({ message: 'Password copied', color: 'green' });
+                } catch {
+                  notifications.show({ message: 'Could not copy password', color: 'red' });
+                }
+              }}
+            >
+              Copy
+            </button>
+          </div>
+          <div className="company-form-footer">
+            <button type="button" className="btn-primary" onClick={() => setGeneratedPassword(null)}>
+              Done
+            </button>
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

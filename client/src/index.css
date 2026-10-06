@@ -128,6 +128,10 @@
     @apply cursor-pointer disabled:cursor-not-allowed;
   }
 
+  .checkbox-group {
+    @apply w-full max-h-40 space-y-2 overflow-y-auto rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900;
+  }
+
   .login-input {
     background: transparent;
     width: 100%;
@@ -1488,7 +1492,8 @@
   color: #60a5fa;
 }
 
-[data-theme='dark'] #root .input-field {
+[data-theme='dark'] #root .input-field,
+[data-theme='dark'] #root .checkbox-group {
   background-color: #25262b;
   border-color: #373a40;
   color: #c1c2c5;

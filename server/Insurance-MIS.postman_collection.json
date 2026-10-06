@@ -201,7 +201,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"Test Employee\",\n  \"userName\": \"employee1\",\n  \"password\": \"secret123\",\n  \"role\": \"emp-premium\",\n  \"department\": \"{{departmentId}}\",\n  \"locationCity\": \"{{cityId}}\"\n}",
+							"raw": "{\n  \"name\": \"Test Employee\",\n  \"userName\": \"employee1\",\n  \"password\": \"secret123\",\n  \"role\": \"emp-premium\",\n  \"departments\": [\"{{departmentId}}\"],\n  \"locationCity\": \"{{cityId}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -218,7 +218,7 @@
 								"register"
 							]
 						},
-						"description": "Run Masters > Location cities first so {{cityId}} is set. role is one of admin, hod, emp-premium, emp-commission. locationCity and department (a department id from Master > Departments) are required for hod, emp-premium and emp-commission; leave both out for admin."
+						"description": "Run Masters > Location cities first so {{cityId}} is set. role is one of admin, hod, emp-premium, emp-commission. locationCity and departments (one or more department ids from Master > Departments) are required for hod, emp-premium and emp-commission; leave both out for admin."
 					}
 				},
 				{

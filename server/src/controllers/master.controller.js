@@ -6,11 +6,15 @@ import { ApiError } from "../utils/ApiError.js";
 import {
 	ROLES,
 	USER_ROLES,
+	isHod,
 	isStaffRole,
 	isSuperAdmin,
 } from "../constants/roles.js";
 import { resetUserPassword } from "../services/auth.service.js";
-import { assertActiveDepartment } from "../services/department.service.js";
+import {
+	assertActiveDepartments,
+	assertNoOtherHod,
+} from "../services/department.service.js";
 
 const crud = (Model, name) => ({
 	list: asyncHandler(async (req, res) => {
@@ -117,9 +121,9 @@ const canManageUser = (actorRole, targetRole) =>
 
 export const listUsers = asyncHandler(async (req, res) => {
 	const users = await User.find()
-		.select("name userName role isActive locationCity department")
+		.select("name userName role isActive locationCity departments")
 		.populate("locationCity", "name")
-		.populate("department", "name")
+		.populate("departments", "name")
 		.sort({ createdAt: 1 })
 		.lean();
 	ApiResponse.success(res, users);
@@ -137,15 +141,25 @@ export const updateUser = asyncHandler(async (req, res) => {
 		);
 	}
 
-	const { name, userName, isActive, locationCity, department } = req.body;
+	const { name, userName, role, isActive, locationCity, departments } = req.body;
+	const wasActive = user.isActive;
+	const wasHod = isHod(user.role);
 	if (name !== undefined) user.name = name;
-	if (
-		department !== undefined &&
-		!user.department?.equals(department) &&
-		isStaffRole(user.role)
-	) {
-		await assertActiveDepartment(department);
-		user.department = department;
+	if (role !== undefined && role !== user.role) {
+		if (isSuperAdmin(user.role))
+			throw ApiError.forbidden("Superadmin role cannot be changed");
+		user.role = role;
+		if (!isStaffRole(role)) {
+			user.locationCity = null;
+			user.departments = [];
+		}
+	}
+	if (departments !== undefined && isStaffRole(user.role)) {
+		const addedDepartments = departments.filter(
+			(id) => !user.departments.some((current) => current.equals(id)),
+		);
+		if (addedDepartments.length) await assertActiveDepartments(addedDepartments);
+		user.departments = departments;
 	}
 	if (locationCity !== undefined && isStaffRole(user.role))
 		user.locationCity = locationCity;
@@ -162,6 +176,15 @@ export const updateUser = asyncHandler(async (req, res) => {
 			throw ApiError.forbidden("You cannot deactivate your own account");
 		}
 		user.isActive = isActive;
+	}
+
+	const isNewHod = isHod(user.role) && !wasHod;
+	const isReactivated = user.isActive && !wasActive;
+	if (
+		isHod(user.role) &&
+		(departments !== undefined || isReactivated || isNewHod)
+	) {
+		await assertNoOtherHod(user.departments, user._id);
 	}
 
 	await user.save();

@@ -1,6 +1,6 @@
 import { Master } from "../models/index.js";
 import { ApiError } from "../utils/ApiError.js";
-import { assertActiveDepartment } from "./department.service.js";
+import { assertActiveDepartments } from "./department.service.js";
 
 // Picks the fields exposed to API clients.
 const toItemDto = ({ _id, name, isActive }) => ({ _id, name, isActive });
@@ -42,7 +42,7 @@ export const listItems = async ({ departmentId, slug, includeInactive = false })
 export const createItem = async ({ departmentId, slug, name, isActive }) => {
 	const [existingMaster] = await Promise.all([
 		Master.findOne({ department: departmentId, slug }),
-		assertActiveDepartment(departmentId),
+		assertActiveDepartments([departmentId]),
 	]);
 	const master = existingMaster || new Master({ department: departmentId, slug });
 	ensureUniqueName(master, name);

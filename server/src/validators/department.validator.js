@@ -33,6 +33,12 @@ export const updateDepartmentSchema = z
     message: 'Provide a name, code or active status to update',
   });
 
+// A non-empty list of department ids with duplicates removed.
+export const departmentIdsSchema = z
+  .array(objectId('department'))
+  .min(1, 'Select at least one department')
+  .transform((ids) => [...new Set(ids)]);
+
 export const departmentParamsSchema = z
   .object({
     id: objectId('department'),
