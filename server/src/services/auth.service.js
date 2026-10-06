@@ -16,7 +16,6 @@ const toAuthUser = (user) => ({
   name: user.name,
   userName: user.userName,
   role: user.role,
-  ...(user.locationCity !== undefined ? { locationCity: user.locationCity } : {}),
   ...(user.departments !== undefined ? { departments: user.departments } : {}),
 });
 
@@ -36,8 +35,7 @@ const rememberRefreshToken = (user, token) => {
 export const login = async (userName, password) => {
   const normalizedUserName = String(userName).trim().toLowerCase();
   const user = await User.findOne({ userName: normalizedUserName })
-    .select('name userName role isActive password refreshToken locationCity departments')
-    .populate('locationCity', 'name')
+    .select('name userName role isActive password refreshToken departments')
     .populate('departments', 'name');
   if (!user || !(await user.comparePassword(password))) {
     throw ApiError.unauthorized('Invalid username or password');
@@ -89,7 +87,6 @@ export const registerUser = async (data, requestedBy) => {
 
   await User.create({
     ...data,
-    locationCity: isStaffRole(data.role) ? data.locationCity : null,
     departments: isStaffRole(data.role) ? data.departments : [],
   });
 };
@@ -129,8 +126,7 @@ export const resetUserPassword = async (targetUserId, requestedBy) => {
 
 export const getProfile = async (userId) => {
   const user = await User.findById(userId)
-    .select('name userName role locationCity departments')
-    .populate('locationCity', 'name')
+    .select('name userName role departments')
     .populate('departments', 'name');
   if (!user) throw ApiError.notFound('User not found');
   return toAuthUser(user);

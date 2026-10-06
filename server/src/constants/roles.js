@@ -11,7 +11,7 @@ export const USER_ROLES = Object.values(ROLES);
 // Roles that can be given to a new user; there is only one superadmin.
 export const ASSIGNABLE_ROLES = USER_ROLES.filter((role) => role !== ROLES.SUPERADMIN);
 
-// Roles tied to one city and one or more departments; their data access is limited to that city.
+// Roles that belong to one or more departments.
 export const STAFF_ROLES = [ROLES.HOD, ROLES.EMP_PREMIUM, ROLES.EMP_COMMISSION];
 
 export const isSuperAdmin = (role) => role === ROLES.SUPERADMIN;

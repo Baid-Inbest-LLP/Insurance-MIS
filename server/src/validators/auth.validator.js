@@ -14,12 +14,7 @@ export const registerSchema = z
     userName: z.string().trim().min(1, 'User name is required').toLowerCase(),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     role: assignableRoleSchema,
-    locationCity: z.string().trim().min(1, 'Location is required').optional(),
     departments: departmentIdsSchema.optional(),
-  })
-  .refine((value) => !isStaffRole(value.role) || value.locationCity, {
-    message: 'Location is required for this role',
-    path: ['locationCity'],
   })
   .refine((value) => !isStaffRole(value.role) || value.departments, {
     message: 'At least one department is required for this role',

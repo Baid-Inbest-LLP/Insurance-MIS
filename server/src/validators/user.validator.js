@@ -19,7 +19,6 @@ export const updateUserSchema = z
     userName: z.string().trim().min(1, 'User name is required').toLowerCase().optional(),
     role: assignableRoleSchema.optional(),
     isActive: z.boolean({ invalid_type_error: 'isActive must be a boolean' }).optional(),
-    locationCity: objectId('location').optional(),
     departments: departmentIdsSchema.optional(),
   })
   .strict()

@@ -2,7 +2,6 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import { Company, Branch, LocationCity } from "../models/index.js";
-import { isStaffRole } from "../constants/roles.js";
 import { buildBranchName } from "../utils/branchFormat.js";
 import { escapeRegex } from "../utils/searchUtils.js";
 
@@ -136,17 +135,6 @@ export const getCompanies = asyncHandler(async (req, res) => {
 		];
 	}
 
-	// City-scoped roles only ever see companies that have a branch in their own city.
-	const scopedCity = isStaffRole(req.user.role) ? req.user.locationCity : null;
-
-	if (scopedCity) {
-		const visibleCompanyIds = await Branch.distinct("company", {
-			city: scopedCity,
-			isActive: true,
-		});
-		filter._id = { $in: visibleCompanyIds };
-	}
-
 	const total = await Company.countDocuments(filter);
 	const companies = await Company.find(filter)
 		.sort({ name: 1 })
@@ -156,7 +144,6 @@ export const getCompanies = asyncHandler(async (req, res) => {
 
 	const companyIds = companies.map((c) => c._id);
 	const branchFilter = { company: { $in: companyIds }, isActive: true };
-	if (scopedCity) branchFilter.city = scopedCity;
 
 	const branchDocs = await Branch.find(branchFilter)
 		.sort({ isDefault: -1, label: 1 })

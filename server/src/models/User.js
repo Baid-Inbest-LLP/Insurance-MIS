@@ -18,14 +18,6 @@ const userSchema = new mongoose.Schema(
 			enum: USER_ROLES,
 			required: true,
 		},
-		locationCity: {
-			type: mongoose.Schema.Types.ObjectId,
-			ref: "LocationCity",
-			required() {
-				return isStaffRole(this.role);
-			},
-			default: null,
-		},
 		departments: {
 			type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Department" }],
 			default: [],
@@ -47,7 +39,6 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.index({ role: 1 });
-userSchema.index({ locationCity: 1 });
 // One active HOD per department: no two active HODs can share a department.
 userSchema.index(
 	{ departments: 1 },

@@ -31,7 +31,7 @@ Insurance-MIS/
         ├── constants/      # roles
         ├── controllers/    # request handlers
         ├── middleware/     # auth, validate (zod), upload, error handler
-        ├── models/         # User, Company, Location, LocationCity
+        ├── models/         # User, Company, Branch, LocationCity, Master, Department
         ├── routes/         # /api/v1/* routers
         ├── seed/           # first-boot superadmin bootstrap
         ├── services/       # business logic
@@ -61,7 +61,7 @@ A superadmin is created automatically on boot when none exists (override with `S
 | ---------- | ---------- | -------- |
 | Superadmin | superadmin | super123 |
 
-Users are created from **Settings** with one of these roles: `superadmin`, `admin`, `hod`, `emp-premium` or `emp-commission`. Only the superadmin can create and manage users. `hod`, `emp-premium` and `emp-commission` must be assigned a location city (and only see data for that city) and one or more departments (departments are managed by the superadmin in **Control Center → Departments**). A department can have only one active `hod`.
+Users are created from **Settings** with one of these roles: `superadmin`, `admin`, `hod`, `emp-premium` or `emp-commission`. Only the superadmin can create and manage users. `hod`, `emp-premium` and `emp-commission` must be assigned one or more departments (departments are managed by the superadmin in **Control Center → Departments**). A department can have only one active `hod`.
 
 ## Included modules
 

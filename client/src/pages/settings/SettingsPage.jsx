@@ -5,7 +5,6 @@ import { useChangePassword, useMe, useRegister } from '../../hooks/useAuth';
 import {
   useDeleteUser,
   useDepartments,
-  useLocationCities,
   useResetUserPassword,
   useUpdateUser,
   useUsers,
@@ -19,7 +18,7 @@ import Modal from '../../components/common/Modal';
 import PasswordInput from '../../components/common/PasswordInput';
 import RowActions from '../../components/common/RowActions';
 import Skeleton, { SkeletonText } from '../../components/common/Skeleton';
-import StaffFields from './StaffFields';
+import DepartmentsField from './DepartmentsField';
 import {
   ASSIGNABLE_ROLES,
   isStaffRole,
@@ -45,9 +44,6 @@ export default function SettingsPage() {
   const [generatedPassword, setGeneratedPassword] = useState(null);
 
   const { data: users = [], isLoading: loading, refetch: refetchUsers } = useUsers(canManageUsers);
-  const { data: locationCities = [] } = useLocationCities(
-    canManageUsers && (showCreate || Boolean(editingUser)),
-  );
   const { data: departments = [] } = useDepartments({
     includeInactive: true,
     enabled: canManageUsers,
@@ -71,7 +67,6 @@ export default function SettingsPage() {
       userName: '',
       password: '',
       role: '',
-      locationCity: '',
       departments: [],
     },
   });
@@ -104,7 +99,6 @@ export default function SettingsPage() {
       userName: '',
       role: '',
       isActive: true,
-      locationCity: '',
       departments: [],
     },
   });
@@ -117,9 +111,7 @@ export default function SettingsPage() {
         userName: data.userName,
         password: data.password,
         role: data.role,
-        ...(isStaffRole(data.role)
-          ? { locationCity: data.locationCity, departments: data.departments }
-          : {}),
+        ...(isStaffRole(data.role) ? { departments: data.departments } : {}),
       });
       notifications.show({
         message: 'User created',
@@ -159,7 +151,7 @@ export default function SettingsPage() {
 
   const closeCreateModal = () => {
     setShowCreate(false);
-    resetCreate({ name: '', userName: '', password: '', role: '', locationCity: '', departments: [] });
+    resetCreate({ name: '', userName: '', password: '', role: '', departments: [] });
   };
 
   const closePasswordModal = () => {
@@ -174,7 +166,6 @@ export default function SettingsPage() {
       userName: u.userName || '',
       role: u.role,
       isActive: u.isActive !== false,
-      locationCity: u.locationCity?._id || u.locationCity || '',
       departments: (u.departments ?? []).map((d) => d._id),
     });
   };
@@ -186,7 +177,6 @@ export default function SettingsPage() {
       userName: '',
       role: '',
       isActive: true,
-      locationCity: '',
       departments: [],
     });
   };
@@ -206,9 +196,7 @@ export default function SettingsPage() {
           userName: data.userName,
           ...(isSuperAdmin(editingUser.role) ? {} : { role: data.role }),
           isActive: Boolean(data.isActive),
-          ...(isStaffRole(data.role)
-            ? { locationCity: data.locationCity, departments: data.departments }
-            : {}),
+          ...(isStaffRole(data.role) ? { departments: data.departments } : {}),
         },
       });
       notifications.show({ message: 'User updated', color: 'green' });
@@ -230,15 +218,6 @@ export default function SettingsPage() {
       ),
     [departments, editingUser],
   );
-
-  const editUserLocationOptions = useMemo(() => {
-    const ownLocation = editingUser?.locationCity;
-    const options = [...locationCities];
-    if (ownLocation?._id && !options.some((c) => c._id === ownLocation._id)) {
-      options.push(ownLocation);
-    }
-    return options;
-  }, [editingUser, locationCities]);
 
   const canDelete = useMemo(() => {
     if (!confirmDelete) return false;
@@ -312,12 +291,6 @@ export default function SettingsPage() {
               <label className="company-form-field-label">Role</label>
               <span className="settings-role-badge">{roleLabel(user.role)}</span>
             </div>
-            <div>
-              <label className="company-form-field-label">Location</label>
-              <p className="text-left font-semibold settings-detail-emerald">
-                {user.locationCity?.name || '—'}
-              </p>
-            </div>
           </div>
         </div>
       )}
@@ -369,11 +342,9 @@ export default function SettingsPage() {
             </FormField>
 
             {isStaffRole(createRole) && (
-              <StaffFields
-                register={registerCreate}
+              <DepartmentsField
                 control={controlCreate}
                 errors={createErrors}
-                cities={locationCities}
                 departments={activeDepartments}
               />
             )}
@@ -431,7 +402,6 @@ export default function SettingsPage() {
                       <th className="text-center">Name</th>
                       <th className="text-center">User Name</th>
                       <th className="text-center">Role</th>
-                      <th className="text-center">Location</th>
                       <th className="text-center">Departments</th>
                       <th className="text-center">Status</th>
                       <th className="text-center">Actions</th>
@@ -451,7 +421,6 @@ export default function SettingsPage() {
                           <td className="text-center">
                             <span className="settings-role-badge">{roleLabel(u.role)}</span>
                           </td>
-                          <td className="text-center">{u.locationCity?.name || '—'}</td>
                           <td className="text-center">
                             {u.departments?.length ? (
                               <div className="flex flex-wrap justify-center gap-1">
@@ -566,11 +535,9 @@ export default function SettingsPage() {
             )}
 
             {isStaffRole(editRole) && (
-              <StaffFields
-                register={registerEdit}
+              <DepartmentsField
                 control={controlEdit}
                 errors={editErrors}
-                cities={editUserLocationOptions}
                 departments={editUserDepartmentOptions}
               />
             )}

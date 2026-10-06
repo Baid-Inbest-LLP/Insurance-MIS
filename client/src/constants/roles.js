@@ -25,7 +25,7 @@ export const ASSIGNABLE_ROLES = [
 // Roles that can open the master-data tabs (departments and master lists) in Control Center.
 export const MASTER_VIEW_ROLES = [ROLES.SUPERADMIN, ROLES.ADMIN];
 
-// Roles tied to a city and a department.
+// Roles that belong to one or more departments.
 export const STAFF_ROLES = [ROLES.HOD, ROLES.EMP_PREMIUM, ROLES.EMP_COMMISSION];
 
 export const isSuperAdmin = (role) => role === ROLES.SUPERADMIN;

@@ -44,13 +44,9 @@ const crud = (Model, name) => ({
 
 export const branchController = crud(Branch, "Branch");
 
-// City-scoped roles only see their own assigned locationCity; other roles see every active locationCity.
-export const getLocationCities = asyncHandler(async (req, res) => {
-	const filter = { isActive: true };
-	if (isStaffRole(req.user.role)) {
-		filter._id = req.user.locationCity;
-	}
-	const cities = await LocationCity.find(filter)
+// Every active city, used by the branch form.
+export const getLocationCities = asyncHandler(async (_req, res) => {
+	const cities = await LocationCity.find({ isActive: true })
 		.select("name")
 		.sort({ createdAt: 1 })
 		.lean();
@@ -121,8 +117,7 @@ const canManageUser = (actorRole, targetRole) =>
 
 export const listUsers = asyncHandler(async (req, res) => {
 	const users = await User.find()
-		.select("name userName role isActive locationCity departments")
-		.populate("locationCity", "name")
+		.select("name userName role isActive departments")
 		.populate("departments", "name")
 		.sort({ createdAt: 1 })
 		.lean();
@@ -141,7 +136,7 @@ export const updateUser = asyncHandler(async (req, res) => {
 		);
 	}
 
-	const { name, userName, role, isActive, locationCity, departments } = req.body;
+	const { name, userName, role, isActive, departments } = req.body;
 	const wasActive = user.isActive;
 	const wasHod = isHod(user.role);
 	if (name !== undefined) user.name = name;
@@ -149,10 +144,7 @@ export const updateUser = asyncHandler(async (req, res) => {
 		if (isSuperAdmin(user.role))
 			throw ApiError.forbidden("Superadmin role cannot be changed");
 		user.role = role;
-		if (!isStaffRole(role)) {
-			user.locationCity = null;
-			user.departments = [];
-		}
+		if (!isStaffRole(role)) user.departments = [];
 	}
 	if (departments !== undefined && isStaffRole(user.role)) {
 		const addedDepartments = departments.filter(
@@ -161,8 +153,6 @@ export const updateUser = asyncHandler(async (req, res) => {
 		if (addedDepartments.length) await assertActiveDepartments(addedDepartments);
 		user.departments = departments;
 	}
-	if (locationCity !== undefined && isStaffRole(user.role))
-		user.locationCity = locationCity;
 	if (userName !== undefined) {
 		const existing = await User.findOne({
 			userName,
