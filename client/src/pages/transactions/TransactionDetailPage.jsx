@@ -1,7 +1,9 @@
 import { Link, useParams } from 'react-router-dom';
 import { ROUTES } from '../../constants';
-import { FREQUENCIES, TRANSACTION_KINDS } from '../../constants/transactions';
+import { COMMISSION_STATUSES, FREQUENCIES, TRANSACTION_KINDS } from '../../constants/transactions';
+import { useMe } from '../../hooks/useAuth';
 import { useTransaction } from '../../hooks/useTransactions';
+import { canViewCommission } from '../../lib/commission';
 import { getApiErrorMessage } from '../../lib/queryClient';
 import { ageOn, maturityDate } from '../../lib/policyDates';
 import { formatCurrency, formatDate } from '../../utils/format';
@@ -10,6 +12,7 @@ import KindBadge from './KindBadge';
 
 const day = (value) => (value ? String(value).slice(0, 10) : '');
 const date = (value) => (value ? formatDate(value) : null);
+const percent = (value) => (value === undefined || value === null ? null : `${value}%`);
 const money = (value) => (value === undefined || value === null ? null : formatCurrency(value));
 
 function Detail({ label, children }) {
@@ -42,6 +45,7 @@ function Stat({ label, children }) {
 
 export default function TransactionDetailPage() {
   const { id } = useParams();
+  const { data: user } = useMe();
   const { data: transaction, isLoading, error } = useTransaction(id);
 
   const backLink = (
@@ -70,6 +74,7 @@ export default function TransactionDetailPage() {
   }
 
   const t = transaction;
+  const commissionStatus = COMMISSION_STATUSES.find((item) => item.value === t.commission?.status) ?? {};
   const isGi = t.kind === TRANSACTION_KINDS.GI;
 
   return (
@@ -153,6 +158,35 @@ export default function TransactionDetailPage() {
         <Detail label="GST">{money(t.gst)}</Detail>
         <Detail label="Premium">{money(t.premium)}</Detail>
       </Section>
+
+      {canViewCommission(user) && (
+        <Section title="Commission">
+          {t.commission ? (
+            <>
+              {isGi ? (
+                <>
+                  <Detail label="OD Commission">{money(t.commission.odCommission)}</Detail>
+                  <Detail label="TP Commission">{money(t.commission.tpCommission)}</Detail>
+                  <Detail label="Total Commission">{money(t.commission.totalCommission)}</Detail>
+                  <Detail label="OD Commission (%)">{percent(t.commission.odCommissionPercent)}</Detail>
+                  <Detail label="TP Commission (%)">{percent(t.commission.tpCommissionPercent)}</Detail>
+                  <Detail label="Total Commission (%)">{percent(t.commission.totalCommissionPercent)}</Detail>
+                </>
+              ) : (
+                <>
+                  <Detail label="Commission">{money(t.commission.amount)}</Detail>
+                  <Detail label="Commission (%)">{percent(t.commission.percent)}</Detail>
+                </>
+              )}
+              <Detail label="Commission Status">
+                <span className={commissionStatus.className}>{commissionStatus.label}</span>
+              </Detail>
+            </>
+          ) : (
+            <Detail label="Commission">No commission added yet</Detail>
+          )}
+        </Section>
+      )}
 
       <Section title="Record">
         <Detail label="Created By">{t.createdBy?.name}</Detail>

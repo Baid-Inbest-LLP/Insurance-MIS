@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { notifications } from '@mantine/notifications';
+import { useMe } from '../../hooks/useAuth';
 import { useCreateTransaction, useTransactionOptions, useUpdateTransaction } from '../../hooks/useTransactions';
-import { FREQUENCIES, KIND_LABELS, SOURCES, TRANSACTION_KINDS } from '../../constants/transactions';
+import { COMMISSION_STATUSES, FREQUENCIES, KIND_LABELS, SOURCES, TRANSACTION_KINDS } from '../../constants/transactions';
+import { canManageCommission } from '../../lib/commission';
 import { getApiErrorMessage } from '../../lib/queryClient';
 import { ageOn, displayDate, maturityDate } from '../../lib/policyDates';
 import { buildTransactionPayload, emptyTransactionValues, valuesFromTransaction } from '../../lib/transactionForm';
@@ -54,10 +56,26 @@ function TextField({ label, name, register, errors, required = false, rules, ...
   );
 }
 
-// A read-only amount is calculated by the form, but it is still submitted with the other fields.
-function AmountField({ label, name, register, errors, readOnly = false }) {
+// A commission percentage, typed in by hand.
+function PercentField({ label, name, register, errors }) {
   return (
-    <FormField label={label} required error={errors[name]}>
+    <FormField label={label} error={errors[name]}>
+      <input
+        type="number"
+        step="0.01"
+        min="0"
+        max="100"
+        className="input-field"
+        {...register(name, { ...AMOUNT_RULES, max: { value: 100, message: 'Cannot be more than 100' } })}
+      />
+    </FormField>
+  );
+}
+
+// A read-only amount is calculated by the form, but it is still submitted with the other fields.
+function AmountField({ label, name, register, errors, readOnly = false, required = true }) {
+  return (
+    <FormField label={label} required={required} error={errors[name]}>
       <input
         type="number"
         step="0.01"
@@ -65,7 +83,7 @@ function AmountField({ label, name, register, errors, readOnly = false }) {
         className={readOnly ? READ_ONLY_CLASS : 'input-field'}
         readOnly={readOnly}
         tabIndex={readOnly ? -1 : undefined}
-        {...register(name, { required: `${label} is required`, ...AMOUNT_RULES })}
+        {...register(name, { required: required && `${label} is required`, ...AMOUNT_RULES })}
       />
     </FormField>
   );
@@ -73,6 +91,7 @@ function AmountField({ label, name, register, errors, readOnly = false }) {
 
 export default function TransactionForm({ transaction, onClose }) {
   const isEdit = Boolean(transaction);
+  const { data: user } = useMe();
   const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();
 
@@ -117,6 +136,9 @@ export default function TransactionForm({ transaction, onClose }) {
     setValue('premium', premium);
   }, [isGi, netPremium, premium, setValue]);
 
+  // Commission is typed in by hand; only people who can manage it see these fields.
+  const showCommission = Boolean(kind) && canManageCommission(user, transaction);
+
   const onlyDepartmentId = !isEdit && departments.length === 1 ? departments[0]._id : '';
   useEffect(() => {
     if (onlyDepartmentId) setValue('department', onlyDepartmentId);
@@ -127,7 +149,17 @@ export default function TransactionForm({ transaction, onClose }) {
   };
 
   const onSubmit = async (data) => {
-    const payload = buildTransactionPayload({ ...data, kind, department });
+    const options = { withCommission: showCommission };
+    const payload = buildTransactionPayload({ ...data, kind, department }, options);
+    // The form's own dirty flag is not used: calculated fields are set by code and would count as changes.
+    if (isEdit) {
+      const saved = buildTransactionPayload({ ...valuesFromTransaction(transaction), kind, department }, options);
+      if (JSON.stringify(saved) === JSON.stringify(payload)) {
+        notifications.show({ message: 'No changes to save', color: 'blue' });
+        onClose();
+        return;
+      }
+    }
     try {
       if (isEdit) await updateTransaction.mutateAsync({ id: transaction._id, data: payload });
       else await createTransaction.mutateAsync(payload);
@@ -275,7 +307,7 @@ export default function TransactionForm({ transaction, onClose }) {
             <>
               <AmountField label="OD Premium" name="odPremium" {...sharedProps} />
               <AmountField label="Third-party Cover" name="thirdPartyCover" {...sharedProps} />
-              <AmountField label="Agent Stamp Duty" name="agentStampDuty" {...sharedProps} />
+              <AmountField label="Agent Stamp Duty" name="agentStampDuty" required={false} {...sharedProps} />
             </>
           ) : (
             <>
@@ -289,6 +321,40 @@ export default function TransactionForm({ transaction, onClose }) {
           <AmountField label="Premium" name="premium" readOnly {...sharedProps} />
         </FormGrid>
       </FormSection>
+
+      {showCommission && (
+        <FormSection title="Commission">
+          <FormGrid columns={3}>
+            {isGi ? (
+              <>
+                <AmountField label="OD Commission" name="odCommission" required={false} {...sharedProps} />
+                <AmountField label="TP Commission" name="tpCommission" required={false} {...sharedProps} />
+                <AmountField label="Total Commission" name="totalCommission" required={false} {...sharedProps} />
+                <PercentField label="OD Commission (%)" name="odCommissionPercent" {...sharedProps} />
+                <PercentField label="TP Commission (%)" name="tpCommissionPercent" {...sharedProps} />
+                <PercentField label="Total Commission (%)" name="totalCommissionPercent" {...sharedProps} />
+              </>
+            ) : (
+              <>
+                <AmountField label="Commission" name="commissionAmount" required={false} {...sharedProps} />
+                <PercentField label="Commission (%)" name="commissionPercent" {...sharedProps} />
+              </>
+            )}
+            <FormField label="Commission Status">
+              <select
+                className={`input-field ${COMMISSION_STATUSES.find((item) => item.value === values.commissionStatus)?.className ?? ''}`}
+                {...register('commissionStatus')}
+              >
+                {COMMISSION_STATUSES.map((item) => (
+                  <option key={item.value} value={item.value} className={item.className}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          </FormGrid>
+        </FormSection>
+      )}
     </FormModal>
   );
 }

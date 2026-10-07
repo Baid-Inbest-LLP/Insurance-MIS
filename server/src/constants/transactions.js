@@ -11,6 +11,8 @@ export const SOURCES = [
   'Others',
 ];
 
+export const COMMISSION_STATUSES = ['received', 'pending'];
+
 export const FREQUENCIES = ['monthly', 'quarterly', 'half-yearly', 'yearly', 'single'];
 
 // Transaction field -> the department master list it points into.

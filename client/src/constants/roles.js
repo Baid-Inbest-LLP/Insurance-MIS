@@ -25,6 +25,9 @@ export const ASSIGNABLE_ROLES = [
 // Roles that can open the master-data tabs (departments and master lists) in Control Center.
 export const MASTER_VIEW_ROLES = [ROLES.SUPERADMIN, ROLES.ADMIN];
 
+// Everyone but the premium employee may see commission.
+export const COMMISSION_VIEW_ROLES = [ROLES.SUPERADMIN, ROLES.ADMIN, ROLES.HOD, ROLES.EMP_COMMISSION];
+
 // Roles that belong to one or more departments.
 export const STAFF_ROLES = [ROLES.HOD, ROLES.EMP_PREMIUM, ROLES.EMP_COMMISSION];
 

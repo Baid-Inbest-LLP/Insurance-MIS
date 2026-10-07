@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { isAuthenticated } from './lib/session';
 import { CATALOG_TABS } from './constants/catalogs';
-import { MASTER_VIEW_ROLES } from './constants/roles';
+import { COMMISSION_VIEW_ROLES, MASTER_VIEW_ROLES } from './constants/roles';
 import AppLayout from './components/layout/AppLayout';
 import ProtectedRoute from './routes/ProtectedRoute';
 import LoginPage from './pages/auth/LoginPage';
@@ -12,6 +12,7 @@ import LobWiseReport from './pages/reports/LobWiseReport';
 import OfficeWiseReport from './pages/reports/OfficeWiseReport';
 import AgentWiseReport from './pages/reports/AgentWiseReport';
 import InsurerWiseReport from './pages/reports/InsurerWiseReport';
+import CommissionReport from './pages/reports/CommissionReport';
 import SettingsPage from './pages/settings/SettingsPage';
 import ControlCenterLayout from './pages/control-center/ControlCenterLayout';
 import CompanyListPage from './pages/control-center/CompanyListPage';
@@ -52,6 +53,14 @@ export default function App() {
             <Route path="office-wise" element={<OfficeWiseReport />} />
             <Route path="agent-wise" element={<AgentWiseReport />} />
             <Route path="insurer-wise" element={<InsurerWiseReport />} />
+            <Route
+              path="commission"
+              element={
+                <ProtectedRoute roles={COMMISSION_VIEW_ROLES}>
+                  <CommissionReport />
+                </ProtectedRoute>
+              }
+            />
           </Route>
           <Route path="control-center" element={<ControlCenterLayout />}>
             <Route index element={<Navigate to="companies" replace />} />

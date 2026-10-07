@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useMe } from '../../hooks/useAuth';
 import { ROUTES } from '../../constants';
-import { roleLabel } from '../../constants/roles';
+import { COMMISSION_VIEW_ROLES, roleLabel } from '../../constants/roles';
 import {
   ChevronRightIcon,
   ControlCenterIcon,
@@ -25,6 +25,7 @@ const navItems = [
       { to: ROUTES.REPORT_OFFICE_WISE, label: 'Office Wise Report' },
       { to: ROUTES.REPORT_AGENT_WISE, label: 'Agent Wise Report' },
       { to: ROUTES.REPORT_INSURER_WISE, label: 'Insurer Wise Report' },
+      { to: ROUTES.REPORT_COMMISSION, label: 'Commission Report', roles: COMMISSION_VIEW_ROLES },
     ],
   },
   {
@@ -109,22 +110,24 @@ const Sidebar = ({ isOpen = true }) => {
 
                 {isOpen && reportsOpen && (
                   <div className="mt-1 space-y-1 pl-4">
-                    {item.children.map((child) => (
-                      <NavLink
-                        key={child.to}
-                        to={child.to}
-                        className={({ isActive }) =>
-                          `sidebar-nav-link flex items-center gap-3 rounded-lg pl-4 pr-3 py-2 text-sm font-medium transition-colors ${
-                            isActive
-                              ? 'sidebar-nav-link--active bg-white/75 text-[#0b2f81] shadow-sm'
-                              : 'sidebar-nav-link--inactive text-primary-100 hover:bg-white/70 hover:text-[#0b2f81]'
-                          }`
-                        }
-                      >
-                        <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-current" />
-                        <span className="whitespace-nowrap">{child.label}</span>
-                      </NavLink>
-                    ))}
+                    {item.children
+                      .filter((child) => !child.roles || child.roles.includes(user?.role))
+                      .map((child) => (
+                        <NavLink
+                          key={child.to}
+                          to={child.to}
+                          className={({ isActive }) =>
+                            `sidebar-nav-link flex items-center gap-3 rounded-lg pl-4 pr-3 py-2 text-sm font-medium transition-colors ${
+                              isActive
+                                ? 'sidebar-nav-link--active bg-white/75 text-[#0b2f81] shadow-sm'
+                                : 'sidebar-nav-link--inactive text-primary-100 hover:bg-white/70 hover:text-[#0b2f81]'
+                            }`
+                          }
+                        >
+                          <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-current" />
+                          <span className="whitespace-nowrap">{child.label}</span>
+                        </NavLink>
+                      ))}
                   </div>
                 )}
               </div>

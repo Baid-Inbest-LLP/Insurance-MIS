@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { FREQUENCIES, SOURCES, TRANSACTION_KINDS } from '../constants/transactions.js';
+import { COMMISSION_STATUSES, FREQUENCIES, SOURCES, TRANSACTION_KINDS } from '../constants/transactions.js';
 import { objectId } from './common.validator.js';
 
 const GST_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
@@ -34,11 +34,38 @@ const amount = (label) =>
     .min(0, `${label} cannot be negative`)
     .refine((value) => Number(value.toFixed(2)) === value, `${label} can have at most 2 decimal places`);
 
+const percentage = (label) =>
+  z
+    .number({ required_error: `${label} is required`, invalid_type_error: `${label} must be a number` })
+    .min(0, `${label} cannot be negative`)
+    .max(100, `${label} cannot be more than 100`)
+    .refine((value) => Number(value.toFixed(2)) === value, `${label} can have at most 2 decimal places`);
+
 const years = (label) =>
   z
     .number({ required_error: `${label} is required`, invalid_type_error: `${label} must be a number` })
     .int(`${label} must be a whole number`)
     .min(1, `${label} must be at least 1`);
+
+const commissionStatus = z.enum(COMMISSION_STATUSES, {
+  message: `Commission status must be one of: ${COMMISSION_STATUSES.join(', ')}`,
+});
+
+const giCommission = z.object({
+  odCommission: amount('OD commission'),
+  tpCommission: amount('TP commission'),
+  totalCommission: amount('Total commission'),
+  odCommissionPercent: percentage('OD commission %'),
+  tpCommissionPercent: percentage('TP commission %'),
+  totalCommissionPercent: percentage('Total commission %'),
+  status: commissionStatus,
+});
+
+const liCommission = z.object({
+  amount: amount('Commission'),
+  percent: percentage('Commission %'),
+  status: commissionStatus,
+});
 
 const sharedFields = {
   department: objectId('department'),
@@ -89,6 +116,7 @@ const giSchema = z.object({
   odPremium: amount('OD premium').default(0),
   thirdPartyCover: amount('Third-party cover').default(0),
   agentStampDuty: amount('Agent stamp duty').default(0),
+  commission: giCommission.optional(),
 });
 
 const liSchema = z.object({
@@ -105,6 +133,7 @@ const liSchema = z.object({
   actualPaymentDate: date('Actual payment date'),
   premiumPerMonth: amount('Premium per month'),
   sumAssured: amount('Sum assured'),
+  commission: liCommission.optional(),
 });
 
 // Used to create a transaction and to update one (a full replacement of its fields).

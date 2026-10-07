@@ -20,3 +20,8 @@ export const FREQUENCIES = [
   { value: 'yearly', label: 'Yearly' },
   { value: 'single', label: 'Single' },
 ];
+
+export const COMMISSION_STATUSES = [
+  { value: 'received', label: 'Received', className: 'commission-status-received' },
+  { value: 'pending', label: 'Pending', className: 'commission-status-pending' },
+];

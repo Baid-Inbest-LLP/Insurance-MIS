@@ -1,4 +1,5 @@
 import Modal from '../Modal';
+import Spinner from '../Spinner';
 import FormGrid from './FormGrid';
 
 // A modal holding a form: a fixed header, a scrolling FormGrid for the fields, and fixed Cancel/Submit buttons.
@@ -40,7 +41,14 @@ export default function FormModal({
             {cancelLabel}
           </button>
           <button type="submit" disabled={submitting} className="btn-primary">
-            {submitting ? submittingLabel : submitLabel}
+            {submitting ? (
+              <span className="flex items-center justify-center gap-2">
+                <Spinner />
+                {submittingLabel}
+              </span>
+            ) : (
+              submitLabel
+            )}
           </button>
         </div>
       </form>

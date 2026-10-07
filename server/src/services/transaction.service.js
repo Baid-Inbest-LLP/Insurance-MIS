@@ -8,7 +8,7 @@ import {
 } from "../models/index.js";
 import { ApiError } from "../utils/ApiError.js";
 import { escapeRegex } from "../utils/searchUtils.js";
-import { isHod, isStaffRole } from "../constants/roles.js";
+import { ROLES, isHod, isStaffRole } from "../constants/roles.js";
 import { MASTER_FIELDS, TRANSACTION_KINDS } from "../constants/transactions.js";
 import { assertActiveDepartments } from "./department.service.js";
 
@@ -37,7 +37,7 @@ const DETAIL_POPULATE = [
 
 // The table only shows these fields; the full record comes from the details endpoint.
 const LIST_FIELDS =
-	"kind department branch officeCode policyDate policyNo clientName insurer lob source premium createdBy";
+	"kind department branch policyDate policyNo clientName insurer businessType lob source premium createdBy";
 const LIST_POPULATE = [{ path: "branch", select: "label" }];
 
 const hasDepartment = (actor, departmentId) =>
@@ -54,6 +54,22 @@ const canModify = (actor, transaction) => {
 	if (!isStaffRole(actor.role)) return true;
 	if (!hasDepartment(actor, transaction.department)) return false;
 	return isHod(actor.role) || transaction.createdBy.equals(actor._id);
+};
+
+// Premium employees never see commission; everyone else sees it on the transactions they can read.
+const canViewCommission = (actor) => actor.role !== ROLES.EMP_PREMIUM;
+
+// Superadmin and admin manage commission everywhere, a HOD inside their departments, and a
+// commission employee only on the entries they created.
+const canManageCommission = (actor, { department, createdBy }) => {
+	if (!isStaffRole(actor.role)) return true;
+	if (!hasDepartment(actor, department)) return false;
+	if (isHod(actor.role)) return true;
+	return actor.role === ROLES.EMP_COMMISSION && createdBy.equals(actor._id);
+};
+
+const assertCanManageCommission = (allowed) => {
+	if (!allowed) throw ApiError.forbidden("You do not have permission to manage commission");
 };
 
 const canDelete = (actor, transaction) =>
@@ -186,6 +202,7 @@ const toListItem = ({ branch, ...transaction }, names) => ({
 	...transaction,
 	branch: { _id: branch._id, code: branch.label },
 	insurer: masterItem(transaction, "insurer", names, transaction.department),
+	businessType: masterItem(transaction, "businessType", names, transaction.department),
 	lob: masterItem(transaction, "lob", names, transaction.department),
 });
 
@@ -247,11 +264,16 @@ export const getTransaction = async ({ id, actor }) => {
 
 	assertCanWorkIn(actor, transaction.department);
 	const [dto] = await hydrate([transaction], { populate: DETAIL_POPULATE, toDto: toTransactionDto });
+	if (!canViewCommission(actor)) delete dto.commission;
 	return dto;
 };
 
 export const createTransaction = async ({ actor, data }) => {
 	assertCanWorkIn(actor, data.department);
+	if (data.commission)
+		assertCanManageCommission(
+			canManageCommission(actor, { department: data.department, createdBy: actor._id }),
+		);
 	await assertReferences(data);
 
 	const Model = data.kind === TRANSACTION_KINDS.GI ? GiTransaction : LiTransaction;
@@ -268,11 +290,16 @@ export const updateTransaction = async ({ id, actor, data }) => {
 	if (!canModify(actor, transaction))
 		throw ApiError.forbidden("You do not have permission to edit this transaction");
 
-	const { kind, department, ...fields } = data;
+	const { kind, department, commission, ...fields } = data;
 	if (kind !== transaction.kind)
 		throw ApiError.badRequest("Transaction type cannot be changed");
 	if (!transaction.department.equals(department))
 		throw ApiError.badRequest("Department cannot be changed");
+
+	// Commission is replaced like every other field, but only by someone allowed to manage it;
+	// for anyone else the stored commission is left exactly as it is.
+	const manageCommission = canManageCommission(actor, transaction);
+	if (commission) assertCanManageCommission(manageCommission);
 
 	await assertReferences(data, transaction);
 
@@ -282,6 +309,7 @@ export const updateTransaction = async ({ id, actor, data }) => {
 		Object.entries(fields).filter(([, value]) => value !== undefined),
 	);
 	transaction.set({ ...sent, updatedBy: actor._id });
+	if (manageCommission) transaction.set("commission", commission);
 
 	try {
 		await transaction.save();

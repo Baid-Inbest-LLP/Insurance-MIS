@@ -21,7 +21,7 @@ export const getLookups = async ({ actor, department }) => {
 			.select("name code")
 			.sort({ name: 1 })
 			.lean(),
-		Branch.find({ isActive: true }).select("label").sort({ label: 1 }).lean(),
+		Branch.find({ isActive: true }).select("label").sort({ createdAt: 1, _id: 1 }).lean(),
 		Agent.find({ isActive: true, deletedAt: null }).select("name").sort({ name: 1 }).lean(),
 		department ? Master.find({ department, slug: { $in: MASTER_SLUGS } }).lean() : [],
 	]);

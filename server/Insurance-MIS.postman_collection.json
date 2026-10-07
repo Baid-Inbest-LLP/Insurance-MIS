@@ -413,7 +413,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"kind\": \"gi\",\n  \"department\": \"{{departmentId}}\",\n  \"branch\": \"{{branchId}}\",\n  \"location\": \"Jaipur\",\n  \"officeCode\": \"OC-01\",\n  \"policyDate\": \"2026-04-10\",\n  \"entryDate\": \"2026-04-10\",\n  \"policyNo\": \"GI-0001\",\n  \"clientName\": \"Ramesh Kumar\",\n  \"insurer\": \"{{insurerId}}\",\n  \"businessType\": \"{{businessTypeId}}\",\n  \"lob\": \"{{lobId}}\",\n  \"agent\": \"{{agentId}}\",\n  \"source\": \"Direct\",\n  \"reference\": \"REF-1\",\n  \"clientGst\": \"27AAPFU0939F1ZV\",\n  \"vehicleNo\": \"RJ14AB1234\",\n  \"maker\": \"Maruti\",\n  \"model\": \"Swift\",\n  \"mfgDate\": \"2024-01-15\",\n  \"ncb\": 20,\n  \"policyPeriodFrom\": \"2026-04-10\",\n  \"policyPeriodTo\": \"2027-04-09\",\n  \"odPremium\": 1000,\n  \"thirdPartyCover\": 500,\n  \"agentStampDuty\": 1,\n  \"netPremium\": 1501,\n  \"gst\": 270.18,\n  \"premium\": 1771.18\n}",
+							"raw": "{\n  \"kind\": \"gi\",\n  \"department\": \"{{departmentId}}\",\n  \"branch\": \"{{branchId}}\",\n  \"location\": \"Jaipur\",\n  \"officeCode\": \"OC-01\",\n  \"policyDate\": \"2026-04-10\",\n  \"entryDate\": \"2026-04-10\",\n  \"policyNo\": \"GI-0001\",\n  \"clientName\": \"Ramesh Kumar\",\n  \"insurer\": \"{{insurerId}}\",\n  \"businessType\": \"{{businessTypeId}}\",\n  \"lob\": \"{{lobId}}\",\n  \"agent\": \"{{agentId}}\",\n  \"source\": \"Direct\",\n  \"reference\": \"REF-1\",\n  \"clientGst\": \"27AAPFU0939F1ZV\",\n  \"vehicleNo\": \"RJ14AB1234\",\n  \"maker\": \"Maruti\",\n  \"model\": \"Swift\",\n  \"mfgDate\": \"2024-01-15\",\n  \"ncb\": 20,\n  \"policyPeriodFrom\": \"2026-04-10\",\n  \"policyPeriodTo\": \"2027-04-09\",\n  \"odPremium\": 1000,\n  \"thirdPartyCover\": 500,\n  \"agentStampDuty\": 1,\n  \"netPremium\": 1501,\n  \"gst\": 270.18,\n  \"premium\": 1771.18,\n  \"commission\": {\n    \"odCommission\": 70,\n    \"tpCommission\": 15,\n    \"totalCommission\": 85,\n    \"odCommissionPercent\": 10,\n    \"tpCommissionPercent\": 7.5,\n    \"totalCommissionPercent\": 9.5,\n    \"status\": \"pending\"\n  }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -429,7 +429,7 @@
 								"transactions"
 							]
 						},
-						"description": "Amounts are in rupees with at most 2 decimals. Ids come from the matching Master > Catalog lists of the transaction's department: set {{departmentId}}, {{branchId}}, {{insurerId}}, {{businessTypeId}}, {{lobId}}, {{agentId}} (and {{productTypeId}} for LI)."
+						"description": "Amounts are in rupees with at most 2 decimals. Ids come from the matching Master > Catalog lists of the transaction's department: set {{departmentId}}, {{branchId}}, {{insurerId}}, {{businessTypeId}}, {{lobId}}, {{agentId}} (and {{productTypeId}} for LI). commission is optional and everything in it is entered by hand: nothing is calculated. GI: odCommission, tpCommission, totalCommission, odCommissionPercent, tpCommissionPercent, totalCommissionPercent and status; LI: amount, percent and status. Amounts are rupees with at most 2 decimals; percentages are 0 to 100 with at most 2 decimals; status is received or pending. Only superadmin, admin, a HOD (own departments) and a commission employee (own entries) may send it; a premium employee gets 403."
 					}
 				},
 				{
@@ -444,7 +444,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"kind\": \"li\",\n  \"department\": \"{{departmentId}}\",\n  \"branch\": \"{{branchId}}\",\n  \"location\": \"Jaipur\",\n  \"officeCode\": \"OC-01\",\n  \"policyDate\": \"2026-04-12\",\n  \"entryDate\": \"2026-04-12\",\n  \"policyNo\": \"LI-0001\",\n  \"clientName\": \"Sunita Devi\",\n  \"agent\": \"{{agentId}}\",\n  \"insurer\": \"{{insurerId}}\",\n  \"businessType\": \"{{businessTypeId}}\",\n  \"productType\": \"{{productTypeId}}\",\n  \"lob\": \"{{lobId}}\",\n  \"source\": \"Agents\",\n  \"reference\": \"\",\n  \"dateOfBirth\": \"1990-08-15\",\n  \"commencementDate\": \"2026-04-10\",\n  \"paymentTermYears\": 10,\n  \"policyTermYears\": 20,\n  \"frequency\": \"monthly\",\n  \"nextDueDate\": \"2026-05-10\",\n  \"actualPaymentDate\": \"2026-04-10\",\n  \"premiumPerMonth\": 2500,\n  \"sumAssured\": 5000000,\n  \"netPremium\": 2500,\n  \"gst\": 450,\n  \"premium\": 2950\n}",
+							"raw": "{\n  \"kind\": \"li\",\n  \"department\": \"{{departmentId}}\",\n  \"branch\": \"{{branchId}}\",\n  \"location\": \"Jaipur\",\n  \"officeCode\": \"OC-01\",\n  \"policyDate\": \"2026-04-12\",\n  \"entryDate\": \"2026-04-12\",\n  \"policyNo\": \"LI-0001\",\n  \"clientName\": \"Sunita Devi\",\n  \"agent\": \"{{agentId}}\",\n  \"insurer\": \"{{insurerId}}\",\n  \"businessType\": \"{{businessTypeId}}\",\n  \"productType\": \"{{productTypeId}}\",\n  \"lob\": \"{{lobId}}\",\n  \"source\": \"Agents\",\n  \"reference\": \"\",\n  \"dateOfBirth\": \"1990-08-15\",\n  \"commencementDate\": \"2026-04-10\",\n  \"paymentTermYears\": 10,\n  \"policyTermYears\": 20,\n  \"frequency\": \"monthly\",\n  \"nextDueDate\": \"2026-05-10\",\n  \"actualPaymentDate\": \"2026-04-10\",\n  \"premiumPerMonth\": 2500,\n  \"sumAssured\": 5000000,\n  \"netPremium\": 2500,\n  \"gst\": 450,\n  \"premium\": 2950,\n  \"commission\": {\n    \"amount\": 120,\n    \"percent\": 9.5,\n    \"status\": \"pending\"\n  }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -460,7 +460,7 @@
 								"transactions"
 							]
 						},
-						"description": "Amounts are in rupees with at most 2 decimals. Ids come from the matching Master > Catalog lists of the transaction's department: set {{departmentId}}, {{branchId}}, {{insurerId}}, {{businessTypeId}}, {{lobId}}, {{agentId}} (and {{productTypeId}} for LI). Each LI premium payment is its own transaction."
+						"description": "Amounts are in rupees with at most 2 decimals. Ids come from the matching Master > Catalog lists of the transaction's department: set {{departmentId}}, {{branchId}}, {{insurerId}}, {{businessTypeId}}, {{lobId}}, {{agentId}} (and {{productTypeId}} for LI). Each LI premium payment is its own transaction. commission is optional and everything in it is entered by hand: nothing is calculated. GI: odCommission, tpCommission, totalCommission, odCommissionPercent, tpCommissionPercent, totalCommissionPercent and status; LI: amount, percent and status. Amounts are rupees with at most 2 decimals; percentages are 0 to 100 with at most 2 decimals; status is received or pending. Only superadmin, admin, a HOD (own departments) and a commission employee (own entries) may send it; a premium employee gets 403."
 					}
 				},
 				{
@@ -475,7 +475,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"kind\": \"gi\",\n  \"department\": \"{{departmentId}}\",\n  \"branch\": \"{{branchId}}\",\n  \"location\": \"Jaipur\",\n  \"officeCode\": \"OC-01\",\n  \"policyDate\": \"2026-04-10\",\n  \"entryDate\": \"2026-04-10\",\n  \"policyNo\": \"GI-0001\",\n  \"clientName\": \"Ramesh Kumar (updated)\",\n  \"insurer\": \"{{insurerId}}\",\n  \"businessType\": \"{{businessTypeId}}\",\n  \"lob\": \"{{lobId}}\",\n  \"agent\": \"{{agentId}}\",\n  \"source\": \"Direct\",\n  \"reference\": \"REF-1\",\n  \"clientGst\": \"27AAPFU0939F1ZV\",\n  \"vehicleNo\": \"RJ14AB1234\",\n  \"maker\": \"Maruti\",\n  \"model\": \"Swift\",\n  \"mfgDate\": \"2024-01-15\",\n  \"ncb\": 20,\n  \"policyPeriodFrom\": \"2026-04-10\",\n  \"policyPeriodTo\": \"2027-04-09\",\n  \"odPremium\": 1000,\n  \"thirdPartyCover\": 500,\n  \"agentStampDuty\": 1,\n  \"netPremium\": 1501,\n  \"gst\": 270.18,\n  \"premium\": 1771.18\n}",
+							"raw": "{\n  \"kind\": \"gi\",\n  \"department\": \"{{departmentId}}\",\n  \"branch\": \"{{branchId}}\",\n  \"location\": \"Jaipur\",\n  \"officeCode\": \"OC-01\",\n  \"policyDate\": \"2026-04-10\",\n  \"entryDate\": \"2026-04-10\",\n  \"policyNo\": \"GI-0001\",\n  \"clientName\": \"Ramesh Kumar (updated)\",\n  \"insurer\": \"{{insurerId}}\",\n  \"businessType\": \"{{businessTypeId}}\",\n  \"lob\": \"{{lobId}}\",\n  \"agent\": \"{{agentId}}\",\n  \"source\": \"Direct\",\n  \"reference\": \"REF-1\",\n  \"clientGst\": \"27AAPFU0939F1ZV\",\n  \"vehicleNo\": \"RJ14AB1234\",\n  \"maker\": \"Maruti\",\n  \"model\": \"Swift\",\n  \"mfgDate\": \"2024-01-15\",\n  \"ncb\": 20,\n  \"policyPeriodFrom\": \"2026-04-10\",\n  \"policyPeriodTo\": \"2027-04-09\",\n  \"odPremium\": 1000,\n  \"thirdPartyCover\": 500,\n  \"agentStampDuty\": 1,\n  \"netPremium\": 1501,\n  \"gst\": 270.18,\n  \"premium\": 1771.18,\n  \"commission\": {\n    \"odCommission\": 70,\n    \"tpCommission\": 15,\n    \"totalCommission\": 85,\n    \"odCommissionPercent\": 10,\n    \"tpCommissionPercent\": 7.5,\n    \"totalCommissionPercent\": 9.5,\n    \"status\": \"received\"\n  }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -492,7 +492,7 @@
 								"{{transactionId}}"
 							]
 						},
-						"description": "Sends the full set of fields: optional fields left out are cleared. kind and department cannot change. Employees can edit only their own entries; a HOD can edit any entry in their departments; admin and superadmin can edit all."
+						"description": "Sends the full set of fields: optional fields left out are cleared. kind and department cannot change. Employees can edit only their own entries; a HOD can edit any entry in their departments; admin and superadmin can edit all. Commission is replaced like the other fields: leave it out to clear it. If the caller cannot manage commission, the stored commission is left untouched. Premium employees never receive commission in responses. commission is optional and everything in it is entered by hand: nothing is calculated. GI: odCommission, tpCommission, totalCommission, odCommissionPercent, tpCommissionPercent, totalCommissionPercent and status; LI: amount, percent and status. Amounts are rupees with at most 2 decimals; percentages are 0 to 100 with at most 2 decimals; status is received or pending. Only superadmin, admin, a HOD (own departments) and a commission employee (own entries) may send it; a premium employee gets 403."
 					}
 				},
 				{

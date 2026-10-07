@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { FREQUENCIES, SOURCES, TRANSACTION_KINDS } from '../constants/transactions.js';
+import { COMMISSION_STATUSES, FREQUENCIES, SOURCES, TRANSACTION_KINDS } from '../constants/transactions.js';
 
 const { ObjectId } = mongoose.Schema.Types;
 
@@ -56,6 +56,28 @@ transactionSchema.index({ lob: 1, policyDate: -1 });
 transactionSchema.index({ agent: 1, policyDate: -1 });
 transactionSchema.index({ branch: 1, policyDate: -1 });
 
+// Commission is optional on a transaction. Amounts and percentages are entered by hand, so both are stored.
+const percentage = () => ({ type: Number, required: true, min: 0, max: 100 });
+const commissionStatus = { type: String, enum: COMMISSION_STATUSES, required: true };
+
+const giCommissionSchema = new mongoose.Schema(
+  {
+    odCommission: amount(),
+    tpCommission: amount(),
+    totalCommission: amount(),
+    odCommissionPercent: percentage(),
+    tpCommissionPercent: percentage(),
+    totalCommissionPercent: percentage(),
+    status: commissionStatus,
+  },
+  { _id: false, strict: 'throw' },
+);
+
+const liCommissionSchema = new mongoose.Schema(
+  { amount: amount(), percent: percentage(), status: commissionStatus },
+  { _id: false, strict: 'throw' },
+);
+
 const giSchema = new mongoose.Schema(
   {
     clientGst: { type: String, trim: true, uppercase: true, maxlength: 15 },
@@ -69,6 +91,7 @@ const giSchema = new mongoose.Schema(
     odPremium: amount({ required: false, default: 0 }),
     thirdPartyCover: amount({ required: false, default: 0 }),
     agentStampDuty: amount({ required: false, default: 0 }),
+    commission: { type: giCommissionSchema },
   },
   { strict: 'throw' },
 );
@@ -85,6 +108,7 @@ const liSchema = new mongoose.Schema(
     actualPaymentDate: { type: Date, required: true },
     premiumPerMonth: amount(),
     sumAssured: amount(),
+    commission: { type: liCommissionSchema },
   },
   { strict: 'throw' },
 );

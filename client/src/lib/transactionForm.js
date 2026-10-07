@@ -44,9 +44,15 @@ export const emptyTransactionValues = () => ({
   ncb: '',
   policyPeriodFrom: '',
   policyPeriodTo: '',
-  odPremium: '0',
-  thirdPartyCover: '0',
-  agentStampDuty: '0',
+  odPremium: '',
+  thirdPartyCover: '',
+  agentStampDuty: '',
+  odCommission: '',
+  tpCommission: '',
+  totalCommission: '',
+  odCommissionPercent: '',
+  tpCommissionPercent: '',
+  totalCommissionPercent: '',
   // LI
   dateOfBirth: '',
   productType: '',
@@ -58,6 +64,9 @@ export const emptyTransactionValues = () => ({
   actualPaymentDate: '',
   premiumPerMonth: '',
   sumAssured: '',
+  commissionAmount: '',
+  commissionPercent: '',
+  commissionStatus: 'pending',
 });
 
 // Turns a transaction from the API into the form's string values.
@@ -71,6 +80,15 @@ export const valuesFromTransaction = (transaction) => {
     lob: transaction.lob?._id,
     agent: transaction.agent?._id,
     productType: transaction.productType?._id,
+    odCommission: transaction.commission?.odCommission,
+    tpCommission: transaction.commission?.tpCommission,
+    totalCommission: transaction.commission?.totalCommission,
+    odCommissionPercent: transaction.commission?.odCommissionPercent,
+    tpCommissionPercent: transaction.commission?.tpCommissionPercent,
+    totalCommissionPercent: transaction.commission?.totalCommissionPercent,
+    commissionAmount: transaction.commission?.amount,
+    commissionPercent: transaction.commission?.percent,
+    commissionStatus: transaction.commission?.status,
   };
 
   for (const key of Object.keys(values)) {
@@ -80,8 +98,34 @@ export const valuesFromTransaction = (transaction) => {
   return values;
 };
 
+const GI_COMMISSION_FIELDS = [
+  'odCommission',
+  'tpCommission',
+  'totalCommission',
+  'odCommissionPercent',
+  'tpCommissionPercent',
+  'totalCommissionPercent',
+];
+
+// Commission is sent only by someone who can manage it, and only once an amount has been entered.
+const buildCommission = (values) => {
+  if (values.kind === TRANSACTION_KINDS.GI) {
+    if (GI_COMMISSION_FIELDS.every((field) => values[field] === '')) return undefined;
+    return {
+      ...Object.fromEntries(GI_COMMISSION_FIELDS.map((field) => [field, amount(values[field]) ?? 0])),
+      status: values.commissionStatus,
+    };
+  }
+  if (values.commissionAmount === '' && values.commissionPercent === '') return undefined;
+  return {
+    amount: amount(values.commissionAmount) ?? 0,
+    percent: amount(values.commissionPercent) ?? 0,
+    status: values.commissionStatus,
+  };
+};
+
 // Turns the form's values into the body the API expects, for the chosen kind only.
-export const buildTransactionPayload = (values) => {
+export const buildTransactionPayload = (values, { withCommission = false } = {}) => {
   const shared = {
     kind: values.kind,
     department: values.department,
@@ -117,6 +161,7 @@ export const buildTransactionPayload = (values) => {
       odPremium: amount(values.odPremium) ?? 0,
       thirdPartyCover: amount(values.thirdPartyCover) ?? 0,
       agentStampDuty: amount(values.agentStampDuty) ?? 0,
+      ...(withCommission && { commission: buildCommission(values) }),
     };
   }
 
@@ -132,5 +177,6 @@ export const buildTransactionPayload = (values) => {
     actualPaymentDate: values.actualPaymentDate,
     premiumPerMonth: amount(values.premiumPerMonth),
     sumAssured: amount(values.sumAssured),
+    ...(withCommission && { commission: buildCommission(values) }),
   };
 };

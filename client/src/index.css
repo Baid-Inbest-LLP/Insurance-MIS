@@ -730,6 +730,14 @@
     @apply text-xl font-semibold text-gray-900 break-words;
   }
 
+  .commission-status-received {
+    @apply font-semibold text-green-600;
+  }
+
+  .commission-status-pending {
+    @apply font-semibold text-amber-600;
+  }
+
   .company-form-checkbox-label {
     @apply text-sm text-gray-700;
   }
@@ -1599,6 +1607,14 @@
 
 [data-theme='dark'] #root .detail-label {
   color: #909296 !important;
+}
+
+[data-theme='dark'] #root .commission-status-received {
+  color: #4ade80 !important;
+}
+
+[data-theme='dark'] #root .commission-status-pending {
+  color: #fbbf24 !important;
 }
 
 [data-theme='dark'] #root .control-center-toolbar-subtitle {

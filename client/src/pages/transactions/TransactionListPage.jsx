@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DateInput } from '@mantine/dates';
 import { notifications } from '@mantine/notifications';
@@ -30,6 +30,9 @@ const LIMIT = 20;
 // and shows placeholders until the record is there (usually it already is, loaded when the button was hovered).
 function EditTransactionForm({ id, onClose }) {
   const { data: transaction, isFetching, error } = useTransaction(id);
+  // Once the form is up it stays up; saving refetches the record and must not swap the form for placeholders.
+  const shown = useRef(false);
+  if (transaction && !isFetching) shown.current = true;
 
   useEffect(() => {
     if (!error) return;
@@ -37,7 +40,7 @@ function EditTransactionForm({ id, onClose }) {
     onClose();
   }, [error, onClose]);
 
-  if (transaction && !isFetching) return <TransactionForm transaction={transaction} onClose={onClose} />;
+  if (shown.current) return <TransactionForm transaction={transaction} onClose={onClose} />;
 
   return (
     <Modal open size="xl" title="Edit Transaction" subtitle="Loading the policy details..." onClose={onClose}>
@@ -125,9 +128,9 @@ export default function TransactionListPage() {
     { key: 'policyNo', header: 'Policy No.', align: 'center' },
     { key: 'clientName', header: 'Client Name', align: 'center', render: (t) => <span className="settings-user-name">{t.clientName}</span> },
     { key: 'insurer', header: 'Insurer', align: 'center', render: (t) => t.insurer?.name ?? '-' },
+    { key: 'businessType', header: 'Business Type', align: 'center', render: (t) => t.businessType?.name ?? '-' },
     { key: 'lob', header: 'LOB', align: 'center', render: (t) => t.lob?.name ?? '-' },
     { key: 'branch', header: 'Branch', align: 'center', render: (t) => t.branch.code },
-    { key: 'officeCode', header: 'Office Code', align: 'center', render: (t) => t.officeCode || '-' },
     { key: 'premium', header: 'Premium', align: 'right', render: (t) => formatCurrency(t.premium) },
     { key: 'source', header: 'Source', align: 'center' },
     {

@@ -71,7 +71,7 @@ Users are created from **Settings** with one of these roles: `superadmin`, `admi
 | Layout    | Navbar header, collapsible gradient sidebar, light/dark theme toggle |
 | Dashboard | Placeholder KPI tiles for policies, premium, claims, renewals        |
 | Companies | CRUD for companies and branches (Control Center)             |
-| Transactions | GI and LI insurance transactions: list/filter, create, update, soft delete (`/api/v1/transactions`) |
+| Transactions | GI and LI insurance transactions: list/filter, create, update, soft delete (`/api/v1/transactions`); commission details are visible to everyone except premium employees and editable by superadmin, admin, HOD and the commission employee who created the entry |
 | Agents    | Agent list shared by all departments (Control Center, `/api/v1/masters/agents`); `/api/v1/masters/lookups` returns the dropdown data for entry forms |
 | Settings  | User management (create/edit/deactivate/delete), change password     |
 
