@@ -32,6 +32,54 @@ export const useDepartments = ({ includeInactive = false, enabled = true } = {})
 		staleTime: 5 * 60 * 1000,
 	});
 
+// Agents are shared by every department; superadmins can include inactive ones.
+export const useAgents = ({ includeInactive = false } = {}) =>
+	useQuery({
+		queryKey: [...queryKeys.agents, { includeInactive }],
+		queryFn: async () =>
+			(
+				await masterApi.agents(includeInactive ? { activeOnly: false } : undefined)
+			).data.data ?? [],
+		staleTime: 5 * 60 * 1000,
+	});
+
+// Agents also feed the transaction form's lookups, so both are refreshed.
+const invalidateAgents = (queryClient) =>
+	Promise.all([
+		queryClient.invalidateQueries({ queryKey: queryKeys.agents }),
+		queryClient.invalidateQueries({ queryKey: ["masters", "lookups"] }),
+	]);
+
+export const useCreateAgent = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: async (data) => {
+			await masterApi.createAgent(data);
+		},
+		onSuccess: () => invalidateAgents(queryClient),
+	});
+};
+
+export const useUpdateAgent = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: async ({ id, data }) => {
+			await masterApi.updateAgent(id, data);
+		},
+		onSuccess: () => invalidateAgents(queryClient),
+	});
+};
+
+export const useDeleteAgent = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: async (id) => {
+			await masterApi.deleteAgent(id);
+		},
+		onSuccess: () => invalidateAgents(queryClient),
+	});
+};
+
 export const useCreateDepartment = () => {
 	const queryClient = useQueryClient();
 	return useMutation({

@@ -28,10 +28,10 @@ Insurance-MIS/
 └── server/                 # Express API (port 5004)
     └── src/
         ├── config/         # env config + MongoDB connection
-        ├── constants/      # roles
+        ├── constants/      # roles, master slugs, transaction enums
         ├── controllers/    # request handlers
         ├── middleware/     # auth, validate (zod), upload, error handler
-        ├── models/         # User, Company, Branch, LocationCity, Master, Department
+        ├── models/         # User, Company, Branch, LocationCity, Master, Department, Agent, Transaction (GI + LI)
         ├── routes/         # /api/v1/* routers
         ├── seed/           # first-boot superadmin bootstrap
         ├── services/       # business logic
@@ -71,6 +71,8 @@ Users are created from **Settings** with one of these roles: `superadmin`, `admi
 | Layout    | Navbar header, collapsible gradient sidebar, light/dark theme toggle |
 | Dashboard | Placeholder KPI tiles for policies, premium, claims, renewals        |
 | Companies | CRUD for companies and branches (Control Center)             |
+| Transactions | GI and LI insurance transactions: list/filter, create, update, soft delete (`/api/v1/transactions`) |
+| Agents    | Agent list shared by all departments (Control Center, `/api/v1/masters/agents`); `/api/v1/masters/lookups` returns the dropdown data for entry forms |
 | Settings  | User management (create/edit/deactivate/delete), change password     |
 
 ## Adding a module

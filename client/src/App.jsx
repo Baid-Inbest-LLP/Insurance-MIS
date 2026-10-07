@@ -6,7 +6,8 @@ import AppLayout from './components/layout/AppLayout';
 import ProtectedRoute from './routes/ProtectedRoute';
 import LoginPage from './pages/auth/LoginPage';
 import HomePage from './pages/home/HomePage';
-import Transactions from './pages/transactions/Transactions';
+import Transactions from './pages/transactions/TransactionListPage';
+import TransactionDetailPage from './pages/transactions/TransactionDetailPage';
 import LobWiseReport from './pages/reports/LobWiseReport';
 import OfficeWiseReport from './pages/reports/OfficeWiseReport';
 import AgentWiseReport from './pages/reports/AgentWiseReport';
@@ -15,6 +16,7 @@ import SettingsPage from './pages/settings/SettingsPage';
 import ControlCenterLayout from './pages/control-center/ControlCenterLayout';
 import CompanyListPage from './pages/control-center/CompanyListPage';
 import DepartmentListPage from './pages/control-center/DepartmentListPage';
+import AgentListPage from './pages/control-center/AgentListPage';
 import CatalogListPage from './pages/control-center/CatalogListPage';
 
 function PublicOnly({ children }) {
@@ -43,6 +45,7 @@ export default function App() {
         >
           <Route index element={<HomePage />} />
           <Route path="transactions" element={<Transactions />} />
+          <Route path="transactions/:id" element={<TransactionDetailPage />} />
           <Route path="reports">
             <Route index element={<Navigate to="lob-wise" replace />} />
             <Route path="lob-wise" element={<LobWiseReport />} />
@@ -72,6 +75,14 @@ export default function App() {
                 }
               />
             ))}
+            <Route
+              path="agent"
+              element={
+                <ProtectedRoute roles={MASTER_VIEW_ROLES}>
+                  <AgentListPage />
+                </ProtectedRoute>
+              }
+            />
           </Route>
           <Route path="settings" element={<SettingsPage />} />
         </Route>

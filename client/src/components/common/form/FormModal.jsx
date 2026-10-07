@@ -1,7 +1,7 @@
 import Modal from '../Modal';
 import FormGrid from './FormGrid';
 
-// A modal holding a form: header, a FormGrid for the fields, and Cancel/Submit buttons.
+// A modal holding a form: a fixed header, a scrolling FormGrid for the fields, and fixed Cancel/Submit buttons.
 // Pass `onSubmit={handleSubmit(fn)}` from react-hook-form; children are FormFields or FormSections.
 export default function FormModal({
   open,
@@ -14,7 +14,6 @@ export default function FormModal({
   submittingLabel = 'Saving...',
   cancelLabel = 'Cancel',
   size,
-  align,
   columns = 1,
   gap,
   children,
@@ -27,14 +26,16 @@ export default function FormModal({
       onClose={onClose}
       closeDisabled={submitting}
       size={size}
-      align={align}
+      scrollBody
     >
-      <form onSubmit={onSubmit} className="p-6 space-y-6">
-        <FormGrid columns={columns} gap={gap}>
-          {children}
-        </FormGrid>
+      <form onSubmit={onSubmit} className="flex flex-col min-h-0 flex-1">
+        <div className="p-6 overflow-y-auto">
+          <FormGrid columns={columns} gap={gap}>
+            {children}
+          </FormGrid>
+        </div>
 
-        <div className="company-form-footer">
+        <div className="company-form-footer shrink-0 px-6 py-4">
           <button type="button" onClick={onClose} disabled={submitting} className="btn-secondary">
             {cancelLabel}
           </button>

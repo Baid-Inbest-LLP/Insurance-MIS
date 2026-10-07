@@ -1,3 +1,15 @@
+const viewIcon = (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+    />
+  </svg>
+);
+
 const editIcon = (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path
@@ -31,11 +43,13 @@ const restoreIcon = (
   </svg>
 );
 
-function ActionButton({ icon, onClick, disabled, title, ariaLabel, enabledClass }) {
+function ActionButton({ icon, onClick, onPrefetch, disabled, title, ariaLabel, enabledClass }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      onMouseEnter={onPrefetch}
+      onFocus={onPrefetch}
       disabled={disabled}
       className={`settings-action-btn ${disabled ? 'settings-action-btn--disabled' : enabledClass}`}
       title={title}
@@ -46,11 +60,13 @@ function ActionButton({ icon, onClick, disabled, title, ariaLabel, enabledClass 
   );
 }
 
-// Edit/restore/delete icon-button trio for a table's Actions column; omit a handler to hide its button.
+// View/edit/restore/delete icon buttons for a table's Actions column; omit a handler to hide its button.
 export default function RowActions({
+  onView,
   onEdit,
   onRestore,
   onDelete,
+  viewProps = {},
   editProps = {},
   restoreProps = {},
   deleteProps = {},
@@ -58,10 +74,22 @@ export default function RowActions({
 }) {
   return (
     <div className={`flex items-center justify-center gap-0.5 ${className}`.trim()}>
+      {onView && (
+        <ActionButton
+          icon={viewIcon}
+          onClick={onView}
+          onPrefetch={viewProps.onPrefetch}
+          enabledClass="settings-action-btn--enabled"
+          disabled={viewProps.disabled}
+          title={viewProps.title ?? 'View'}
+          ariaLabel={viewProps.ariaLabel ?? 'View'}
+        />
+      )}
       {onEdit && (
         <ActionButton
           icon={editIcon}
           onClick={onEdit}
+          onPrefetch={editProps.onPrefetch}
           enabledClass="settings-action-btn--enabled"
           disabled={editProps.disabled}
           title={editProps.title ?? 'Edit'}

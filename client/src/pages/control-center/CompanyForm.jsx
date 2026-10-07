@@ -123,7 +123,6 @@ export default function CompanyForm({ company, onClose }) {
     <FormModal
       open
       size="lg"
-      align="start"
       gap="lg"
       title={isEdit ? 'Edit Company' : 'Add New Company'}
       subtitle={

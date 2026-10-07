@@ -1,11 +1,9 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import { Company, Branch, LocationCity, User } from "../models/index.js";
-import { normalizeBranchLabel } from "../utils/branchFormat.js";
+import { Branch, LocationCity, User } from "../models/index.js";
 import { ApiError } from "../utils/ApiError.js";
 import {
 	ROLES,
-	USER_ROLES,
 	isHod,
 	isStaffRole,
 	isSuperAdmin,
@@ -51,65 +49,6 @@ export const getLocationCities = asyncHandler(async (_req, res) => {
 		.sort({ createdAt: 1 })
 		.lean();
 	ApiResponse.success(res, cities);
-});
-
-export const getLookupData = asyncHandler(async (_req, res) => {
-	const [companies, branchDocs] = await Promise.all([
-		Company.find({ isActive: true })
-			.select("name code")
-			.sort({ name: 1 })
-			.lean(),
-		Branch.find({ isActive: true })
-			.populate("company", "name")
-			.select("name label company isDefault")
-			.sort({ label: 1 })
-			.lean(),
-	]);
-
-	const companyBranches = {};
-	for (const branch of branchDocs) {
-		const companyName = branch.company?.name;
-		if (!companyName) continue;
-		if (!companyBranches[companyName]) companyBranches[companyName] = [];
-		const branchLabel = normalizeBranchLabel(branch.label);
-		if (branchLabel) companyBranches[companyName].push(branchLabel);
-	}
-
-	const branchLabels = [
-		...new Set(
-			branchDocs
-				.map((l) => normalizeBranchLabel(l.label))
-				.filter(Boolean),
-		),
-	].sort((a, b) => a.localeCompare(b));
-
-	ApiResponse.success(res, {
-		companies: companies.map((c) => c.name),
-		companyCodeByName: Object.fromEntries(
-			companies
-				.filter((c) => c.name && c.code)
-				.map((c) => [c.name, c.code]),
-		),
-		branches: branchLabels,
-		companyBranches,
-		paymentMethods: ["Bank", "Cash", "UPI", "Debit/Credit Card"],
-		roles: USER_ROLES,
-		months: [
-			"January",
-			"February",
-			"March",
-			"April",
-			"May",
-			"June",
-			"July",
-			"August",
-			"September",
-			"October",
-			"November",
-			"December",
-		],
-		quarters: ["Q1", "Q2", "Q3", "Q4"],
-	});
 });
 
 const canManageUser = (actorRole, targetRole) =>

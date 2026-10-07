@@ -29,5 +29,6 @@ export const MASTER_VIEW_ROLES = [ROLES.SUPERADMIN, ROLES.ADMIN];
 export const STAFF_ROLES = [ROLES.HOD, ROLES.EMP_PREMIUM, ROLES.EMP_COMMISSION];
 
 export const isSuperAdmin = (role) => role === ROLES.SUPERADMIN;
+export const isHod = (role) => role === ROLES.HOD;
 export const isStaffRole = (role) => STAFF_ROLES.includes(role);
 export const roleLabel = (role) => ROLE_LABELS[role] || role || "";

@@ -39,6 +39,7 @@ export default function DataTable({
   header,
   className = '',
   autoLayout = false,
+  noWrap = false,
   serialNumber = false,
   serialNumberLabel = 'S.No.',
 }) {
@@ -99,7 +100,7 @@ export default function DataTable({
       ) : (
         <div className="table-wrapper">
           <table
-            className="!text-base"
+            className={`!text-base ${noWrap ? 'whitespace-nowrap' : ''}`.trim()}
             style={autoLayout ? { tableLayout: 'auto' } : undefined}
           >
             <thead>

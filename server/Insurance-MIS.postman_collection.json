@@ -38,7 +38,7 @@
 		{
 			"key": "slug",
 			"value": "insurer",
-			"description": "lob | insurer | business-type | agent"
+			"description": "lob | insurer | business-type | product-type"
 		},
 		{
 			"key": "itemId",
@@ -64,6 +64,35 @@
 			"key": "departmentId",
 			"value": "",
 			"description": "department id; List departments sets it from the first department"
+		},
+		{
+			"key": "transactionId",
+			"value": ""
+		},
+		{
+			"key": "insurerId",
+			"value": "",
+			"description": "item id from Master > Catalog"
+		},
+		{
+			"key": "businessTypeId",
+			"value": "",
+			"description": "item id from Master > Catalog"
+		},
+		{
+			"key": "lobId",
+			"value": "",
+			"description": "item id from Master > Catalog"
+		},
+		{
+			"key": "agentId",
+			"value": "",
+			"description": "item id from Master > Catalog"
+		},
+		{
+			"key": "productTypeId",
+			"value": "",
+			"description": "item id from Master > Catalog"
 		}
 	],
 	"item": [
@@ -284,6 +313,204 @@
 								"logout"
 							]
 						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Transactions",
+			"item": [
+				{
+					"name": "List transactions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const body = pm.response.json();",
+									"if (body.success && body.data.length) pm.collectionVariables.set('transactionId', body.data[0]._id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/transactions?page=1&limit=20&kind=gi&department={{departmentId}}&from=2026-04-01&to=2026-04-30&search=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transactions"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "kind",
+									"value": "gi",
+									"disabled": true
+								},
+								{
+									"key": "department",
+									"value": "{{departmentId}}",
+									"disabled": true
+								},
+								{
+									"key": "from",
+									"value": "2026-04-01",
+									"disabled": true
+								},
+								{
+									"key": "to",
+									"value": "2026-04-30",
+									"disabled": true
+								},
+								{
+									"key": "search",
+									"value": "",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Filters (all optional): kind, department, branch, insurer, lob, agent, from, to (policy date range, YYYY-MM-DD), search (policy number or client). Staff roles only see their own departments. Stores the first result as {{transactionId}}."
+					}
+				},
+				{
+					"name": "Get transaction",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/transactions/{{transactionId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transactions",
+								"{{transactionId}}"
+							]
+						}
+					}
+				},
+				{
+					"name": "Create GI transaction",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"kind\": \"gi\",\n  \"department\": \"{{departmentId}}\",\n  \"branch\": \"{{branchId}}\",\n  \"location\": \"Jaipur\",\n  \"officeCode\": \"OC-01\",\n  \"policyDate\": \"2026-04-10\",\n  \"entryDate\": \"2026-04-10\",\n  \"policyNo\": \"GI-0001\",\n  \"clientName\": \"Ramesh Kumar\",\n  \"insurer\": \"{{insurerId}}\",\n  \"businessType\": \"{{businessTypeId}}\",\n  \"lob\": \"{{lobId}}\",\n  \"agent\": \"{{agentId}}\",\n  \"source\": \"Direct\",\n  \"reference\": \"REF-1\",\n  \"clientGst\": \"27AAPFU0939F1ZV\",\n  \"vehicleNo\": \"RJ14AB1234\",\n  \"maker\": \"Maruti\",\n  \"model\": \"Swift\",\n  \"mfgDate\": \"2024-01-15\",\n  \"ncb\": 20,\n  \"policyPeriodFrom\": \"2026-04-10\",\n  \"policyPeriodTo\": \"2027-04-09\",\n  \"odPremium\": 1000,\n  \"thirdPartyCover\": 500,\n  \"agentStampDuty\": 1,\n  \"netPremium\": 1501,\n  \"gst\": 270.18,\n  \"premium\": 1771.18\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/transactions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transactions"
+							]
+						},
+						"description": "Amounts are in rupees with at most 2 decimals. Ids come from the matching Master > Catalog lists of the transaction's department: set {{departmentId}}, {{branchId}}, {{insurerId}}, {{businessTypeId}}, {{lobId}}, {{agentId}} (and {{productTypeId}} for LI)."
+					}
+				},
+				{
+					"name": "Create LI transaction",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"kind\": \"li\",\n  \"department\": \"{{departmentId}}\",\n  \"branch\": \"{{branchId}}\",\n  \"location\": \"Jaipur\",\n  \"officeCode\": \"OC-01\",\n  \"policyDate\": \"2026-04-12\",\n  \"entryDate\": \"2026-04-12\",\n  \"policyNo\": \"LI-0001\",\n  \"clientName\": \"Sunita Devi\",\n  \"agent\": \"{{agentId}}\",\n  \"insurer\": \"{{insurerId}}\",\n  \"businessType\": \"{{businessTypeId}}\",\n  \"productType\": \"{{productTypeId}}\",\n  \"lob\": \"{{lobId}}\",\n  \"source\": \"Agents\",\n  \"reference\": \"\",\n  \"dateOfBirth\": \"1990-08-15\",\n  \"commencementDate\": \"2026-04-10\",\n  \"paymentTermYears\": 10,\n  \"policyTermYears\": 20,\n  \"frequency\": \"monthly\",\n  \"nextDueDate\": \"2026-05-10\",\n  \"actualPaymentDate\": \"2026-04-10\",\n  \"premiumPerMonth\": 2500,\n  \"sumAssured\": 5000000,\n  \"netPremium\": 2500,\n  \"gst\": 450,\n  \"premium\": 2950\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/transactions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transactions"
+							]
+						},
+						"description": "Amounts are in rupees with at most 2 decimals. Ids come from the matching Master > Catalog lists of the transaction's department: set {{departmentId}}, {{branchId}}, {{insurerId}}, {{businessTypeId}}, {{lobId}}, {{agentId}} (and {{productTypeId}} for LI). Each LI premium payment is its own transaction."
+					}
+				},
+				{
+					"name": "Update transaction",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"kind\": \"gi\",\n  \"department\": \"{{departmentId}}\",\n  \"branch\": \"{{branchId}}\",\n  \"location\": \"Jaipur\",\n  \"officeCode\": \"OC-01\",\n  \"policyDate\": \"2026-04-10\",\n  \"entryDate\": \"2026-04-10\",\n  \"policyNo\": \"GI-0001\",\n  \"clientName\": \"Ramesh Kumar (updated)\",\n  \"insurer\": \"{{insurerId}}\",\n  \"businessType\": \"{{businessTypeId}}\",\n  \"lob\": \"{{lobId}}\",\n  \"agent\": \"{{agentId}}\",\n  \"source\": \"Direct\",\n  \"reference\": \"REF-1\",\n  \"clientGst\": \"27AAPFU0939F1ZV\",\n  \"vehicleNo\": \"RJ14AB1234\",\n  \"maker\": \"Maruti\",\n  \"model\": \"Swift\",\n  \"mfgDate\": \"2024-01-15\",\n  \"ncb\": 20,\n  \"policyPeriodFrom\": \"2026-04-10\",\n  \"policyPeriodTo\": \"2027-04-09\",\n  \"odPremium\": 1000,\n  \"thirdPartyCover\": 500,\n  \"agentStampDuty\": 1,\n  \"netPremium\": 1501,\n  \"gst\": 270.18,\n  \"premium\": 1771.18\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/transactions/{{transactionId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transactions",
+								"{{transactionId}}"
+							]
+						},
+						"description": "Sends the full set of fields: optional fields left out are cleared. kind and department cannot change. Employees can edit only their own entries; a HOD can edit any entry in their departments; admin and superadmin can edit all."
+					}
+				},
+				{
+					"name": "Delete transaction",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/transactions/{{transactionId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transactions",
+								"{{transactionId}}"
+							]
+						},
+						"description": "Soft delete. Allowed for a HOD (own departments), admin and superadmin."
 					}
 				}
 			]
@@ -573,23 +800,6 @@
 					"name": "Lookups & Cities",
 					"item": [
 						{
-							"name": "Lookups",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{baseUrl}}/masters/lookups",
-									"host": [
-										"{{baseUrl}}"
-									],
-									"path": [
-										"masters",
-										"lookups"
-									]
-								}
-							}
-						},
-						{
 							"name": "Location cities",
 							"event": [
 								{
@@ -657,6 +867,31 @@
 									]
 								},
 								"description": "Stores the first department as {{departmentId}} for the requests that follow (catalog, update department, register user)."
+							}
+						},
+						{
+							"name": "Lookups",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/masters/lookups?department={{departmentId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"masters",
+										"lookups"
+									],
+									"query": [
+										{
+											"key": "department",
+											"value": "{{departmentId}}",
+											"description": "optional; without it only departments and branches come back"
+										}
+									]
+								},
+								"description": "Everything the transaction form needs in one call: the user's active departments, active branches, active agents and, when department is given, its active master items (insurer, businessType, lob, productType)."
 							}
 						},
 						{
@@ -897,6 +1132,125 @@
 										"{{itemId}}"
 									]
 								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Agents",
+					"item": [
+						{
+							"name": "List agents",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/masters/agents?activeOnly=false",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"masters",
+										"agents"
+									]
+								},
+								"description": "Agents are shared by every department. activeOnly=false includes inactive agents (superadmin only). Stores the first agent as {{agentId}}."
+							},
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"if (body.success && body.data.length) pm.collectionVariables.set('agentId', body.data[0]._id);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Create agent",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/masters/agents",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"masters",
+										"agents"
+									]
+								},
+								"description": "Superadmin only. Names are unique ignoring case.",
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Ravi Sharma\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							}
+						},
+						{
+							"name": "Update agent",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/masters/agents/{{agentId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"masters",
+										"agents",
+										"{{agentId}}"
+									]
+								},
+								"description": "Superadmin only. Send name, isActive or both.",
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Ravi Sharma\",\n  \"isActive\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							}
+						},
+						{
+							"name": "Delete agent",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/masters/agents/{{agentId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"masters",
+										"agents",
+										"{{agentId}}"
+									]
+								},
+								"description": "Superadmin only. Soft delete; transactions that used the agent keep its name."
 							}
 						}
 					]
