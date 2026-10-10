@@ -1,9 +1,7 @@
-import React from 'react'
+import GroupedReport from './GroupedReport';
 
-const AgentWiseReport = () => {
-  return (
-    <div>Agent Wise Report</div>
-  )
-}
+const AgentWiseReport = () => (
+  <GroupedReport title="Agent Wise Report" report="agent-wise" groupKey="agent" groupHeader="Agent" />
+);
 
-export default AgentWiseReport
+export default AgentWiseReport;

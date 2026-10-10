@@ -1,9 +1,7 @@
-import React from 'react'
+import GroupedReport from './GroupedReport';
 
-const InsurerWiseReport = () => {
-  return (
-    <div>Insurer Wise Report</div>
-  )
-}
+const InsurerWiseReport = () => (
+  <GroupedReport title="Insurer Wise Report" report="insurer-wise" groupKey="insurer" groupHeader="Insurer" />
+);
 
-export default InsurerWiseReport
+export default InsurerWiseReport;

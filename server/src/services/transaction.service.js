@@ -57,7 +57,7 @@ const canModify = (actor, transaction) => {
 };
 
 // Premium employees never see commission; everyone else sees it on the transactions they can read.
-const canViewCommission = (actor) => actor.role !== ROLES.EMP_PREMIUM;
+export const canViewCommission = (actor) => actor.role !== ROLES.EMP_PREMIUM;
 
 // Superadmin and admin manage commission everywhere, a HOD inside their departments, and a
 // commission employee only on the entries they created.
@@ -230,7 +230,7 @@ export const listTransactions = async ({ actor, filters }) => {
 		query.department = department;
 	}
 	if (kind) query.kind = kind;
-	for (const field of ["branch", "insurer", "lob", "agent"])
+	for (const field of ["branch", "insurer", "businessType", "lob", "productType", "agent"])
 		if (filters[field]) query[field] = filters[field];
 	if (from || to)
 		query.policyDate = { ...(from && { $gte: from }), ...(to && { $lte: to }) };

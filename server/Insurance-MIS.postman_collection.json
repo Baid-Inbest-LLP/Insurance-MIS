@@ -365,6 +365,18 @@
 									"disabled": true
 								},
 								{
+									"key": "businessType",
+									"value": "",
+									"description": "business type id",
+									"disabled": true
+								},
+								{
+									"key": "productType",
+									"value": "",
+									"description": "product type id (LI)",
+									"disabled": true
+								},
+								{
 									"key": "from",
 									"value": "2026-04-01",
 									"disabled": true
@@ -381,7 +393,7 @@
 								}
 							]
 						},
-						"description": "Filters (all optional): kind, department, branch, insurer, lob, agent, from, to (policy date range, YYYY-MM-DD), search (policy number or client). Staff roles only see their own departments. Stores the first result as {{transactionId}}."
+						"description": "Filters (all optional): kind, department, branch, insurer, businessType, lob, productType, agent, from, to (policy date range, YYYY-MM-DD), search (policy number or client). Staff roles only see their own departments. Stores the first result as {{transactionId}}."
 					}
 				},
 				{
@@ -511,6 +523,361 @@
 							]
 						},
 						"description": "Soft delete. Allowed for a HOD (own departments), admin and superadmin."
+					}
+				}
+			]
+		},
+		{
+			"name": "Reports",
+			"item": [
+				{
+					"name": "LOB wise report",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/reports/lob-wise?department={{departmentId}}&branch={{branchId}}&from=2026-04-01&to=2026-04-30",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"reports",
+								"lob-wise"
+							],
+							"query": [
+								{
+									"key": "department",
+									"value": "{{departmentId}}",
+									"description": "required"
+								},
+								{
+									"key": "branch",
+									"value": "{{branchId}}",
+									"disabled": true
+								},
+								{
+									"key": "lob",
+									"value": "",
+									"description": "id from the department's line of business list",
+									"disabled": true
+								},
+								{
+									"key": "insurer",
+									"value": "",
+									"description": "id from the department's insurer list",
+									"disabled": true
+								},
+								{
+									"key": "businessType",
+									"value": "",
+									"description": "id from the department's business type list",
+									"disabled": true
+								},
+								{
+									"key": "productType",
+									"value": "",
+									"description": "LI only; id from the department's product type list",
+									"disabled": true
+								},
+								{
+									"key": "agent",
+									"value": "",
+									"description": "agent id",
+									"disabled": true
+								},
+								{
+									"key": "from",
+									"value": "2026-04-01",
+									"disabled": true
+								},
+								{
+									"key": "to",
+									"value": "2026-04-30",
+									"disabled": true
+								}
+							]
+						},
+						"description": "One row per line of business of one department: policies, netPremium, gst, premium and commission (GI total commission, LI commission), plus totals. Filters: department (required), branch, lob, insurer, businessType, productType (LI), agent, from and to (policy date, YYYY-MM-DD). Staff roles can only use their own departments; premium employees get no commission figures."
+					}
+				},
+				{
+					"name": "Office wise report",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/reports/office-wise?department={{departmentId}}&branch={{branchId}}&from=2026-04-01&to=2026-04-30",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"reports",
+								"office-wise"
+							],
+							"query": [
+								{
+									"key": "department",
+									"value": "{{departmentId}}",
+									"description": "required"
+								},
+								{
+									"key": "branch",
+									"value": "{{branchId}}",
+									"disabled": true
+								},
+								{
+									"key": "lob",
+									"value": "",
+									"description": "id from the department's line of business list",
+									"disabled": true
+								},
+								{
+									"key": "insurer",
+									"value": "",
+									"description": "id from the department's insurer list",
+									"disabled": true
+								},
+								{
+									"key": "businessType",
+									"value": "",
+									"description": "id from the department's business type list",
+									"disabled": true
+								},
+								{
+									"key": "productType",
+									"value": "",
+									"description": "LI only; id from the department's product type list",
+									"disabled": true
+								},
+								{
+									"key": "agent",
+									"value": "",
+									"description": "agent id",
+									"disabled": true
+								},
+								{
+									"key": "from",
+									"value": "2026-04-01",
+									"disabled": true
+								},
+								{
+									"key": "to",
+									"value": "2026-04-30",
+									"disabled": true
+								}
+							]
+						},
+						"description": "One row per branch (office) of one department: policies, netPremium, gst, premium and commission, plus totals. Filters: department (required), branch, lob, insurer, businessType, productType (LI), agent, from and to (policy date, YYYY-MM-DD). Staff roles can only use their own departments; premium employees get no commission figures."
+					}
+				},
+				{
+					"name": "Agent wise report",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/reports/agent-wise?department={{departmentId}}&branch={{branchId}}&from=2026-04-01&to=2026-04-30",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"reports",
+								"agent-wise"
+							],
+							"query": [
+								{
+									"key": "department",
+									"value": "{{departmentId}}",
+									"description": "required"
+								},
+								{
+									"key": "branch",
+									"value": "{{branchId}}",
+									"disabled": true
+								},
+								{
+									"key": "lob",
+									"value": "",
+									"description": "id from the department's line of business list",
+									"disabled": true
+								},
+								{
+									"key": "insurer",
+									"value": "",
+									"description": "id from the department's insurer list",
+									"disabled": true
+								},
+								{
+									"key": "businessType",
+									"value": "",
+									"description": "id from the department's business type list",
+									"disabled": true
+								},
+								{
+									"key": "productType",
+									"value": "",
+									"description": "LI only; id from the department's product type list",
+									"disabled": true
+								},
+								{
+									"key": "agent",
+									"value": "",
+									"description": "agent id",
+									"disabled": true
+								},
+								{
+									"key": "from",
+									"value": "2026-04-01",
+									"disabled": true
+								},
+								{
+									"key": "to",
+									"value": "2026-04-30",
+									"disabled": true
+								}
+							]
+						},
+						"description": "One row per agent of one department: policies, netPremium, gst, premium and commission, plus totals. Entries without an agent (possible on GI) form one row whose agent name is null. Filters: department (required), branch, lob, insurer, businessType, productType (LI), agent, from and to (policy date, YYYY-MM-DD). Staff roles can only use their own departments; premium employees get no commission figures."
+					}
+				},
+				{
+					"name": "Insurer wise report",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/reports/insurer-wise?department={{departmentId}}&branch={{branchId}}&from=2026-04-01&to=2026-04-30",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"reports",
+								"insurer-wise"
+							],
+							"query": [
+								{
+									"key": "department",
+									"value": "{{departmentId}}",
+									"description": "required"
+								},
+								{
+									"key": "branch",
+									"value": "{{branchId}}",
+									"disabled": true
+								},
+								{
+									"key": "lob",
+									"value": "",
+									"description": "id from the department's line of business list",
+									"disabled": true
+								},
+								{
+									"key": "insurer",
+									"value": "",
+									"description": "id from the department's insurer list",
+									"disabled": true
+								},
+								{
+									"key": "businessType",
+									"value": "",
+									"description": "id from the department's business type list",
+									"disabled": true
+								},
+								{
+									"key": "productType",
+									"value": "",
+									"description": "LI only; id from the department's product type list",
+									"disabled": true
+								},
+								{
+									"key": "agent",
+									"value": "",
+									"description": "agent id",
+									"disabled": true
+								},
+								{
+									"key": "from",
+									"value": "2026-04-01",
+									"disabled": true
+								},
+								{
+									"key": "to",
+									"value": "2026-04-30",
+									"disabled": true
+								}
+							]
+						},
+						"description": "One row per insurer of one department: policies, netPremium, gst, premium and commission, plus totals. Filters: department (required), branch, lob, insurer, businessType, productType (LI), agent, from and to (policy date, YYYY-MM-DD). Staff roles can only use their own departments; premium employees get no commission figures."
+					}
+				},
+				{
+					"name": "Commission report",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/reports/commission?department={{departmentId}}&branch={{branchId}}&from=2026-04-01&to=2026-04-30",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"reports",
+								"commission"
+							],
+							"query": [
+								{
+									"key": "department",
+									"value": "{{departmentId}}",
+									"description": "required"
+								},
+								{
+									"key": "branch",
+									"value": "{{branchId}}",
+									"disabled": true
+								},
+								{
+									"key": "lob",
+									"value": "",
+									"description": "id from the department's line of business list",
+									"disabled": true
+								},
+								{
+									"key": "insurer",
+									"value": "",
+									"description": "id from the department's insurer list",
+									"disabled": true
+								},
+								{
+									"key": "businessType",
+									"value": "",
+									"description": "id from the department's business type list",
+									"disabled": true
+								},
+								{
+									"key": "productType",
+									"value": "",
+									"description": "LI only; id from the department's product type list",
+									"disabled": true
+								},
+								{
+									"key": "agent",
+									"value": "",
+									"description": "agent id",
+									"disabled": true
+								},
+								{
+									"key": "from",
+									"value": "2026-04-01",
+									"disabled": true
+								},
+								{
+									"key": "to",
+									"value": "2026-04-30",
+									"disabled": true
+								}
+							]
+						},
+						"description": "One row per insurer of one department, counting only transactions that have commission: policies, premium, commission (GI uses the total commission) and how much of it is received and pending, plus totals. Filters: department (required), branch, lob, insurer, businessType, productType (LI), agent, from and to (policy date, YYYY-MM-DD). Staff roles can only use their own departments; premium employees get 403."
 					}
 				}
 			]

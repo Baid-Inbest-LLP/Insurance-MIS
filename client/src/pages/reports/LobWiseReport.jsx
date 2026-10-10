@@ -1,9 +1,5 @@
-import React from 'react'
+import GroupedReport from './GroupedReport';
 
-const LobWiseReport = () => {
-  return (
-    <div>LOB Wise Report</div>
-  )
-}
+const LobWiseReport = () => <GroupedReport title="LOB Wise Report" report="lob-wise" groupKey="lob" groupHeader="LOB" />;
 
-export default LobWiseReport
+export default LobWiseReport;

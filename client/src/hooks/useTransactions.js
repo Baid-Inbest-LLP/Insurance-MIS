@@ -7,7 +7,7 @@ const fetchTransaction = async (id) => (await transactionsApi.getOne(id)).data.d
 // Fresh for a short while, so a record loaded on hover is ready by the time it is clicked.
 const TRANSACTION_STALE_TIME = 30 * 1000;
 
-export const useTransactions = (params) =>
+export const useTransactions = (params, enabled = true) =>
   useQuery({
     queryKey: queryKeys.transactions(params),
     queryFn: async () => {
@@ -15,6 +15,7 @@ export const useTransactions = (params) =>
       return { transactions: data.data ?? [], pagination: data.pagination };
     },
     placeholderData: keepPreviousData,
+    enabled,
   });
 
 export const useTransaction = (id) =>
@@ -39,13 +40,14 @@ export const usePrefetchTransaction = () => {
       .catch(() => {});
 };
 
-// Departments, branches and the department's master items for the transaction form, in one call.
-export const useTransactionOptions = (department) =>
+// Departments, branches and the department's master items for the transaction form and the reports, in one call.
+export const useTransactionOptions = (department, enabled = true) =>
   useQuery({
     queryKey: queryKeys.lookups(department),
     queryFn: async () => (await transactionsApi.getOptions(department)).data.data,
     staleTime: 5 * 60 * 1000,
     placeholderData: keepPreviousData,
+    enabled,
   });
 
 const invalidateTransactions = (queryClient) =>

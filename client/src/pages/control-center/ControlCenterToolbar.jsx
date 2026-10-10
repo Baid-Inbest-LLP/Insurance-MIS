@@ -1,5 +1,6 @@
 /**
- * Shared toolbar for Control Center sections — title, search, and primary action in one card.
+ * Shared toolbar — title, optional filters, search and primary action in one card. The search box shows only
+ * when `onSearchChange` is given.
  */
 export default function ControlCenterToolbar({
   title,
@@ -24,12 +25,14 @@ export default function ControlCenterToolbar({
 
         <div className="flex sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
           {filters}
-          <input
-            className="input-field w-full sm:w-64"
-            placeholder={searchPlaceholder}
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-          />
+          {onSearchChange && (
+            <input
+              className="input-field w-full sm:w-64"
+              placeholder={searchPlaceholder}
+              value={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+            />
+          )}
           {showAction && actionLabel && onAction ? (
             <button
               type="button"

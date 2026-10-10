@@ -16,7 +16,7 @@ const text = (label, max) =>
 
 const optionalText = (label, max) => z.preprocess(emptyToUndefined, text(label, max).optional());
 
-const date = (label) =>
+export const date = (label) =>
   z
     .string({ required_error: `${label} is required`, invalid_type_error: `${label} must be a date` })
     .regex(/^\d{4}-\d{2}-\d{2}$/, `${label} must be in YYYY-MM-DD format`)
@@ -171,7 +171,9 @@ export const listTransactionsQuerySchema = z
     department: objectId('department').optional(),
     branch: objectId('branch').optional(),
     insurer: objectId('insurer').optional(),
+    businessType: objectId('business type').optional(),
     lob: objectId('line of business').optional(),
+    productType: objectId('product type').optional(),
     agent: objectId('agent').optional(),
     from: date('From date').optional(),
     to: date('To date').optional(),

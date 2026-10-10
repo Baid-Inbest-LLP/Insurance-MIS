@@ -24,7 +24,8 @@ function SelectionCheckbox({ checked, indeterminate = false, onChange, ariaLabel
   );
 }
 
-// Fixed-layout table with loading/empty states, pagination, and optional row-selection checkboxes.
+// Fixed-layout table with loading/empty states, pagination, optional row-selection checkboxes and an optional
+// totals row (`footer` maps a column key to what that column shows).
 export default function DataTable({
   columns,
   data = [],
@@ -37,6 +38,7 @@ export default function DataTable({
   pagination,
   selection,
   header,
+  footer,
   className = '',
   autoLayout = false,
   noWrap = false,
@@ -157,6 +159,19 @@ export default function DataTable({
                 );
               })}
             </tbody>
+            {footer && (
+              <tfoot>
+                <tr className="summary-head-report-total-row bg-gray-50 border-t border-gray-200 font-semibold">
+                  {selection && <td />}
+                  {serialNumber && <td />}
+                  {columns.map((col, i) => (
+                    <td key={col.key ?? i} className={alignClass(col.align)}>
+                      {footer[col.key]}
+                    </td>
+                  ))}
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       )}

@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DateInput } from '@mantine/dates';
 import { notifications } from '@mantine/notifications';
 import { useMe } from '../../hooks/useAuth';
 import {
   useDeleteTransaction,
   usePrefetchTransaction,
   useTransaction,
-  useTransactionOptions,
   useTransactions,
 } from '../../hooks/useTransactions';
 import { ROUTES } from '../../constants';
@@ -19,8 +17,9 @@ import ConfirmModal from '../../components/common/ConfirmModal';
 import DataTable from '../../components/common/DataTable';
 import Modal from '../../components/common/Modal';
 import Skeleton from '../../components/common/Skeleton';
-import { dateInputProps } from '../../components/common/form/DateField';
 import RowActions from '../../components/common/RowActions';
+import ReportFilters from '../reports/ReportFilters';
+import useReportScope from '../reports/useReportScope';
 import KindBadge from './KindBadge';
 import TransactionForm from './TransactionForm';
 
@@ -58,9 +57,6 @@ export default function TransactionListPage() {
   const { data: user } = useMe();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [kind, setKind] = useState('');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
   const [page, setPage] = useState(1);
   // "new" while adding, the id of the transaction being edited, or null when the form is closed.
   const [editing, setEditing] = useState(null);
@@ -74,22 +70,18 @@ export default function TransactionListPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  // The type, branch, LOB, insurer, business type, product type, agent and date filters; a new one starts again from the first page.
+  const scope = useReportScope({ allTypes: true, onChange: () => setPage(1) });
   const params = {
     page,
     limit: LIMIT,
     ...(debouncedSearch && { search: debouncedSearch }),
-    ...(kind && { kind }),
-    ...(from && { from }),
-    ...(to && { to }),
+    ...scope.params,
   };
-  const { data, isLoading, isFetching } = useTransactions(params);
+  const { data, isLoading, isFetching } = useTransactions(params, scope.ready);
   const transactions = data?.transactions ?? [];
   const deleteTransaction = useDeleteTransaction();
   const prefetchTransaction = usePrefetchTransaction();
-
-  // Only the types of the user's own departments (the server limits staff to them too).
-  const { data: options } = useTransactionOptions();
-  const types = [...new Set((options?.departments ?? []).map((department) => department.code))];
 
   const staff = isStaffRole(user?.role);
   const departmentIds = (user?.departments ?? []).map((department) => department._id);
@@ -99,12 +91,6 @@ export default function TransactionListPage() {
       (isHod(user.role) || transaction.createdBy === user._id));
   const canDelete = (transaction) =>
     !staff || (isHod(user.role) && departmentIds.includes(transaction.department));
-
-  // A new filter always starts again from the first page.
-  const changeFilter = (setter) => (value) => {
-    setter(value ?? '');
-    setPage(1);
-  };
 
   const closeForm = useCallback(() => setEditing(null), []);
 
@@ -165,31 +151,17 @@ export default function TransactionListPage() {
         search={search}
         onSearchChange={setSearch}
         searchPlaceholder="Search policy no. or client..."
-        filters={
-          <>
-            {types.length > 1 && (
-              <select className="input-field w-full sm:w-28" value={kind} onChange={(e) => changeFilter(setKind)(e.target.value)} aria-label="Type">
-                <option value="">All types</option>
-                {types.map((code) => (
-                  <option key={code} value={code.toLowerCase()}>
-                    {code}
-                  </option>
-                ))}
-              </select>
-            )}
-            <DateInput {...dateInputProps} className="w-full sm:w-40" placeholder="From date" value={from || null} maxDate={to || undefined} onChange={changeFilter(setFrom)} aria-label="From date" />
-            <DateInput {...dateInputProps} className="w-full sm:w-40" placeholder="To date" value={to || null} minDate={from || undefined} onChange={changeFilter(setTo)} aria-label="To date" />
-          </>
-        }
         showAction
         actionLabel="Add Transaction"
         onAction={() => setEditing('new')}
       />
 
+      <ReportFilters scope={scope} />
+
       <DataTable
         columns={columns}
         data={transactions}
-        loading={isLoading}
+        loading={isLoading || !scope.ready}
         autoLayout
         noWrap
         serialNumber
