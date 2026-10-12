@@ -782,6 +782,15 @@
     @apply flex justify-end gap-3 pt-2 border-t border-gray-100;
   }
 
+  /* Covers the body and footer of a form modal while it is busy; see FormModal. */
+  .form-busy-overlay {
+    @apply absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-white/60 text-sm font-medium text-gray-700 backdrop-blur-[2px];
+  }
+
+  .form-busy-overlay svg {
+    @apply text-primary-700;
+  }
+
   .settings-role-badge {
     @apply text-xs font-semibold px-2 py-0.5 rounded border border-gray-200 bg-gray-50;
   }
@@ -1754,6 +1763,15 @@
 
 [data-theme='dark'] #root .company-form-subtitle {
   color: #909296 !important;
+}
+
+[data-theme='dark'] #root .form-busy-overlay {
+  background-color: rgb(37 38 43 / 0.6) !important;
+  color: #c1c2c5 !important;
+}
+
+[data-theme='dark'] #root .form-busy-overlay svg {
+  color: #748ffc;
 }
 
 [data-theme='dark'] #root .company-form-close-btn {

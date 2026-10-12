@@ -30,3 +30,19 @@ export const uploadSingle = (fieldName) =>
     fileFilter,
     limits: { fileSize: config.upload.maxSize },
   }).single(fieldName);
+
+const pdfOnly = (_req, file, cb) => {
+  if (file.mimetype === 'application/pdf') {
+    cb(null, true);
+  } else {
+    cb(ApiError.badRequest('Only PDF files are allowed'), false);
+  }
+};
+
+// A single PDF kept in memory (`req.file.buffer`) for reading; it is never written to disk.
+export const uploadPdfInMemory = (fieldName) =>
+  multer({
+    storage: multer.memoryStorage(),
+    fileFilter: pdfOnly,
+    limits: { fileSize: config.upload.maxSize },
+  }).single(fieldName);

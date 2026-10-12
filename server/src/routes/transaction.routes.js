@@ -1,8 +1,10 @@
 import { Router } from "express";
 import * as transactions from "../controllers/transaction.controller.js";
 import { authenticate } from "../middleware/auth.js";
+import { uploadPdfInMemory } from "../middleware/upload.js";
 import { validate } from "../middleware/validate.js";
 import {
+	extractPolicyBodySchema,
 	listTransactionsQuerySchema,
 	transactionBodySchema,
 	transactionParamsSchema,
@@ -16,6 +18,12 @@ router.get(
 	"/",
 	validate(listTransactionsQuerySchema, "query"),
 	transactions.listTransactions,
+);
+router.post(
+	"/extract-policy",
+	uploadPdfInMemory("policy"),
+	validate(extractPolicyBodySchema),
+	transactions.extractPolicy,
 );
 router.get(
 	"/:id",

@@ -2,17 +2,28 @@ import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { notifications } from '@mantine/notifications';
 import { useMe } from '../../hooks/useAuth';
-import { useCreateTransaction, useTransactionOptions, useUpdateTransaction } from '../../hooks/useTransactions';
+import {
+  useCreateTransaction,
+  useExtractPolicy,
+  useTransactionOptions,
+  useUpdateTransaction,
+} from '../../hooks/useTransactions';
 import { COMMISSION_STATUSES, FREQUENCIES, KIND_LABELS, SOURCES, TRANSACTION_KINDS } from '../../constants/transactions';
 import { canManageCommission } from '../../lib/commission';
 import { getApiErrorMessage } from '../../lib/queryClient';
 import { ageOn, displayDate, maturityDate } from '../../lib/policyDates';
-import { buildTransactionPayload, emptyTransactionValues, valuesFromTransaction } from '../../lib/transactionForm';
+import {
+  buildTransactionPayload,
+  emptyTransactionValues,
+  valuesFromExtraction,
+  valuesFromTransaction,
+} from '../../lib/transactionForm';
 import DateField from '../../components/common/form/DateField';
 import FormField from '../../components/common/form/FormField';
 import FormGrid from '../../components/common/form/FormGrid';
 import FormModal from '../../components/common/form/FormModal';
 import FormSection from '../../components/common/form/FormSection';
+import PolicyUpload from './PolicyUpload';
 
 const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 const AMOUNT_RULES = {
@@ -94,6 +105,7 @@ export default function TransactionForm({ transaction, onClose }) {
   const { data: user } = useMe();
   const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();
+  const extractPolicy = useExtractPolicy();
 
   const {
     register,
@@ -148,6 +160,26 @@ export default function TransactionForm({ transaction, onClose }) {
     for (const name of ['insurer', 'businessType', 'lob', 'productType']) setValue(name, '');
   };
 
+  // Fills the form with what the AI found in the policy PDF; fields it did not find keep their value.
+  const applyExtraction = (fields) => {
+    const found = valuesFromExtraction(fields);
+    for (const [name, value] of Object.entries(found)) setValue(name, value, { shouldDirty: true, shouldValidate: true });
+    notifications.show({
+      message: `Filled ${Object.keys(found).length} of ${Object.keys(fields).length} fields from the policy. Please check them before saving.`,
+      color: 'blue',
+    });
+  };
+
+  // The form is locked while the policy is read (see `busy` on the modal below).
+  const readPolicy = async (file) => {
+    try {
+      const { fields } = await extractPolicy.mutateAsync({ department, kind, file });
+      applyExtraction(fields);
+    } catch (err) {
+      notifications.show({ message: getApiErrorMessage(err, 'Could not read the policy PDF'), color: 'red' });
+    }
+  };
+
   const onSubmit = async (data) => {
     const options = { withCommission: showCommission };
     const payload = buildTransactionPayload({ ...data, kind, department }, options);
@@ -180,9 +212,22 @@ export default function TransactionForm({ transaction, onClose }) {
       onClose={onClose}
       onSubmit={handleSubmit(onSubmit)}
       submitting={isSubmitting}
+      busy={extractPolicy.isPending}
+      busyLabel="Reading policy. This can take up to a minute..."
       submitLabel={isEdit ? 'Save changes' : 'Add Transaction'}
     >
-      <FormSection title="Policy">
+      <FormSection
+        title="Policy"
+        action={
+          isEdit ? undefined : (
+            <PolicyUpload
+              disabled={!kind || isPlaceholderData}
+              hint={noDepartment ? 'Select the insurance type first' : undefined}
+              onFile={readPolicy}
+            />
+          )
+        }
+      >
         <FormGrid columns={3}>
           <FormField label="Type" required>
             {departmentFixed ? (

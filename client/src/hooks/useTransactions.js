@@ -50,6 +50,12 @@ export const useTransactionOptions = (department, enabled = true) =>
     enabled,
   });
 
+// Reads an uploaded policy PDF; resolves to { fields } and saves nothing.
+export const useExtractPolicy = () =>
+  useMutation({
+    mutationFn: async (variables) => (await transactionsApi.extractPolicy(variables)).data.data,
+  });
+
 const invalidateTransactions = (queryClient) =>
   queryClient.invalidateQueries({ queryKey: ['transactions'] });
 

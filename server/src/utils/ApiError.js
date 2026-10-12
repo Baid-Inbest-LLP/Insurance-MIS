@@ -26,4 +26,16 @@ export class ApiError extends Error {
   static conflict(message) {
     return new ApiError(409, message);
   }
+
+  static tooManyRequests(message = 'Too many requests') {
+    return new ApiError(429, message);
+  }
+
+  static badGateway(message = 'Bad gateway') {
+    return new ApiError(502, message);
+  }
+
+  static serviceUnavailable(message = 'Service unavailable') {
+    return new ApiError(503, message);
+  }
 }

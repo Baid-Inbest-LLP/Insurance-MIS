@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { COMMISSION_STATUSES, FREQUENCIES, SOURCES, TRANSACTION_KINDS } from '../constants/transactions.js';
 import { objectId } from './common.validator.js';
 
-const GST_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+export const GST_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 
 // Forms send '' for an empty optional field; treat it as not provided.
 const emptyToUndefined = (value) => (value === '' || value === null ? undefined : value);
@@ -162,6 +162,17 @@ export const transactionBodySchema = z
       addIssue('premium', 'Premium must equal net premium + GST');
     }
   });
+
+// Sent with an uploaded policy PDF: `kind` decides whether it is read as GI or LI, and
+// `department` is where the transaction will be recorded.
+export const extractPolicyBodySchema = z
+  .object({
+    department: objectId('department'),
+    kind: z.enum(Object.values(TRANSACTION_KINDS), {
+      message: `Kind must be one of: ${Object.values(TRANSACTION_KINDS).join(', ')}`,
+    }),
+  })
+  .strict();
 
 export const transactionParamsSchema = z.object({ id: objectId('transaction') }).strict();
 

@@ -1,3 +1,4 @@
+import multer from 'multer';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { config } from '../config/index.js';
@@ -7,6 +8,14 @@ export const errorHandler = (err, req, res, _next) => {
 
   if (err instanceof ApiError) {
     return ApiResponse.error(res, err.message, err.statusCode, err.errors);
+  }
+
+  if (err instanceof multer.MulterError) {
+    const message =
+      err.code === 'LIMIT_FILE_SIZE'
+        ? `File is too large (maximum ${config.upload.maxSize / (1024 * 1024)} MB)`
+        : err.message;
+    return ApiResponse.error(res, message, 400);
   }
 
   if (err.name === 'ValidationError') {

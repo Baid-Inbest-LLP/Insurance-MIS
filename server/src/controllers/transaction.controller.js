@@ -1,6 +1,8 @@
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError.js";
 import * as transactionService from "../services/transaction.service.js";
+import * as policyExtractionService from "../services/policyExtraction.service.js";
 
 // Lists transactions the user can see, newest policy date first.
 export const listTransactions = asyncHandler(async (req, res) => {
@@ -21,6 +23,20 @@ export const getTransaction = asyncHandler(async (req, res) => {
 	});
 
 	ApiResponse.success(res, transaction);
+});
+
+// Reads an uploaded policy PDF and returns the transaction fields found in it; nothing is saved.
+export const extractPolicy = asyncHandler(async (req, res) => {
+	if (!req.file) throw ApiError.badRequest("Policy PDF is required");
+
+	const result = await policyExtractionService.extractPolicyFields({
+		actor: req.user,
+		department: req.body.department,
+		kind: req.body.kind,
+		file: req.file,
+	});
+
+	ApiResponse.success(res, result, "Policy read");
 });
 
 // Adds a GI or LI transaction, depending on `kind`.

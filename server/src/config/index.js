@@ -50,6 +50,17 @@ export const config = {
 			"image/jpg",
 		],
 	},
+	// LLM used to read policy documents. `provider` picks the client in `ai/llm`, so a paid
+	// provider can replace OpenRouter without touching the extraction code.
+	ai: {
+		provider: process.env.AI_PROVIDER || "openrouter",
+		timeoutMs: parseInt(process.env.AI_TIMEOUT_MS, 10) || 60 * 1000,
+		openRouter: {
+			apiKey: process.env.OPENROUTER_API_KEY,
+			baseUrl: process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
+			model: process.env.OPENROUTER_MODEL || "nvidia/nemotron-3-super-120b-a12b:free",
+		},
+	},
 	smtp: {
 		host: process.env.SMTP_HOST,
 		port: parseInt(process.env.SMTP_PORT, 10) || 587,

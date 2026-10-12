@@ -98,6 +98,14 @@ export const valuesFromTransaction = (transaction) => {
   return values;
 };
 
+// Turns the fields read from a policy PDF into form values; fields the document did not show are left out.
+export const valuesFromExtraction = (fields) =>
+  Object.fromEntries(
+    Object.entries(fields)
+      .filter(([, value]) => value !== null)
+      .map(([key, value]) => [key, text(value)]),
+  );
+
 const GI_COMMISSION_FIELDS = [
   'odCommission',
   'tpCommission',
