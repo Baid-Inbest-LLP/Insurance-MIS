@@ -13,6 +13,9 @@ export const SOURCES = [
   'Others',
 ];
 
+// Entries from this source need an agent; for any other source there is no agent.
+export const AGENT_SOURCE = 'Agents';
+
 export const FREQUENCIES = [
   { value: 'monthly', label: 'Monthly' },
   { value: 'quarterly', label: 'Quarterly' },

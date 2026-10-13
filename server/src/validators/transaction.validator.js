@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { COMMISSION_STATUSES, FREQUENCIES, SOURCES, TRANSACTION_KINDS } from '../constants/transactions.js';
+import { AGENT_SOURCE, COMMISSION_STATUSES, FREQUENCIES, SOURCES, TRANSACTION_KINDS } from '../constants/transactions.js';
 import { objectId } from './common.validator.js';
 
 export const GST_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
@@ -160,7 +160,14 @@ export const transactionBodySchema = z
     if (transaction.premium.toFixed(2) !== (transaction.netPremium + transaction.gst).toFixed(2)) {
       addIssue('premium', 'Premium must equal net premium + GST');
     }
-  });
+
+    if (transaction.source === AGENT_SOURCE && !transaction.agent) {
+      addIssue('agent', `Agent is required when the source is ${AGENT_SOURCE}`);
+    }
+  })
+  .transform((transaction) =>
+    transaction.source === AGENT_SOURCE ? transaction : { ...transaction, agent: undefined },
+  );
 
 // `kind` picks the GI or LI reading; `department` is the transaction's department.
 export const extractPolicyBodySchema = z

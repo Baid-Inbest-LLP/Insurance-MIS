@@ -8,7 +8,7 @@ import {
   useTransactionOptions,
   useUpdateTransaction,
 } from '../../hooks/useTransactions';
-import { COMMISSION_STATUSES, FREQUENCIES, KIND_LABELS, SOURCES, TRANSACTION_KINDS } from '../../constants/transactions';
+import { AGENT_SOURCE, COMMISSION_STATUSES, FREQUENCIES, KIND_LABELS, SOURCES, TRANSACTION_KINDS } from '../../constants/transactions';
 import { canManageCommission } from '../../lib/commission';
 import { getApiErrorMessage } from '../../lib/queryClient';
 import { ageOn, displayDate, maturityDate } from '../../lib/policyDates';
@@ -34,15 +34,15 @@ const sum = (...values) => values.reduce((total, value) => total + (Number(value
 const READ_ONLY_CLASS = 'input-field bg-gray-50 text-gray-500 cursor-default';
 
 // A dropdown of one master list; keeps the saved value visible even if that item is now inactive.
-function MasterSelect({ label, name, register, error, items = [], current, required = true, disabled = false }) {
+function MasterSelect({ label, name, register, error, items = [], current, disabled = false }) {
   const options = current && !items.some((item) => item._id === current._id) ? [...items, current] : items;
 
   return (
-    <FormField label={label} required={required} error={error}>
+    <FormField label={label} required error={error}>
       <select
         className="input-field"
         disabled={disabled}
-        {...register(name, { required: required && `${label} is required` })}
+        {...register(name, { required: `${label} is required` })}
       >
         <option value="">{disabled ? 'Select insurance type first' : `Select ${label.toLowerCase()}`}</option>
         {options.map((item) => (
@@ -283,7 +283,9 @@ export default function TransactionForm({ transaction, onClose }) {
               ))}
             </select>
           </FormField>
-          <MasterSelect label="Agent" name="agent" items={options?.agents} required={false} error={errors.agent} current={transaction?.agent} register={register} />
+          {values.source === AGENT_SOURCE && (
+            <MasterSelect label="Agent" name="agent" items={options?.agents} error={errors.agent} current={transaction?.agent} register={register} />
+          )}
           <TextField label="Reference" name="reference" maxLength={200} {...sharedProps} />
         </FormGrid>
       </FormSection>

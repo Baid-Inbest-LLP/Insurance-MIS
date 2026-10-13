@@ -1,4 +1,4 @@
-import { TRANSACTION_KINDS } from '../constants/transactions';
+import { AGENT_SOURCE, TRANSACTION_KINDS } from '../constants/transactions';
 
 const DATE_FIELDS = new Set([
   'policyDate',
@@ -147,7 +147,7 @@ export const buildTransactionPayload = (values, { withCommission = false } = {})
     businessType: values.businessType,
     lob: values.lob,
     productType: values.productType,
-    agent: values.agent,
+    agent: values.source === AGENT_SOURCE ? values.agent : '',
     source: values.source,
     reference: values.reference,
     netPremium: amount(values.netPremium),
