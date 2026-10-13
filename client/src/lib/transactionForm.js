@@ -78,7 +78,6 @@ export const valuesFromTransaction = (transaction) => {
     insurer: transaction.insurer?._id,
     businessType: transaction.businessType?._id,
     lob: transaction.lob?._id,
-    agent: transaction.agent?._id,
     odCommission: transaction.commission?.odCommission,
     tpCommission: transaction.commission?.tpCommission,
     totalCommission: transaction.commission?.totalCommission,

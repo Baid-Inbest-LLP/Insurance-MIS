@@ -284,7 +284,7 @@ export default function TransactionForm({ transaction, onClose }) {
             </select>
           </FormField>
           {values.source === AGENT_SOURCE && (
-            <MasterSelect label="Agent" name="agent" items={options?.agents} error={errors.agent} current={transaction?.agent} register={register} />
+            <TextField label="Agent" name="agent" required maxLength={100} {...sharedProps} />
           )}
           <TextField label="Reference" name="reference" maxLength={200} {...sharedProps} />
         </FormGrid>

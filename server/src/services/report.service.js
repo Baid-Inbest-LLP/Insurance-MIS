@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { Agent, Branch, Master, Transaction } from "../models/index.js";
+import { Branch, Master, Transaction } from "../models/index.js";
 import { ApiError } from "../utils/ApiError.js";
 import { COMMISSION_STATUSES, MASTER_FIELDS } from "../constants/transactions.js";
 import { assertCanWorkIn, canViewCommission } from "./transaction.service.js";
@@ -11,8 +11,8 @@ const sumOf = (rows, field) => round(rows.reduce((total, row) => total + row[fie
 // GI keeps its total commission in `totalCommission`, LI in `amount`.
 const COMMISSION_AMOUNT = { $ifNull: ["$commission.totalCommission", "$commission.amount"] };
 
-// Names of the groups: line of business and insurer items live in the department's master lists, branches and
-// agents in their own collections.
+// Names of the groups: line of business and insurer items live in the department's master lists, branches in
+// their own collection, and agents are typed in.
 const masterNames =
 	(field) =>
 	async ({ department }) => {
@@ -25,13 +25,11 @@ const branchNames = async ({ ids }) => {
 	return new Map(branches.map((branch) => [String(branch._id), branch.label]));
 };
 
-const agentNames = async ({ ids }) => {
-	const agents = await Agent.find({ _id: { $in: ids } }).select("name").lean();
-	return new Map(agents.map((agent) => [String(agent._id), agent.name]));
-};
+// The agent is typed in, so a group's id is already its name.
+const agentNames = async ({ ids }) => new Map(ids.map((id) => [String(id), id]));
 
 // The department's live transactions in a policy date range; `ids` are further filters on id fields (branch, lob,
-// insurer, businessType, agent).
+// insurer, businessType).
 const reportMatch = ({ department, from, to, ...ids }) => ({
 	deletedAt: null,
 	department: new mongoose.Types.ObjectId(department),
