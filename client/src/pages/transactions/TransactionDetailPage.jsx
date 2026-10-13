@@ -105,12 +105,12 @@ export default function TransactionDetailPage() {
         <Detail label="Date of Entry">{date(t.entryDate)}</Detail>
         <Detail label="Client Name">{t.clientName}</Detail>
         <Detail label="Branch">{t.branch.code}</Detail>
-        <Detail label="Office Code">{t.officeCode}</Detail>
-        <Detail label="Location">{t.location}</Detail>
         <Detail label="Insurer">{t.insurer?.name}</Detail>
+        <Detail label="Insurer Address">{t.insurerAddress}</Detail>
+        <Detail label="Office Code">{t.officeCode}</Detail>
         <Detail label="Business Type">{t.businessType?.name}</Detail>
         <Detail label="Line of Business">{t.lob?.name}</Detail>
-        {!isGi && <Detail label="Product Type">{t.productType?.name}</Detail>}
+        <Detail label="Product Type">{t.productType}</Detail>
         <Detail label="Agent">{t.agent?.name}</Detail>
         <Detail label="Source">{t.source}</Detail>
         <Detail label="Reference">{t.reference}</Detail>

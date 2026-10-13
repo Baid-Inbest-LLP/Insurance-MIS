@@ -70,7 +70,7 @@ const liCommission = z.object({
 const sharedFields = {
   department: objectId('department'),
   branch: objectId('branch'),
-  location: text('Location', 100),
+  insurerAddress: text('Insurer address', 250),
   officeCode: optionalText('Office code', 30),
   policyDate: date('Policy date'),
   entryDate: optionalDate('Date of entry'),
@@ -79,6 +79,8 @@ const sharedFields = {
   insurer: objectId('insurer'),
   businessType: objectId('business type'),
   lob: objectId('line of business'),
+  productType: optionalText('Product type', 100),
+  agent: z.preprocess(emptyToUndefined, objectId('agent').optional()),
   source: z.enum(SOURCES, { message: `Source must be one of: ${SOURCES.join(', ')}` }),
   netPremium: amount('Net premium'),
   gst: amount('GST'),
@@ -89,7 +91,6 @@ const sharedFields = {
 const giSchema = z.object({
   ...sharedFields,
   kind: z.literal(TRANSACTION_KINDS.GI),
-  agent: z.preprocess(emptyToUndefined, objectId('agent').optional()),
   clientGst: z.preprocess(
     emptyToUndefined,
     z
@@ -122,9 +123,7 @@ const giSchema = z.object({
 const liSchema = z.object({
   ...sharedFields,
   kind: z.literal(TRANSACTION_KINDS.LI),
-  agent: objectId('agent'),
   dateOfBirth: date('Date of birth'),
-  productType: objectId('product type'),
   commencementDate: date('Date of commencement'),
   paymentTermYears: years('Payment term'),
   policyTermYears: years('Policy term'),
@@ -163,8 +162,7 @@ export const transactionBodySchema = z
     }
   });
 
-// Sent with an uploaded policy PDF: `kind` decides whether it is read as GI or LI, and
-// `department` is where the transaction will be recorded.
+// `kind` picks the GI or LI reading; `department` is the transaction's department.
 export const extractPolicyBodySchema = z
   .object({
     department: objectId('department'),
@@ -184,7 +182,6 @@ export const listTransactionsQuerySchema = z
     insurer: objectId('insurer').optional(),
     businessType: objectId('business type').optional(),
     lob: objectId('line of business').optional(),
-    productType: objectId('product type').optional(),
     agent: objectId('agent').optional(),
     from: date('From date').optional(),
     to: date('To date').optional(),

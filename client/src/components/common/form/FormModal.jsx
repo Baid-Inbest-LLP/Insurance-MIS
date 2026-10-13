@@ -4,8 +4,7 @@ import FormGrid from './FormGrid';
 
 // A modal holding a form: a fixed header, a scrolling FormGrid for the fields, and fixed Cancel/Submit buttons.
 // Pass `onSubmit={handleSubmit(fn)}` from react-hook-form; children are FormFields or FormSections.
-// While `busy` (some work other than saving is running) an overlay with `busyLabel` covers the form,
-// nothing in it can be clicked or focused, and the modal cannot be closed.
+// While `busy`, an overlay with `busyLabel` locks the form and the modal cannot be closed.
 export default function FormModal({
   open,
   title,
@@ -41,7 +40,7 @@ export default function FormModal({
           </div>
         )}
 
-        {/* `inert` takes the fields and buttons out of reach (mouse and keyboard) without restyling them. */}
+        {/* `inert`: nothing inside can be clicked or focused while busy */}
         <div inert={busy} className="contents">
           <div className="p-6 overflow-y-auto">
             <FormGrid columns={columns} gap={gap}>

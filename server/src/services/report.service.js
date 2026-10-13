@@ -31,7 +31,7 @@ const agentNames = async ({ ids }) => {
 };
 
 // The department's live transactions in a policy date range; `ids` are further filters on id fields (branch, lob,
-// insurer, businessType, productType, agent).
+// insurer, businessType, agent).
 const reportMatch = ({ department, from, to, ...ids }) => ({
 	deletedAt: null,
 	department: new mongoose.Types.ObjectId(department),

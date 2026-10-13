@@ -1,12 +1,12 @@
 import { extractText, getDocumentProxy } from "unpdf";
 import { ApiError } from "../utils/ApiError.js";
 
-// Fewer characters than this means the PDF has no text layer (a scan or an image).
+// Less text than this means a scan or image PDF.
 const MIN_TEXT_LENGTH = 50;
-// Keeps the prompt small; the details we need are in the first pages of a policy.
+// Keeps the prompt small; policy details are in the first pages.
 const MAX_TEXT_LENGTH = 20000;
 
-// Reads the text of a PDF held in memory. Scanned PDFs are rejected: there is nothing to read.
+// Reads text from an in-memory PDF; scanned PDFs are rejected.
 export const extractPdfText = async (buffer) => {
 	let text;
 	try {

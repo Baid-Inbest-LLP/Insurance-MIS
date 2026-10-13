@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { date, GST_PATTERN } from "../../validators/transaction.validator.js";
 
-// A field to read from a policy is described once; the prompt and the answer check are both built from it.
+// A field is described once; the prompt and the answer check are both built from it.
 export const FIELD_TYPES = {
 	TEXT: "text",
 	DATE: "date",
@@ -25,10 +25,10 @@ export const choiceField = (key, description, options) => ({
 	description,
 	options,
 });
-// The model names one item of the department's master list; the server turns the name into an id.
+// The model names a master list item; the server turns the name into an id.
 export const masterField = (key, description) => ({ key, type: FIELD_TYPES.MASTER, description });
 
-// Models write numbers as text ("8,303.00") now and then; anything unreadable becomes null later.
+// Models sometimes write numbers as text ("8,303.00").
 const toNumber = (value) => (typeof value === "string" ? Number(value.replace(/[,\s]/g, "")) : value);
 const numeric = (schema) => z.preprocess(toNumber, schema);
 const roundedAmount = numeric(z.number().finite().min(0)).transform((value) => Number(value.toFixed(2)));
@@ -46,8 +46,7 @@ const SCHEMA_BY_TYPE = {
 	[FIELD_TYPES.MASTER]: () => z.string().trim().min(1),
 };
 
-// Checks the model's answer field by field. A missing, empty or invalid value becomes null,
-// so one bad field never throws away the rest of the answer.
+// Checks the answer per field; an invalid or missing value becomes null, not an error.
 export const buildAnswerSchema = (fields) =>
 	z.object(
 		Object.fromEntries(
@@ -72,7 +71,7 @@ const typeHint = (field, masterNames) => {
 		case FIELD_TYPES.MASTER: {
 			const names = masterNames[field.key] ?? [];
 			return names.length
-				? `one of ${names.map((name) => `"${name}"`).join(", ")}, copied exactly`
+				? `one of ${names.map((name) => `"${name}"`).join(", ")}; write it exactly as listed, even when the document spells it differently (such as Ltd for Limited)`
 				: "text";
 		}
 		default:

@@ -8,7 +8,7 @@ const GENERAL_RULES = `Rules:
 - Amounts are plain numbers in rupees: no currency symbol, no thousands separators ("7,00,000.00" becomes 700000).
 - Reply with one JSON object that has exactly the keys listed below, and nothing else: no markdown, no explanation.`;
 
-// `instructions` is the part written for one kind of policy; `fields` is what to read from it.
+// `instructions` is kind-specific; `fields` is what to read.
 export const buildSystemPrompt = ({ instructions, fields }, masterNames) =>
 	[
 		instructions,

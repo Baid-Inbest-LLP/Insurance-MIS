@@ -1,6 +1,6 @@
 import { ApiError } from "../../utils/ApiError.js";
 
-// Why an HTTP status from the provider means the call cannot work, in words for the user.
+// The user-facing error for a failed provider status.
 const failureFor = (status) => {
 	if (status === 429)
 		return ApiError.tooManyRequests("The AI service is busy. Please try again in a minute");
@@ -9,8 +9,7 @@ const failureFor = (status) => {
 	return ApiError.badGateway("The AI service failed to answer. Please try again");
 };
 
-// A chat client for OpenRouter. Every provider exposes `complete({ system, user })` and
-// resolves to the model's text answer, which keeps providers interchangeable.
+// OpenRouter client; every provider offers `complete({ system, user })` returning text.
 export const createOpenRouterClient = ({ apiKey, baseUrl, model, timeoutMs }) => ({
 	async complete({ system, user }) {
 		if (!apiKey) throw ApiError.serviceUnavailable("AI autofill is not configured");
@@ -36,7 +35,7 @@ export const createOpenRouterClient = ({ apiKey, baseUrl, model, timeoutMs }) =>
 				signal: AbortSignal.timeout(timeoutMs),
 			});
 		} catch (error) {
-			// `fetch failed` hides the real reason (a wrong host, no network) in `error.cause`.
+			// `fetch failed` hides the real cause in `error.cause`.
 			console.error("OpenRouter request failed:", error.cause?.message ?? error.message);
 			throw ApiError.badGateway(
 				error.name === "TimeoutError"
@@ -46,7 +45,7 @@ export const createOpenRouterClient = ({ apiKey, baseUrl, model, timeoutMs }) =>
 		}
 
 		const body = await response.json().catch(() => null);
-		// OpenRouter can also report a provider failure inside a 200 response.
+		// A provider failure can also arrive inside a 200 response.
 		const failedStatus = response.ok ? body?.error?.code : response.status;
 		if (failedStatus) {
 			console.error("OpenRouter error:", failedStatus, JSON.stringify(body?.error ?? body));

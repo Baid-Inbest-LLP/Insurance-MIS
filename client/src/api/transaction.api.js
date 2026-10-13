@@ -4,8 +4,7 @@ export const transactionsApi = {
   getOptions: (department) => api.get('/masters/lookups', { params: department ? { department } : undefined }),
   getOne: (id) => api.get(`/transactions/${id}`),
   getAll: (params) => api.get('/transactions', { params }),
-  // Reading a policy waits for the AI, so it is given longer than a normal request. The instance
-  // defaults to JSON, which would turn the FormData into a JSON object and drop the file.
+  // Needs its own content type (the JSON default would drop the file) and a longer timeout (the AI is slow).
   extractPolicy: ({ department, kind, file }) => {
     const body = new FormData();
     body.append('department', department);

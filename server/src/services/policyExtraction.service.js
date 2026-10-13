@@ -11,10 +11,20 @@ import {
 import { getMasterOptions } from "./lookup.service.js";
 import { assertCanWorkIn } from "./transaction.service.js";
 
-const normalizeName = (name) => name.trim().toLowerCase();
+// A policy and the master list can spell a company differently (Ltd/Limited, Co./Company, &/and).
+const NAME_ABBREVIATIONS = { limited: "ltd", company: "co", private: "pvt", corporation: "corp" };
 
-// Replaces the master item name the model chose with that item's id; a name that is not in the
-// department's list (or none at all) becomes null.
+const normalizeName = (name) =>
+	name
+		.toLowerCase()
+		.replace(/&/g, " and ")
+		.replace(/[^a-z0-9\s]/g, " ")
+		.split(/\s+/)
+		.filter((word) => word && word !== "the")
+		.map((word) => NAME_ABBREVIATIONS[word] ?? word)
+		.join(" ");
+
+// Swaps the master item name the model chose for its id; no match gives null.
 const resolveMasterItems = (fields, values, masterOptions) =>
 	Object.fromEntries(
 		fields.map(({ key, type }) => {
@@ -26,10 +36,8 @@ const resolveMasterItems = (fields, values, masterOptions) =>
 		}),
 	);
 
-// Reads an uploaded policy PDF and returns the transaction fields found in it, ready to fill the
-// entry form. Fields the document does not show are null. Nothing is saved.
-// `kind` (gi or li) picks the prompt; `department` is still needed for the permission check and
-// for the master lists the model chooses from.
+// Reads a policy PDF into entry-form fields (null when not found); saves nothing.
+// `kind` picks the prompt; `department` gives the permission check and master lists.
 export const extractPolicyFields = async ({ actor, department, kind, file }) => {
 	assertCanWorkIn(actor, department);
 	const extractor = POLICY_EXTRACTORS[kind];

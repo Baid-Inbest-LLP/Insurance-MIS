@@ -3,6 +3,7 @@ import { useId } from 'react';
 const SIZES = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' };
 
 // Dialog shell: backdrop, panel and header. Callers render the body (and any footer) as children.
+// Closes only through the X button, not by clicking the backdrop.
 // With `scrollBody` the panel never grows past the screen: the header stays put and the caller's
 // children should make their own middle section scroll (see FormModal).
 export default function Modal({
@@ -20,16 +21,12 @@ export default function Modal({
   if (!open) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-      onClick={closeDisabled ? undefined : onClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div
         className={`company-form-panel ${SIZES[size]} ${scrollBody ? 'flex flex-col max-h-full mb-0' : ''}`.trim()}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="company-form-header shrink-0">
           <div>

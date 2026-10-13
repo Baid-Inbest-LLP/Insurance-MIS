@@ -20,7 +20,7 @@ const amount = (value) => (value === '' || value === undefined ? undefined : Num
 export const emptyTransactionValues = () => ({
   department: '',
   branch: '',
-  location: '',
+  insurerAddress: '',
   officeCode: '',
   policyDate: '',
   entryDate: today(),
@@ -79,7 +79,6 @@ export const valuesFromTransaction = (transaction) => {
     businessType: transaction.businessType?._id,
     lob: transaction.lob?._id,
     agent: transaction.agent?._id,
-    productType: transaction.productType?._id,
     odCommission: transaction.commission?.odCommission,
     tpCommission: transaction.commission?.tpCommission,
     totalCommission: transaction.commission?.totalCommission,
@@ -98,7 +97,7 @@ export const valuesFromTransaction = (transaction) => {
   return values;
 };
 
-// Turns the fields read from a policy PDF into form values; fields the document did not show are left out.
+// Form values from the fields read from a policy; missing ones are left out.
 export const valuesFromExtraction = (fields) =>
   Object.fromEntries(
     Object.entries(fields)
@@ -138,7 +137,7 @@ export const buildTransactionPayload = (values, { withCommission = false } = {})
     kind: values.kind,
     department: values.department,
     branch: values.branch,
-    location: values.location,
+    insurerAddress: values.insurerAddress,
     officeCode: values.officeCode,
     policyDate: values.policyDate,
     entryDate: values.entryDate,
@@ -147,6 +146,7 @@ export const buildTransactionPayload = (values, { withCommission = false } = {})
     insurer: values.insurer,
     businessType: values.businessType,
     lob: values.lob,
+    productType: values.productType,
     agent: values.agent,
     source: values.source,
     reference: values.reference,
@@ -176,7 +176,6 @@ export const buildTransactionPayload = (values, { withCommission = false } = {})
   return {
     ...shared,
     dateOfBirth: values.dateOfBirth,
-    productType: values.productType,
     commencementDate: values.commencementDate,
     paymentTermYears: amount(values.paymentTermYears),
     policyTermYears: amount(values.policyTermYears),

@@ -20,5 +20,4 @@ export const MASTER_FIELDS = {
   insurer: { slug: 'insurer', label: 'Insurer' },
   businessType: { slug: 'business-type', label: 'Business type' },
   lob: { slug: 'lob', label: 'Line of business' },
-  productType: { slug: 'product-type', label: 'Product type' },
 };

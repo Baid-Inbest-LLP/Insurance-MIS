@@ -13,11 +13,10 @@ import { MASTER_FIELDS, TRANSACTION_KINDS } from "../constants/transactions.js";
 import { assertActiveDepartments } from "./department.service.js";
 
 // Fields a user may leave empty; an update that leaves one out clears it.
+const SHARED_OPTIONAL_FIELDS = ["agent", "officeCode", "reference", "productType"];
 const OPTIONAL_FIELDS = {
 	[TRANSACTION_KINDS.GI]: [
-		"agent",
-		"officeCode",
-		"reference",
+		...SHARED_OPTIONAL_FIELDS,
 		"clientGst",
 		"vehicleNo",
 		"maker",
@@ -25,7 +24,7 @@ const OPTIONAL_FIELDS = {
 		"mfgDate",
 		"ncb",
 	],
-	[TRANSACTION_KINDS.LI]: ["officeCode", "reference", "nextDueDate"],
+	[TRANSACTION_KINDS.LI]: [...SHARED_OPTIONAL_FIELDS, "nextDueDate"],
 };
 
 const DETAIL_POPULATE = [
@@ -187,10 +186,8 @@ const masterItem = (transaction, field, names, departmentId) => {
 const toTransactionDto = (transaction, names) => {
 	const { __v, deletedAt, updatedBy, branch, agent, ...dto } = transaction;
 
-	for (const field of Object.keys(MASTER_FIELDS)) {
-		if (field === "productType" && transaction.kind !== TRANSACTION_KINDS.LI) continue;
+	for (const field of Object.keys(MASTER_FIELDS))
 		dto[field] = masterItem(transaction, field, names, transaction.department._id);
-	}
 
 	dto.agent = agent ? { _id: agent._id, name: agent.name } : null;
 	dto.branch = { _id: branch._id, code: branch.label };
@@ -230,7 +227,7 @@ export const listTransactions = async ({ actor, filters }) => {
 		query.department = department;
 	}
 	if (kind) query.kind = kind;
-	for (const field of ["branch", "insurer", "businessType", "lob", "productType", "agent"])
+	for (const field of ["branch", "insurer", "businessType", "lob", "agent"])
 		if (filters[field]) query[field] = filters[field];
 	if (from || to)
 		query.policyDate = { ...(from && { $gte: from }), ...(to && { $lte: to }) };

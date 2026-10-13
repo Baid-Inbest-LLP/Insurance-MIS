@@ -1,6 +1,6 @@
 import { ApiError } from "../../utils/ApiError.js";
 
-// Models sometimes wrap their JSON in a markdown fence or add a sentence around it.
+// Models sometimes wrap JSON in a markdown fence or extra text.
 export const parseJsonObject = (text) => {
 	const start = text.indexOf("{");
 	const end = text.lastIndexOf("}");

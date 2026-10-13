@@ -50,8 +50,7 @@ export const config = {
 			"image/jpg",
 		],
 	},
-	// LLM used to read policy documents. `provider` picks the client in `ai/llm`, so a paid
-	// provider can replace OpenRouter without touching the extraction code.
+	// LLM for policy autofill; `provider` picks the client in `ai/llm`.
 	ai: {
 		provider: process.env.AI_PROVIDER || "openrouter",
 		timeoutMs: parseInt(process.env.AI_TIMEOUT_MS, 10) || 60 * 1000,

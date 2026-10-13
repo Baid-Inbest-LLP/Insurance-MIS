@@ -25,7 +25,7 @@ export const getTransaction = asyncHandler(async (req, res) => {
 	ApiResponse.success(res, transaction);
 });
 
-// Reads an uploaded policy PDF and returns the transaction fields found in it; nothing is saved.
+// Reads a policy PDF into transaction fields; nothing is saved.
 export const extractPolicy = asyncHandler(async (req, res) => {
 	if (!req.file) throw ApiError.badRequest("Policy PDF is required");
 

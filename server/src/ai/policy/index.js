@@ -2,7 +2,7 @@ import { TRANSACTION_KINDS } from "../../constants/transactions.js";
 import { giExtractor } from "./gi.extractor.js";
 import { liExtractor } from "./li.extractor.js";
 
-// Each kind of policy has its own prompt and fields. To support another kind, add its extractor here.
+// One extractor (prompt + fields) per kind; add new kinds here.
 export const POLICY_EXTRACTORS = {
 	[TRANSACTION_KINDS.GI]: giExtractor,
 	[TRANSACTION_KINDS.LI]: liExtractor,

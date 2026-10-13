@@ -4,13 +4,12 @@ import { dateInputProps } from '../../components/common/form/DateField';
 const byName = (items) => (items ?? []).map((item) => ({ value: item._id, label: item.name }));
 
 // The filters besides the type and the dates. `master` ones list one department's master items, so they need a
-// type to be chosen; product type belongs to life insurance only.
+// type to be chosen.
 const FILTERS = [
   { key: 'branch', all: 'All branches', items: (options) => (options?.branches ?? []).map((item) => ({ value: item._id, label: item.code })) },
   { key: 'lob', all: 'All LOBs', master: true, items: (options) => byName(options?.masters?.lob) },
   { key: 'insurer', all: 'All insurers', master: true, items: (options) => byName(options?.masters?.insurer) },
   { key: 'businessType', all: 'All business types', master: true, items: (options) => byName(options?.masters?.businessType) },
-  { key: 'productType', all: 'All product types', master: true, lifeOnly: true, items: (options) => byName(options?.masters?.productType) },
   { key: 'agent', all: 'All agents', items: (options) => byName(options?.agents) },
 ];
 
@@ -18,12 +17,7 @@ const FILTERS = [
 // and the policy date range. The filter a report is grouped by (`groupKey`) is left out: its rows already list it.
 export default function ReportFilters({ scope, groupKey }) {
   const { departments, selected, allTypes, from, to, options, filters } = scope;
-  const offered = FILTERS.filter(
-    (filter) =>
-      filter.key !== groupKey &&
-      (!filter.master || selected) &&
-      (!filter.lifeOnly || selected?.code === 'LI'),
-  );
+  const offered = FILTERS.filter((filter) => filter.key !== groupKey && (!filter.master || selected));
 
   return (
     <div className="card p-4 mb-4 flex flex-wrap items-center gap-2">

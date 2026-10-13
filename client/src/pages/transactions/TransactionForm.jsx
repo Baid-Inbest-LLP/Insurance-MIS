@@ -136,7 +136,6 @@ export default function TransactionForm({ transaction, onClose }) {
   // The department code (GI or LI) is the transaction type.
   const kind = isEdit ? transaction.kind : selectedDepartment?.code.toLowerCase();
   const isGi = kind === TRANSACTION_KINDS.GI;
-  const isLi = kind === TRANSACTION_KINDS.LI;
   const sharedProps = { register, errors };
   const noDepartment = !department;
 
@@ -157,10 +156,10 @@ export default function TransactionForm({ transaction, onClose }) {
   }, [onlyDepartmentId, setValue]);
 
   const resetMasters = () => {
-    for (const name of ['insurer', 'businessType', 'lob', 'productType']) setValue(name, '');
+    for (const name of ['insurer', 'businessType', 'lob']) setValue(name, '');
   };
 
-  // Fills the form with what the AI found in the policy PDF; fields it did not find keep their value.
+  // Fills the form from the AI's result; fields it did not find keep their value.
   const applyExtraction = (fields) => {
     const found = valuesFromExtraction(fields);
     for (const [name, value] of Object.entries(found)) setValue(name, value, { shouldDirty: true, shouldValidate: true });
@@ -170,7 +169,7 @@ export default function TransactionForm({ transaction, onClose }) {
     });
   };
 
-  // The form is locked while the policy is read (see `busy` on the modal below).
+  // The modal's `busy` locks the form while the policy is read.
   const readPolicy = async (file) => {
     try {
       const { fields } = await extractPolicy.mutateAsync({ department, kind, file });
@@ -267,17 +266,13 @@ export default function TransactionForm({ transaction, onClose }) {
               ))}
             </select>
           </FormField>
-          <TextField label="Office Code" name="officeCode" maxLength={30} {...sharedProps} />
-          <TextField label="Location" name="location" required maxLength={100} {...sharedProps} />
           <MasterSelect label="Insurer" name="insurer" items={masters.insurer} error={errors.insurer} current={transaction?.insurer} disabled={noDepartment} register={register} />
+          <TextField label="Insurer Address" name="insurerAddress" required maxLength={250} {...sharedProps} />
+          <TextField label="Office Code" name="officeCode" maxLength={30} {...sharedProps} />
 
           <MasterSelect label="Business Type" name="businessType" items={masters.businessType} error={errors.businessType} current={transaction?.businessType} disabled={noDepartment} register={register} />
           <MasterSelect label="Line of Business" name="lob" items={masters.lob} error={errors.lob} current={transaction?.lob} disabled={noDepartment} register={register} />
-          {isLi && (
-            <MasterSelect label="Product Type" name="productType" items={masters.productType} error={errors.productType} current={transaction?.productType} disabled={noDepartment} register={register} />
-          )}
-          <MasterSelect label="Agent" name="agent" items={options?.agents} required={isLi} error={errors.agent} current={transaction?.agent} register={register} />
-
+          <TextField label="Product Type" name="productType" maxLength={100} {...sharedProps} />
           <FormField label="Source" required error={errors.source}>
             <select className="input-field" {...register('source', { required: 'Source is required' })}>
               <option value="">Select source</option>
@@ -288,6 +283,7 @@ export default function TransactionForm({ transaction, onClose }) {
               ))}
             </select>
           </FormField>
+          <MasterSelect label="Agent" name="agent" items={options?.agents} required={false} error={errors.agent} current={transaction?.agent} register={register} />
           <TextField label="Reference" name="reference" maxLength={200} {...sharedProps} />
         </FormGrid>
       </FormSection>

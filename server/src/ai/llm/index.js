@@ -3,7 +3,7 @@ import { ApiError } from "../../utils/ApiError.js";
 import { createOpenRouterClient } from "./openrouter.js";
 import { parseJsonObject } from "./parseJson.js";
 
-// To add a provider, write a client with the same `complete({ system, user })` shape and list it here.
+// To add a provider, give it the same `complete({ system, user })` and list it here.
 const PROVIDERS = {
 	openrouter: () =>
 		createOpenRouterClient({ ...config.ai.openRouter, timeoutMs: config.ai.timeoutMs }),
@@ -19,5 +19,5 @@ const getClient = () => {
 	return client;
 };
 
-// Asks the model a question and returns its answer as a parsed JSON object.
+// Asks the model and returns its answer as a JSON object.
 export const generateJson = async (prompt) => parseJsonObject(await getClient().complete(prompt));

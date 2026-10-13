@@ -4,8 +4,7 @@ import { notifications } from '@mantine/notifications';
 
 const MAX_SIZE_MB = 5;
 
-// A button that lets the user choose a policy PDF and hands it to `onFile`.
-// Reading the file is up to the caller, which also shows the loading state.
+// Lets the user pick a policy PDF and passes it to `onFile`.
 export default function PolicyUpload({ disabled = false, hint, onFile }) {
   const inputRef = useRef(null);
 

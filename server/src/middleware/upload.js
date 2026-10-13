@@ -39,7 +39,7 @@ const pdfOnly = (_req, file, cb) => {
   }
 };
 
-// A single PDF kept in memory (`req.file.buffer`) for reading; it is never written to disk.
+// A single PDF kept in memory (`req.file.buffer`), never written to disk.
 export const uploadPdfInMemory = (fieldName) =>
   multer({
     storage: multer.memoryStorage(),

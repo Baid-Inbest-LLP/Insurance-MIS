@@ -13,7 +13,7 @@ const transactionSchema = new mongoose.Schema(
   {
     department: { type: ObjectId, ref: 'Department', required: true },
     branch: { type: ObjectId, ref: 'Branch', required: true },
-    location: { type: String, required: true, trim: true, maxlength: 100 },
+    insurerAddress: { type: String, required: true, trim: true, maxlength: 250 },
     officeCode: { type: String, trim: true, maxlength: 30 },
 
     policyDate: { type: Date, required: true },
@@ -24,13 +24,9 @@ const transactionSchema = new mongoose.Schema(
     insurer: masterItemId(),
     businessType: masterItemId(),
     lob: masterItemId(),
-    agent: {
-      type: ObjectId,
-      ref: 'Agent',
-      required() {
-        return this.kind === TRANSACTION_KINDS.LI;
-      },
-    },
+    // The plan or product name, typed in by hand.
+    productType: { type: String, trim: true, maxlength: 100 },
+    agent: { type: ObjectId, ref: 'Agent' },
     source: { type: String, enum: SOURCES, required: true },
 
     netPremium: amount(),
@@ -99,7 +95,6 @@ const giSchema = new mongoose.Schema(
 const liSchema = new mongoose.Schema(
   {
     dateOfBirth: { type: Date, required: true },
-    productType: masterItemId(),
     commencementDate: { type: Date, required: true },
     paymentTermYears: { type: Number, required: true, min: 1, validate: Number.isInteger },
     policyTermYears: { type: Number, required: true, min: 1, validate: Number.isInteger },
