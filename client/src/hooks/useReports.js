@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { reportsApi } from '../api/report.api';
 import { queryKeys } from '../lib/queryKeys';
 
@@ -8,4 +8,9 @@ export const useReport = (report, params, enabled) =>
     queryFn: async () => (await reportsApi.get(report, params)).data.data,
     placeholderData: keepPreviousData,
     enabled,
+  });
+
+export const useExportReport = () =>
+  useMutation({
+    mutationFn: ({ report, params }) => reportsApi.export(report, params),
   });

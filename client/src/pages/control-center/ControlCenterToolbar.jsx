@@ -12,6 +12,7 @@ export default function ControlCenterToolbar({
   actionLabel,
   onAction,
   showAction = false,
+  actionDisabled = false,
 }) {
   return (
     <div className="card p-4 mb-4">
@@ -38,6 +39,7 @@ export default function ControlCenterToolbar({
               type="button"
               className="btn-primary whitespace-nowrap w-full sm:w-auto"
               onClick={onAction}
+              disabled={actionDisabled}
             >
               {actionLabel}
             </button>

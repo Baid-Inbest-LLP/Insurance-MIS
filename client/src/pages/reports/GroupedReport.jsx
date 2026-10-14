@@ -1,5 +1,6 @@
-import { useReport } from '../../hooks/useReports';
+import { useExportReport, useReport } from '../../hooks/useReports';
 import { canViewCommission } from '../../lib/commission';
+import { downloadBlobResponse, notifyExportError } from '../../utils/download';
 import { formatCurrency } from '../../utils/format';
 import DataTable from '../../components/common/DataTable';
 import ControlCenterToolbar from '../control-center/ControlCenterToolbar';
@@ -20,6 +21,7 @@ const PREMIUM_MEASURES = [
 export default function GroupedReport({ title, report, groupKey, groupHeader, measures = PREMIUM_MEASURES }) {
   const scope = useReportScope();
   const { data, isLoading, isFetching } = useReport(report, scope.params, Boolean(scope.selected));
+  const exportReport = useExportReport();
 
   const withCommission = canViewCommission(scope.user);
   const shown = measures.filter((measure) => !measure.commission || withCommission);
@@ -43,11 +45,24 @@ export default function GroupedReport({ title, report, groupKey, groupHeader, me
     ...Object.fromEntries(shown.map((measure) => [measure.key, show(measure, totals[measure.key])])),
   };
 
+  const exportCurrentReport = async () => {
+    try {
+      const response = await exportReport.mutateAsync({ report, params: scope.params });
+      downloadBlobResponse(response, `${report}-report.xlsx`);
+    } catch (error) {
+      notifyExportError(error);
+    }
+  };
+
   return (
     <div>
       <ControlCenterToolbar
         title={title}
         subtitle={`${scope.selected?.name ?? ''}${isFetching && !isLoading ? ' · updating…' : ''}`}
+        showAction={report !== 'agent-wise'}
+        actionLabel={exportReport.isPending ? 'Exporting...' : 'Export Excel'}
+        onAction={exportCurrentReport}
+        actionDisabled={!scope.selected || exportReport.isPending}
       />
       <ReportFilters scope={scope} groupKey={groupKey} />
 

@@ -8,6 +8,10 @@ const router = Router();
 
 router.use(authenticate);
 
+router.get("/lob-wise/export", validate(reportQuerySchema, "query"), reports.exportLobWiseReport);
+router.get("/office-wise/export", validate(reportQuerySchema, "query"), reports.exportOfficeWiseReport);
+router.get("/insurer-wise/export", validate(reportQuerySchema, "query"), reports.exportInsurerWiseReport);
+router.get("/commission/export", validate(reportQuerySchema, "query"), reports.exportCommissionReport);
 router.get("/lob-wise", validate(reportQuerySchema, "query"), reports.getLobWiseReport);
 router.get("/office-wise", validate(reportQuerySchema, "query"), reports.getOfficeWiseReport);
 router.get("/insurer-wise", validate(reportQuerySchema, "query"), reports.getInsurerWiseReport);
