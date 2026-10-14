@@ -206,7 +206,7 @@ export default function TransactionForm({ transaction, draft, onClose }) {
     try {
       if (draft) await updateDraft.mutateAsync({ id: draft._id, data: payload });
       else await createDraft.mutateAsync(payload);
-      notifications.show({ message: 'Draft saved', color: 'green' });
+      notifications.show({ message: 'Policy saved as draft', color: 'green' });
       onClose();
     } catch (err) {
       notifications.show({ message: getApiErrorMessage(err, 'Failed to save draft'), color: 'red' });
@@ -251,11 +251,11 @@ export default function TransactionForm({ transaction, draft, onClose }) {
         await createTransaction.mutateAsync(payload);
         if (draft) deleteDraft.mutate(draft._id); // the draft is now a real transaction
       }
-      notifications.show({ message: isEdit ? 'Transaction updated' : 'Transaction added', color: 'green' });
+      notifications.show({ message: isEdit ? 'Policy updated' : 'Policy added', color: 'green' });
       onClose();
     } catch (err) {
       for (const { field, message } of err.response?.data?.errors ?? []) setError(field, { message });
-      notifications.show({ message: getApiErrorMessage(err, 'Failed to save transaction'), color: 'red' });
+      notifications.show({ message: getApiErrorMessage(err, 'Failed to save policy'), color: 'red' });
     }
   };
 
@@ -264,7 +264,7 @@ export default function TransactionForm({ transaction, draft, onClose }) {
       <FormModal
         open
         size="xl"
-        title={isEdit ? 'Edit Transaction' : 'Add Transaction'}
+        title={isEdit ? 'Edit Policy' : 'Add Policy'}
         subtitle={isEdit ? `${KIND_LABELS[transaction.kind]} · ${transaction.department.name}` : 'Enter the policy details'}
         onClose={requestClose}
         onSubmit={handleSubmit(onSubmit)}
@@ -278,7 +278,7 @@ export default function TransactionForm({ transaction, draft, onClose }) {
             </button>
           )
         }
-        submitLabel={isEdit ? 'Save changes' : 'Add Transaction'}
+        submitLabel={isEdit ? 'Save changes' : 'Add Policy'}
       >
         <FormSection
           title="Policy"

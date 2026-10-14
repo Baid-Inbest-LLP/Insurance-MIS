@@ -17,7 +17,7 @@ import {
 // Groups take `children` (rendered as a collapsible section).
 const navItems = [
   { to: ROUTES.HOME, label: 'Dashboard', end: true, Icon: DashboardIcon },
-  { to: ROUTES.TRANSACTIONS, label: 'Transactions', Icon: TransactionsIcon },
+  { to: ROUTES.TRANSACTIONS, label: 'Policies', Icon: TransactionsIcon },
   {
     label: 'Reports',
     basePath: ROUTES.REPORTS,

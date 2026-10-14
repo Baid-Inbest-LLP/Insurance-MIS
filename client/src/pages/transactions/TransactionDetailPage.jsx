@@ -67,7 +67,7 @@ export default function TransactionDetailPage() {
   if (error) {
     return (
       <div className="card text-center py-16">
-        <p className="company-empty-title">{getApiErrorMessage(error, 'Transaction not found')}</p>
+        <p className="company-empty-title">{getApiErrorMessage(error, 'Policy not found')}</p>
         <div className="mt-4">{backLink}</div>
       </div>
     );

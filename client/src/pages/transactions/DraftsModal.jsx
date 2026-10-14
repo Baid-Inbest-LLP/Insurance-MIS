@@ -15,7 +15,7 @@ export default function DraftsModal({ drafts, onResume, onClose }) {
 
   const handleDelete = () => {
     deleteDraft.mutate(confirmDelete._id, {
-      onSuccess: () => notifications.show({ message: 'Draft deleted', color: 'green' }),
+      onSuccess: () => notifications.show({ message: 'Draft Policy deleted', color: 'green' }),
       onError: (err) => notifications.show({ message: getApiErrorMessage(err, 'Delete failed'), color: 'red' }),
       onSettled: () => setConfirmDelete(null),
     });
@@ -23,7 +23,7 @@ export default function DraftsModal({ drafts, onResume, onClose }) {
 
   return (
     <>
-      <Modal open size="lg" title="Drafts" subtitle="Unfinished transactions you saved" onClose={onClose}>
+      <Modal open size="lg" title="Drafts" subtitle="Unfinished policies you saved" onClose={onClose}>
         <div className="p-6 max-h-[60vh] overflow-y-auto">
           {drafts.length === 0 ? (
             <p className="draft-meta text-center py-6">No drafts</p>

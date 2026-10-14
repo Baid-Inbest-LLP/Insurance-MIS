@@ -11,7 +11,7 @@ export const listDrafts = asyncHandler(async (req, res) => {
 export const createDraft = asyncHandler(async (req, res) => {
 	const draft = await draftService.createDraft({ actor: req.user, data: req.body });
 
-	ApiResponse.created(res, draft, "Draft saved");
+	ApiResponse.created(res, draft, "Policy saved as draft");
 });
 
 export const updateDraft = asyncHandler(async (req, res) => {
@@ -21,11 +21,11 @@ export const updateDraft = asyncHandler(async (req, res) => {
 		data: req.body,
 	});
 
-	ApiResponse.success(res, null, "Draft saved");
+	ApiResponse.success(res, null, "Policy saved as draft");
 });
 
 export const deleteDraft = asyncHandler(async (req, res) => {
 	await draftService.deleteDraft({ id: req.validated.params.id, actor: req.user });
 
-	ApiResponse.success(res, null, "Draft deleted");
+	ApiResponse.success(res, null, "Draft Policy deleted");
 });

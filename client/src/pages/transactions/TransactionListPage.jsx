@@ -37,14 +37,14 @@ function EditTransactionForm({ id, onClose }) {
 
   useEffect(() => {
     if (!error) return;
-    notifications.show({ message: getApiErrorMessage(error, 'Failed to load transaction'), color: 'red' });
+    notifications.show({ message: getApiErrorMessage(error, 'Failed to load policy'), color: 'red' });
     onClose();
   }, [error, onClose]);
 
   if (shown.current) return <TransactionForm transaction={transaction} onClose={onClose} />;
 
   return (
-    <Modal open size="xl" title="Edit Transaction" subtitle="Loading the policy details..." onClose={onClose}>
+    <Modal open size="xl" title="Edit Policy" subtitle="Loading the policy details..." onClose={onClose}>
       <div className="p-6 space-y-4">
         {[0, 1, 2, 3, 4, 5].map((row) => (
           <Skeleton key={row} className="h-9 w-full" />
@@ -102,7 +102,7 @@ export default function TransactionListPage() {
 
   const handleDelete = () => {
     deleteTransaction.mutate(confirmDelete._id, {
-      onSuccess: () => notifications.show({ message: 'Transaction deleted', color: 'green' }),
+      onSuccess: () => notifications.show({ message: 'Policy deleted', color: 'green' }),
       onError: (err) =>
         notifications.show({ message: getApiErrorMessage(err, 'Delete failed'), color: 'red' }),
       onSettled: () => setConfirmDelete(null),
@@ -134,14 +134,14 @@ export default function TransactionListPage() {
           onView={() => navigate(`${ROUTES.TRANSACTIONS}/${t._id}`)}
           onEdit={() => setEditing(t._id)}
           onDelete={canDelete(t) ? () => setConfirmDelete(t) : undefined}
-          viewProps={{ title: 'View Transaction', ariaLabel: `View ${t.policyNo}`, onPrefetch: () => prefetchTransaction(t._id) }}
+          viewProps={{ title: 'View Policy', ariaLabel: `View ${t.policyNo}`, onPrefetch: () => prefetchTransaction(t._id) }}
           editProps={{
             disabled: !canEdit(t),
-            title: canEdit(t) ? 'Edit Transaction' : 'You do not have permission to edit this transaction',
+            title: canEdit(t) ? 'Edit Policy' : 'You do not have permission to edit this policy',
             ariaLabel: `Edit ${t.policyNo}`,
             onPrefetch: () => prefetchTransaction(t._id),
           }}
-          deleteProps={{ title: 'Delete Transaction', ariaLabel: `Delete ${t.policyNo}` }}
+          deleteProps={{ title: 'Delete Policy', ariaLabel: `Delete ${t.policyNo}` }}
         />
       ),
     },
@@ -152,8 +152,8 @@ export default function TransactionListPage() {
   return (
     <div>
       <ControlCenterToolbar
-        title="Transactions"
-        subtitle={`${total} transaction${total !== 1 ? 's' : ''}${isFetching && !isLoading ? ' · updating…' : ''}`}
+        title="Policies"
+        subtitle={`${total} polic${total !== 1 ? 'ies' : 'y'}${isFetching && !isLoading ? ' · updating…' : ''}`}
         search={search}
         onSearchChange={setSearch}
         searchPlaceholder="Search policy no. or client..."
@@ -165,7 +165,7 @@ export default function TransactionListPage() {
           )
         }
         showAction
-        actionLabel="Add Transaction"
+        actionLabel="Add Policy"
         onAction={() => setEditing('new')}
       />
 
@@ -178,8 +178,8 @@ export default function TransactionListPage() {
         autoLayout
         noWrap
         serialNumber
-        emptyTitle="No transactions found"
-        emptyDescription="Add a transaction or change the filters"
+        emptyTitle="No policies found"
+        emptyDescription="Add a policy or change the filters"
         pagination={data?.pagination && { ...data.pagination, onPageChange: setPage }}
       />
 
@@ -200,7 +200,7 @@ export default function TransactionListPage() {
 
       <ConfirmModal
         open={!!confirmDelete}
-        title="Delete Transaction"
+        title="Delete Policy"
         message={`Are you sure you want to delete policy "${confirmDelete?.policyNo}"?`}
         confirmLabel="Delete"
         variant="danger"
