@@ -5,3 +5,4 @@ export { LocationCity } from "./LocationCity.js";
 export { Master } from './Master.js';
 export { Department } from './Department.js';
 export { Transaction, GiTransaction, LiTransaction } from './Transaction.js';
+export { TransactionDraft } from './TransactionDraft.js';

@@ -1,6 +1,6 @@
 /**
  * Shared toolbar — title, optional filters, search and primary action in one card. The search box shows only
- * when `onSearchChange` is given.
+ * when `onSearchChange` is given. `actions` are extra buttons shown before the primary action.
  */
 export default function ControlCenterToolbar({
   title,
@@ -9,6 +9,7 @@ export default function ControlCenterToolbar({
   onSearchChange,
   searchPlaceholder = 'Search...',
   filters = null,
+  actions = null,
   actionLabel,
   onAction,
   showAction = false,
@@ -33,6 +34,7 @@ export default function ControlCenterToolbar({
               onChange={(e) => onSearchChange(e.target.value)}
             />
           )}
+          {actions}
           {showAction && actionLabel && onAction ? (
             <button
               type="button"

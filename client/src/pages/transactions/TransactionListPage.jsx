@@ -4,6 +4,7 @@ import { notifications } from '@mantine/notifications';
 import { useMe } from '../../hooks/useAuth';
 import {
   useDeleteTransaction,
+  useDrafts,
   usePrefetchTransaction,
   useTransaction,
   useTransactions,
@@ -20,6 +21,7 @@ import Skeleton from '../../components/common/Skeleton';
 import RowActions from '../../components/common/RowActions';
 import ReportFilters from '../reports/ReportFilters';
 import useReportScope from '../reports/useReportScope';
+import DraftsModal from './DraftsModal';
 import KindBadge from './KindBadge';
 import TransactionForm from './TransactionForm';
 
@@ -61,6 +63,9 @@ export default function TransactionListPage() {
   // "new" while adding, the id of the transaction being edited, or null when the form is closed.
   const [editing, setEditing] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [showDrafts, setShowDrafts] = useState(false);
+  // The draft being finished in the form, or null.
+  const [resumingDraft, setResumingDraft] = useState(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -82,6 +87,7 @@ export default function TransactionListPage() {
   const transactions = data?.transactions ?? [];
   const deleteTransaction = useDeleteTransaction();
   const prefetchTransaction = usePrefetchTransaction();
+  const { data: drafts = [] } = useDrafts();
 
   const staff = isStaffRole(user?.role);
   const departmentIds = (user?.departments ?? []).map((department) => department._id);
@@ -151,6 +157,13 @@ export default function TransactionListPage() {
         search={search}
         onSearchChange={setSearch}
         searchPlaceholder="Search policy no. or client..."
+        actions={
+          drafts.length > 0 && (
+            <button type="button" className="btn-secondary whitespace-nowrap w-full sm:w-auto" onClick={() => setShowDrafts(true)}>
+              Drafts ({drafts.length})
+            </button>
+          )
+        }
         showAction
         actionLabel="Add Transaction"
         onAction={() => setEditing('new')}
@@ -172,6 +185,18 @@ export default function TransactionListPage() {
 
       {editing === 'new' && <TransactionForm onClose={closeForm} />}
       {editing && editing !== 'new' && <EditTransactionForm id={editing} onClose={closeForm} />}
+
+      {showDrafts && (
+        <DraftsModal
+          drafts={drafts}
+          onResume={(draft) => {
+            setShowDrafts(false);
+            setResumingDraft(draft);
+          }}
+          onClose={() => setShowDrafts(false)}
+        />
+      )}
+      {resumingDraft && <TransactionForm draft={resumingDraft} onClose={() => setResumingDraft(null)} />}
 
       <ConfirmModal
         open={!!confirmDelete}

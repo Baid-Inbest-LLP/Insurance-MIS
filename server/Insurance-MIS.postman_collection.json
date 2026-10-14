@@ -83,6 +83,10 @@
 			"key": "lobId",
 			"value": "",
 			"description": "item id from Master > Catalog"
+		},
+		{
+			"key": "draftId",
+			"value": ""
 		}
 	],
 	"item": [
@@ -507,6 +511,122 @@
 							]
 						},
 						"description": "Soft delete. Allowed for a HOD (own departments), admin and superadmin."
+					}
+				},
+				{
+					"name": "List drafts",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const body = pm.response.json();",
+									"if (body.success && body.data.length) pm.collectionVariables.set('draftId', body.data[0]._id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/transactions/drafts",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transactions",
+								"drafts"
+							]
+						},
+						"description": "Your own drafts, most recently saved first. Drafts are private to the user who saved them. Stores the first result as {{draftId}}."
+					}
+				},
+				{
+					"name": "Create draft",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"kind\": \"gi\",\n  \"department\": \"{{departmentId}}\",\n  \"data\": {\n    \"policyNo\": \"B8789756\",\n    \"clientName\": \"RAVI KUMAR\",\n    \"source\": \"Agents\",\n    \"agent\": \"Sunil Das\",\n    \"vehicleNo\": \"WB08P3993\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/transactions/drafts",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transactions",
+								"drafts"
+							]
+						},
+						"description": "Saves an unfinished transaction form. department must be one the user works in. data holds the form values as typed (field name -> text); nothing in it is validated, so a half-filled form is fine. At most 80 fields, 500 characters each. Returns the new draft id."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const body = pm.response.json();",
+									"if (body.success) pm.collectionVariables.set('draftId', body.data._id);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Update draft",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"kind\": \"gi\",\n  \"department\": \"{{departmentId}}\",\n  \"data\": {\n    \"policyNo\": \"B8789756\",\n    \"clientName\": \"RAVI KUMAR\",\n    \"source\": \"Agents\",\n    \"agent\": \"Sunil Das\",\n    \"vehicleNo\": \"WB08P3993\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/transactions/drafts/{{draftId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transactions",
+								"drafts",
+								"{{draftId}}"
+							]
+						},
+						"description": "Replaces the draft's contents (its own draft only; anyone else gets 404). data holds the form values as typed (field name -> text); nothing in it is validated, so a half-filled form is fine. At most 80 fields, 500 characters each."
+					}
+				},
+				{
+					"name": "Delete draft",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/transactions/drafts/{{draftId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transactions",
+								"drafts",
+								"{{draftId}}"
+							]
+						},
+						"description": "Deletes your own draft. The form deletes it by itself once the draft is saved as a real transaction."
 					}
 				}
 			]

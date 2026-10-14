@@ -1911,3 +1911,34 @@
     display: none !important;
   }
 }
+
+/* Drafts list (Transactions page) */
+@layer components {
+  .draft-item {
+    @apply flex items-center justify-between gap-4 py-3 border-b border-gray-100;
+  }
+
+  .draft-item:last-child {
+    @apply border-b-0;
+  }
+
+  .draft-title {
+    @apply text-sm font-semibold text-gray-900;
+  }
+
+  .draft-meta {
+    @apply text-xs text-gray-500 mt-0.5;
+  }
+}
+
+[data-theme='dark'] #root .draft-item {
+  border-color: #373a40 !important;
+}
+
+[data-theme='dark'] #root .draft-title {
+  color: #c1c2c5 !important;
+}
+
+[data-theme='dark'] #root .draft-meta {
+  color: #909296 !important;
+}

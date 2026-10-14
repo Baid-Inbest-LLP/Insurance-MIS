@@ -104,6 +104,20 @@ export const valuesFromExtraction = (fields) =>
       .map(([key, value]) => [key, text(value)]),
   );
 
+// A draft keeps only typed values; the type is saved beside it and the entry date is left to default to today.
+const NOT_IN_DRAFT = ['department', 'entryDate'];
+export const draftDataFromValues = (values) =>
+  Object.fromEntries(
+    Object.entries(values).filter(([key, value]) => !NOT_IN_DRAFT.includes(key) && typeof value === 'string' && value !== ''),
+  );
+
+// The form's values from a saved draft; anything the draft does not hold stays at its starting value.
+export const valuesFromDraft = ({ department, data }) => {
+  const values = emptyTransactionValues();
+  for (const key of Object.keys(values)) if (key in data) values[key] = data[key];
+  return { ...values, department };
+};
+
 const GI_COMMISSION_FIELDS = [
   'odCommission',
   'tpCommission',
