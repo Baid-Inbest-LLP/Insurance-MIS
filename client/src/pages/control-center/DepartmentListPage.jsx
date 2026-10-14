@@ -200,7 +200,6 @@ export default function DepartmentListPage() {
 				<FormField
 					label="Code"
 					error={errors.code}
-					hint="A short unique key, saved in capitals."
 				>
 					<input
 						className="input-field"
