@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import inbestTextLogo from '../../assets/inbest_text_logo.png';
+import inbestWhiteLogo from '../../assets/white_inbest_logo.png';
 import { useMe } from '../../hooks/useAuth';
 import { ROUTES } from '../../constants';
 import { COMMISSION_VIEW_ROLES, roleLabel } from '../../constants/roles';
@@ -64,13 +66,22 @@ const Sidebar = ({ isOpen = true }) => {
           isOpen ? 'px-3 py-2' : 'px-2 py-2'
         }`}
       >
-        <div className="flex w-full min-w-0 items-center justify-center gap-2">
-          <img src="/shield.svg" alt="Insurance MIS" className="h-7 w-7 flex-shrink-0 object-contain" />
-          {isOpen && (
-            <span className="truncate text-lg font-semibold tracking-wide text-white">
-              Insurance MIS
-            </span>
-          )}
+        <div className="flex w-full min-w-0 items-center justify-center gap-4">
+          <Link
+            to={ROUTES.HOME}
+            title="Go to Dashboard"
+            aria-label="Go to Dashboard"
+            className="inline-flex items-center justify-center rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          >
+            <img
+              src={isOpen ? inbestTextLogo : inbestWhiteLogo}
+              alt="inbest"
+              className={`sidebar-brand-logo object-contain object-center transition-[height,width] duration-200 ${
+                isOpen ? 'h-9 w-auto max-w-[9.5rem]' : 'h-9 w-auto max-w-[3.25rem]'
+              }`}
+              decoding="async"
+            />
+          </Link>
         </div>
       </div>
 

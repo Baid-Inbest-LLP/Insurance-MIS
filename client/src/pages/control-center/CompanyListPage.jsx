@@ -1,18 +1,14 @@
 import { useState, useCallback } from "react";
-import { useDebouncedValue } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { useIsSuperAdmin } from "../../hooks/useAuth";
 import { useCompanies, useDeleteCompany } from "../../hooks/useCompanies";
 import { getApiErrorMessage } from "../../lib/queryClient";
 import CompanyForm from "./CompanyForm";
-import ControlCenterToolbar from "./ControlCenterToolbar";
 import ConfirmModal from "../../components/common/ConfirmModal";
 import Skeleton, { SkeletonText } from "../../components/common/Skeleton";
 
 export default function CompanyListPage() {
 	const canManage = useIsSuperAdmin();
-	const [search, setSearch] = useState("");
-	const [debouncedSearch] = useDebouncedValue(search.trim(), 300);
 	const [showForm, setShowForm] = useState(false);
 	const [editCompany, setEditCompany] = useState(null);
 	const [confirmDelete, setConfirmDelete] = useState(null);
@@ -22,9 +18,8 @@ export default function CompanyListPage() {
 		isLoading: loading,
 		isError,
 		error: queryError,
-	} = useCompanies(debouncedSearch ? { search: debouncedSearch } : undefined);
+	} = useCompanies();
 	const companies = data?.companies ?? [];
-	const total = data?.total ?? 0;
 	const error = isError
 		? getApiErrorMessage(queryError, "Failed to fetch companies")
 		: null;
@@ -62,17 +57,6 @@ export default function CompanyListPage() {
 
 	return (
 		<div>
-			<ControlCenterToolbar
-				title="Companies"
-				subtitle={`Legal entities and branches · ${total} compan${total !== 1 ? "ies" : "y"}`}
-				search={search}
-				onSearchChange={setSearch}
-				searchPlaceholder="Search companies..."
-				showAction={canManage}
-				actionLabel="Add Company"
-				onAction={() => setShowForm(true)}
-			/>
-
 			{error && (
 				<div className="card p-4 mb-4 company-error-alert">{error}</div>
 			)}

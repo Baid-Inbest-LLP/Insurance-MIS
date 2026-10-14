@@ -48,6 +48,7 @@ const Navbar = ({ sidebarOpen, onToggleSidebar }) => {
           </svg>
         </button>
       </div>
+      <span className="navbar-title">Insurance Management Information Software</span>
       <div className="flex items-center gap-3">
         <button
           type="button"
