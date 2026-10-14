@@ -88,3 +88,42 @@ export const useDeleteTransaction = () => {
     onSuccess: () => invalidateTransactions(queryClient),
   });
 };
+
+// The user's own unfinished transactions, most recently saved first.
+export const useDrafts = () =>
+  useQuery({
+    queryKey: queryKeys.drafts,
+    queryFn: async () => (await transactionsApi.drafts()).data.data ?? [],
+  });
+
+const invalidateDrafts = (queryClient) => queryClient.invalidateQueries({ queryKey: queryKeys.drafts });
+
+export const useCreateDraft = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload) => {
+      await transactionsApi.createDraft(payload);
+    },
+    onSuccess: () => invalidateDrafts(queryClient),
+  });
+};
+
+export const useUpdateDraft = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }) => {
+      await transactionsApi.updateDraft(id, data);
+    },
+    onSuccess: () => invalidateDrafts(queryClient),
+  });
+};
+
+export const useDeleteDraft = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id) => {
+      await transactionsApi.deleteDraft(id);
+    },
+    onSuccess: () => invalidateDrafts(queryClient),
+  });
+};

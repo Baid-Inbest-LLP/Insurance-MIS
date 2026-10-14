@@ -944,6 +944,13 @@
   flex-shrink: 0;
 }
 
+/* Sidebar brand logo */
+#root .app-layout > aside .sidebar-brand-logo {
+  height: 2.25rem;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
 
 #root .app-layout > aside .sidebar-user-avatar {
   width: 2.5rem;
@@ -1048,6 +1055,32 @@
   justify-content: space-between;
   padding-left: 1.5rem;
   padding-right: 1.5rem;
+  position: relative;
+}
+
+#root .app-layout .app-navbar .navbar-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #0b2f81;
+}
+
+[data-theme='dark'] #root .app-layout .app-navbar .navbar-title {
+  color: #e7e8ea;
+}
+
+@media (max-width: 1023px) {
+  #root .app-layout .app-navbar .navbar-title {
+    display: none;
+  }
 }
 
 #root .app-layout .app-navbar .navbar-toggle,
@@ -1877,4 +1910,35 @@
   .app-navbar {
     display: none !important;
   }
+}
+
+/* Drafts list (Transactions page) */
+@layer components {
+  .draft-item {
+    @apply flex items-center justify-between gap-4 py-3 border-b border-gray-100;
+  }
+
+  .draft-item:last-child {
+    @apply border-b-0;
+  }
+
+  .draft-title {
+    @apply text-sm font-semibold text-gray-900;
+  }
+
+  .draft-meta {
+    @apply text-xs text-gray-500 mt-0.5;
+  }
+}
+
+[data-theme='dark'] #root .draft-item {
+  border-color: #373a40 !important;
+}
+
+[data-theme='dark'] #root .draft-title {
+  color: #c1c2c5 !important;
+}
+
+[data-theme='dark'] #root .draft-meta {
+  color: #909296 !important;
 }

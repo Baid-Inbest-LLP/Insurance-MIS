@@ -179,7 +179,7 @@ export const extractPolicyBodySchema = z
   })
   .strict();
 
-export const transactionParamsSchema = z.object({ id: objectId('transaction') }).strict();
+export const transactionParamsSchema = z.object({ id: objectId('policy') }).strict();
 
 export const listTransactionsQuerySchema = z
   .object({

@@ -7,10 +7,7 @@ export const useCompanies = (params) =>
     queryKey: queryKeys.companies(params),
     queryFn: async () => {
       const { data } = await companiesApi.getAll(params);
-      return {
-        companies: data.data ?? [],
-        total: data.pagination?.total ?? data.data?.length ?? 0,
-      };
+      return { companies: data.data ?? [] };
     },
     placeholderData: keepPreviousData,
   });

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { notifications } from '@mantine/notifications';
+import inbestLogo from '../../assets/white_inbest_logo.png';
 import { useLogin } from '../../hooks/useAuth';
 import { getApiErrorMessage } from '../../lib/queryClient';
 import { isAuthenticated } from '../../lib/session';
@@ -65,9 +66,9 @@ export default function LoginPage() {
         <div className="bg-transparent border-2 border-white/20 backdrop-blur-[13px] px-6 py-8 rounded-xl shadow-[0_0_10px_rgba(0,0,0,0.1)]">
           <div className="text-center mb-4">
             <div className="inline-flex items-center justify-center mb-4">
-              <img src="/shield.svg" alt="Insurance MIS" className="w-16 h-16 object-contain" />
+              <img src={inbestLogo} alt="Inbest Logo" className="h-24 w-24 object-contain" />
             </div>
-            <p className="text-white/90 text-lg mt-1">Insurance MIS</p>
+            <p className="text-white/90 text-lg mt-1">Insurance Management Information Software</p>
           </div>
 
           <h2 className="text-2xl font-bold text-white mb-6 text-center">Sign In</h2>

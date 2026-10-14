@@ -15,6 +15,10 @@ export const transactionsApi = {
       timeout: 90 * 1000,
     });
   },
+  drafts: () => api.get('/transactions/drafts'),
+  createDraft: (data) => api.post('/transactions/drafts', data),
+  updateDraft: (id, data) => api.put(`/transactions/drafts/${id}`, data),
+  deleteDraft: (id) => api.delete(`/transactions/drafts/${id}`),
   create: (data) => api.post('/transactions', data),
   update: (id, data) => api.put(`/transactions/${id}`, data),
   delete: (id) => api.delete(`/transactions/${id}`),

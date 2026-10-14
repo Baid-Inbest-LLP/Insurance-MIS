@@ -7,9 +7,11 @@ export default function ConfirmModal({
   message = '',
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
+  secondaryLabel,
   variant = 'danger',
   loading = false,
   onConfirm,
+  onSecondary,
   onCancel,
   onClose,
 }) {
@@ -157,7 +159,8 @@ export default function ConfirmModal({
           )}
         </div>
 
-        <div className="px-7 pb-7 pt-4 flex gap-3">
+        {/* With a secondary action the three buttons stack, the main one on top. */}
+        <div className={`px-7 pb-7 pt-4 flex gap-3 ${secondaryLabel ? 'flex-col-reverse' : ''}`}>
           <button
             type="button"
             onClick={handleCancel}
@@ -166,6 +169,16 @@ export default function ConfirmModal({
           >
             {cancelLabel}
           </button>
+          {secondaryLabel && (
+            <button
+              type="button"
+              onClick={onSecondary}
+              disabled={loading}
+              className="flex-1 px-4 py-2.5 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-all duration-150 active:scale-[0.97] disabled:opacity-50"
+            >
+              {secondaryLabel}
+            </button>
+          )}
           <button
             ref={confirmRef}
             type="button"

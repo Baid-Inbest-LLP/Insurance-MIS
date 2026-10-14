@@ -5,6 +5,7 @@ import FormGrid from './FormGrid';
 // A modal holding a form: a fixed header, a scrolling FormGrid for the fields, and fixed Cancel/Submit buttons.
 // Pass `onSubmit={handleSubmit(fn)}` from react-hook-form; children are FormFields or FormSections.
 // While `busy`, an overlay with `busyLabel` locks the form and the modal cannot be closed.
+// `footerStart` is an extra action shown at the left of the footer.
 export default function FormModal({
   open,
   title,
@@ -14,6 +15,7 @@ export default function FormModal({
   submitting = false,
   busy = false,
   busyLabel,
+  footerStart,
   submitLabel = 'Save',
   submittingLabel = 'Saving...',
   cancelLabel = 'Cancel',
@@ -49,6 +51,7 @@ export default function FormModal({
           </div>
 
           <div className="company-form-footer shrink-0 px-6 py-4">
+            {footerStart && <div className="mr-auto">{footerStart}</div>}
             <button type="button" onClick={onClose} disabled={submitting} className="btn-secondary">
               {cancelLabel}
             </button>

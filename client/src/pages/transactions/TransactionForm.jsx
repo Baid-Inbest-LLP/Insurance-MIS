@@ -1,11 +1,14 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { notifications } from '@mantine/notifications';
 import { useMe } from '../../hooks/useAuth';
 import {
+  useCreateDraft,
   useCreateTransaction,
+  useDeleteDraft,
   useExtractPolicy,
   useTransactionOptions,
+  useUpdateDraft,
   useUpdateTransaction,
 } from '../../hooks/useTransactions';
 import { AGENT_SOURCE, COMMISSION_STATUSES, FREQUENCIES, KIND_LABELS, SOURCES, TRANSACTION_KINDS } from '../../constants/transactions';
@@ -14,10 +17,13 @@ import { getApiErrorMessage } from '../../lib/queryClient';
 import { ageOn, displayDate, maturityDate } from '../../lib/policyDates';
 import {
   buildTransactionPayload,
+  draftDataFromValues,
   emptyTransactionValues,
+  valuesFromDraft,
   valuesFromExtraction,
   valuesFromTransaction,
 } from '../../lib/transactionForm';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import DateField from '../../components/common/form/DateField';
 import FormField from '../../components/common/form/FormField';
 import FormGrid from '../../components/common/form/FormGrid';
@@ -32,6 +38,8 @@ const AMOUNT_RULES = {
 };
 const sum = (...values) => values.reduce((total, value) => total + (Number(value) || 0), 0).toFixed(2);
 const READ_ONLY_CLASS = 'input-field bg-gray-50 text-gray-500 cursor-default';
+// The dropdowns whose options load after the form opens.
+const SELECT_FIELDS = ['department', 'branch', 'insurer', 'businessType', 'lob'];
 
 // A dropdown of one master list; keeps the saved value visible even if that item is now inactive.
 function MasterSelect({ label, name, register, error, items = [], current, disabled = false }) {
@@ -100,22 +108,31 @@ function AmountField({ label, name, register, errors, readOnly = false, required
   );
 }
 
-export default function TransactionForm({ transaction, onClose }) {
+// Opens empty, with a saved transaction to edit, or with a saved draft to finish.
+export default function TransactionForm({ transaction, draft, onClose }) {
   const isEdit = Boolean(transaction);
   const { data: user } = useMe();
   const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();
   const extractPolicy = useExtractPolicy();
+  const createDraft = useCreateDraft();
+  const updateDraft = useUpdateDraft();
+  const deleteDraft = useDeleteDraft();
+
+  const [initialValues] = useState(() =>
+    transaction ? valuesFromTransaction(transaction) : draft ? valuesFromDraft(draft) : emptyTransactionValues(),
+  );
 
   const {
     register,
     handleSubmit,
     control,
     setValue,
+    getValues,
     setError,
     formState: { errors, isSubmitting },
   } = useForm({
-    defaultValues: transaction ? valuesFromTransaction(transaction) : emptyTransactionValues(),
+    defaultValues: initialValues,
   });
 
   const values = useWatch({ control });
@@ -139,6 +156,17 @@ export default function TransactionForm({ transaction, onClose }) {
   const sharedProps = { register, errors };
   const noDepartment = !department;
 
+  // Closing a new or resumed form that has typed input asks to save it; calculated totals are ignored.
+  const [askClose, setAskClose] = useState(false);
+  const typed = (formValues) => {
+    const data = draftDataFromValues(formValues);
+    delete data.premium;
+    if (isGi) delete data.netPremium;
+    return JSON.stringify(Object.entries(data).sort());
+  };
+  const requestClose = () =>
+    !isEdit && typed(getValues()) !== typed(initialValues) ? setAskClose(true) : onClose();
+
   // GI: net premium = OD + third-party + stamp duty. Both kinds: premium = net premium + GST.
   const netPremium = isGi ? sum(values.odPremium, values.thirdPartyCover, values.agentStampDuty) : values.netPremium;
   const premium = sum(netPremium, values.gst);
@@ -157,6 +185,32 @@ export default function TransactionForm({ transaction, onClose }) {
 
   const resetMasters = () => {
     for (const name of ['insurer', 'businessType', 'lob']) setValue(name, '');
+  };
+
+  // A draft's dropdown choices can only be applied once their lists are loaded.
+  const selectionsRestored = useRef(false);
+  useEffect(() => {
+    if (!draft || selectionsRestored.current || isPlaceholderData || !options || department !== draft.department) return;
+    selectionsRestored.current = true;
+    for (const name of SELECT_FIELDS) if (initialValues[name]) setValue(name, initialValues[name]);
+  }, [draft, initialValues, options, isPlaceholderData, department, setValue]);
+
+  const savingDraft = createDraft.isPending || updateDraft.isPending;
+  const saveDraft = async () => {
+    if (!kind) {
+      setAskClose(false);
+      notifications.show({ message: 'Select the insurance type first', color: 'red' });
+      return;
+    }
+    const payload = { kind, department, data: draftDataFromValues(getValues()) };
+    try {
+      if (draft) await updateDraft.mutateAsync({ id: draft._id, data: payload });
+      else await createDraft.mutateAsync(payload);
+      notifications.show({ message: 'Policy saved as draft', color: 'green' });
+      onClose();
+    } catch (err) {
+      notifications.show({ message: getApiErrorMessage(err, 'Failed to save draft'), color: 'red' });
+    }
   };
 
   // Fills the form from the AI's result; fields it did not find keep their value.
@@ -193,211 +247,236 @@ export default function TransactionForm({ transaction, onClose }) {
     }
     try {
       if (isEdit) await updateTransaction.mutateAsync({ id: transaction._id, data: payload });
-      else await createTransaction.mutateAsync(payload);
-      notifications.show({ message: isEdit ? 'Transaction updated' : 'Transaction added', color: 'green' });
+      else {
+        await createTransaction.mutateAsync(payload);
+        if (draft) deleteDraft.mutate(draft._id); // the draft is now a real transaction
+      }
+      notifications.show({ message: isEdit ? 'Policy updated' : 'Policy added', color: 'green' });
       onClose();
     } catch (err) {
       for (const { field, message } of err.response?.data?.errors ?? []) setError(field, { message });
-      notifications.show({ message: getApiErrorMessage(err, 'Failed to save transaction'), color: 'red' });
+      notifications.show({ message: getApiErrorMessage(err, 'Failed to save policy'), color: 'red' });
     }
   };
 
   return (
-    <FormModal
-      open
-      size="xl"
-      title={isEdit ? 'Edit Transaction' : 'Add Transaction'}
-      subtitle={isEdit ? `${KIND_LABELS[transaction.kind]} · ${transaction.department.name}` : 'Enter the policy details'}
-      onClose={onClose}
-      onSubmit={handleSubmit(onSubmit)}
-      submitting={isSubmitting}
-      busy={extractPolicy.isPending}
-      busyLabel="Reading policy. This can take up to a minute..."
-      submitLabel={isEdit ? 'Save changes' : 'Add Transaction'}
-    >
-      <FormSection
-        title="Policy"
-        action={
+    <>
+      <FormModal
+        open
+        size="xl"
+        title={isEdit ? 'Edit Policy' : 'Add Policy'}
+        subtitle={isEdit ? `${KIND_LABELS[transaction.kind]} · ${transaction.department.name}` : 'Enter the policy details'}
+        onClose={requestClose}
+        onSubmit={handleSubmit(onSubmit)}
+        submitting={isSubmitting}
+        busy={extractPolicy.isPending}
+        busyLabel="Reading policy. This can take up to a minute..."
+        footerStart={
           isEdit ? undefined : (
-            <PolicyUpload
-              disabled={!kind || isPlaceholderData}
-              hint={noDepartment ? 'Select the insurance type first' : undefined}
-              onFile={readPolicy}
-            />
+            <button type="button" className="btn-secondary" onClick={saveDraft} disabled={savingDraft || isSubmitting}>
+              {savingDraft ? 'Saving...' : 'Save as Draft'}
+            </button>
           )
         }
+        submitLabel={isEdit ? 'Save changes' : 'Add Policy'}
       >
-        <FormGrid columns={3}>
-          <FormField label="Type" required>
-            {departmentFixed ? (
-              <input
-                className="input-field"
-                value={selectedDepartment?.name ?? transaction?.department.name ?? ''}
-                readOnly
-                disabled
+        <FormSection
+          title="Policy"
+          action={
+            isEdit ? undefined : (
+              <PolicyUpload
+                disabled={!kind || isPlaceholderData}
+                hint={noDepartment ? 'Select the insurance type first' : undefined}
+                onFile={readPolicy}
               />
-            ) : (
-              <select
-                className="input-field"
-                {...register('department', { required: 'Department is required', onChange: resetMasters })}
-              >
-                <option value="">Select Insurance Type</option>
-                {departments.map((item) => (
+            )
+          }
+        >
+          <FormGrid columns={3}>
+            <FormField label="Type" required>
+              {departmentFixed ? (
+                <input
+                  className="input-field"
+                  value={selectedDepartment?.name ?? transaction?.department.name ?? ''}
+                  readOnly
+                  disabled
+                />
+              ) : (
+                <select
+                  className="input-field"
+                  {...register('department', { required: 'Department is required', onChange: resetMasters })}
+                >
+                  <option value="">Select Insurance Type</option>
+                  {departments.map((item) => (
+                    <option key={item._id} value={item._id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </FormField>
+
+            <TextField label="Policy No." name="policyNo" required maxLength={60} {...sharedProps} />
+            <DateField label="Policy Date" name="policyDate" control={control} required />
+            <DateField label="Date of Entry" name="entryDate" control={control} />
+            <TextField label="Client Name" name="clientName" required maxLength={120} {...sharedProps} />
+
+            <FormField label="Branch" required error={errors.branch}>
+              <select className="input-field" {...register('branch', { required: 'Branch is required' })}>
+                <option value="">Select branch</option>
+                {branches.map((item) => (
                   <option key={item._id} value={item._id}>
-                    {item.name}
+                    {item.code}
                   </option>
                 ))}
               </select>
+            </FormField>
+            <MasterSelect label="Insurer" name="insurer" items={masters.insurer} error={errors.insurer} current={transaction?.insurer} disabled={noDepartment} register={register} />
+            <TextField label="Insurer Address" name="insurerAddress" required maxLength={250} {...sharedProps} />
+            <TextField label="Office Code" name="officeCode" maxLength={30} {...sharedProps} />
+
+            <MasterSelect label="Business Type" name="businessType" items={masters.businessType} error={errors.businessType} current={transaction?.businessType} disabled={noDepartment} register={register} />
+            <MasterSelect label="Line of Business" name="lob" items={masters.lob} error={errors.lob} current={transaction?.lob} disabled={noDepartment} register={register} />
+            <TextField label="Product Type" name="productType" maxLength={100} {...sharedProps} />
+            <FormField label="Source" required error={errors.source}>
+              <select className="input-field" {...register('source', { required: 'Source is required' })}>
+                <option value="">Select source</option>
+                {SOURCES.map((source) => (
+                  <option key={source} value={source}>
+                    {source}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+            {values.source === AGENT_SOURCE && (
+              <TextField label="Agent" name="agent" required maxLength={100} {...sharedProps} />
             )}
-          </FormField>
-
-          <TextField label="Policy No." name="policyNo" required maxLength={60} {...sharedProps} />
-          <DateField label="Policy Date" name="policyDate" control={control} required />
-          <DateField label="Date of Entry" name="entryDate" control={control} />
-          <TextField label="Client Name" name="clientName" required maxLength={120} {...sharedProps} />
-
-          <FormField label="Branch" required error={errors.branch}>
-            <select className="input-field" {...register('branch', { required: 'Branch is required' })}>
-              <option value="">Select branch</option>
-              {branches.map((item) => (
-                <option key={item._id} value={item._id}>
-                  {item.code}
-                </option>
-              ))}
-            </select>
-          </FormField>
-          <MasterSelect label="Insurer" name="insurer" items={masters.insurer} error={errors.insurer} current={transaction?.insurer} disabled={noDepartment} register={register} />
-          <TextField label="Insurer Address" name="insurerAddress" required maxLength={250} {...sharedProps} />
-          <TextField label="Office Code" name="officeCode" maxLength={30} {...sharedProps} />
-
-          <MasterSelect label="Business Type" name="businessType" items={masters.businessType} error={errors.businessType} current={transaction?.businessType} disabled={noDepartment} register={register} />
-          <MasterSelect label="Line of Business" name="lob" items={masters.lob} error={errors.lob} current={transaction?.lob} disabled={noDepartment} register={register} />
-          <TextField label="Product Type" name="productType" maxLength={100} {...sharedProps} />
-          <FormField label="Source" required error={errors.source}>
-            <select className="input-field" {...register('source', { required: 'Source is required' })}>
-              <option value="">Select source</option>
-              {SOURCES.map((source) => (
-                <option key={source} value={source}>
-                  {source}
-                </option>
-              ))}
-            </select>
-          </FormField>
-          {values.source === AGENT_SOURCE && (
-            <TextField label="Agent" name="agent" required maxLength={100} {...sharedProps} />
-          )}
-          <TextField label="Reference" name="reference" maxLength={200} {...sharedProps} />
-        </FormGrid>
-      </FormSection>
-
-      {kind && (isGi ? (
-        <FormSection title="Vehicle & Cover">
-          <FormGrid columns={3}>
-            <TextField
-              label="Client GST"
-              name="clientGst"
-              {...sharedProps}
-              rules={{ setValueAs: (v) => v.trim().toUpperCase(), pattern: { value: GST_REGEX, message: 'Not a valid GST number' } }}
-            />
-            <TextField label="Vehicle No." name="vehicleNo" maxLength={20} {...sharedProps} />
-            <DateField label="MFG Date" name="mfgDate" control={control} />
-            <TextField label="Maker" name="maker" maxLength={60} {...sharedProps} />
-            <TextField label="Model" name="model" maxLength={60} {...sharedProps} />
-            <TextField
-              label="NCB (%)"
-              name="ncb"
-              type="number"
-              step="any"
-              {...sharedProps}
-              rules={{ min: { value: 0, message: 'Cannot be negative' }, max: { value: 100, message: 'Cannot be more than 100' } }}
-            />
-            <DateField label="Policy Period From" name="policyPeriodFrom" control={control} required />
-            <DateField label="Policy Period To" name="policyPeriodTo" control={control} required minDate={values.policyPeriodFrom} />
+            <TextField label="Reference" name="reference" maxLength={200} {...sharedProps} />
           </FormGrid>
         </FormSection>
-      ) : (
-        <FormSection title="Life Policy">
-          <FormGrid columns={3}>
-            <DateField label="Date of Birth" name="dateOfBirth" control={control} required maxDate={new Date()} />
-            <DateField label="Date of Commencement" name="commencementDate" control={control} required minDate={values.dateOfBirth} />
-            <FormField label="Age">
-              <input className="input-field" value={ageOn(values.dateOfBirth, values.commencementDate)} readOnly disabled />
-            </FormField>
-            <TextField label="Payment Term (Y)" name="paymentTermYears" type="number" min="1" step="1" required {...sharedProps} />
-            <TextField label="Policy Term (Y)" name="policyTermYears" type="number" min="1" step="1" required {...sharedProps} />
-            <FormField label="Maturity Date">
-              <input className="input-field" value={displayDate(maturityDate(values.commencementDate, values.policyTermYears))} readOnly disabled />
-            </FormField>
-            <FormField label="Frequency" required error={errors.frequency}>
-              <select className="input-field" {...register('frequency', { required: 'Frequency is required' })}>
-                <option value="">Select frequency</option>
-                {FREQUENCIES.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-            <DateField label="Next Due Date" name="nextDueDate" control={control} />
-            <DateField label="Actual Payment Date" name="actualPaymentDate" control={control} required />
-          </FormGrid>
-        </FormSection>
-      ))}
 
-      <FormSection title="Premium">
-        <FormGrid columns={3}>
-          {kind && (isGi ? (
-            <>
-              <AmountField label="OD Premium" name="odPremium" {...sharedProps} />
-              <AmountField label="Third-party Cover" name="thirdPartyCover" {...sharedProps} />
-              <AmountField label="Agent Stamp Duty" name="agentStampDuty" required={false} {...sharedProps} />
-            </>
-          ) : (
-            <>
-              <AmountField label="Premium Per Month" name="premiumPerMonth" {...sharedProps} />
-              <AmountField label="Sum Assured" name="sumAssured" {...sharedProps} />
-              <div className="hidden sm:block" />
-            </>
-          ))}
-          <AmountField label="Net Premium" name="netPremium" readOnly={isGi} {...sharedProps} />
-          <AmountField label="GST" name="gst" {...sharedProps} />
-          <AmountField label="Premium" name="premium" readOnly {...sharedProps} />
-        </FormGrid>
-      </FormSection>
+        {kind && (isGi ? (
+          <FormSection title="Vehicle & Cover">
+            <FormGrid columns={3}>
+              <TextField
+                label="Client GST"
+                name="clientGst"
+                {...sharedProps}
+                rules={{ setValueAs: (v) => v.trim().toUpperCase(), pattern: { value: GST_REGEX, message: 'Not a valid GST number' } }}
+              />
+              <TextField label="Vehicle No." name="vehicleNo" maxLength={20} {...sharedProps} />
+              <DateField label="MFG Date" name="mfgDate" control={control} />
+              <TextField label="Maker" name="maker" maxLength={60} {...sharedProps} />
+              <TextField label="Model" name="model" maxLength={60} {...sharedProps} />
+              <TextField
+                label="NCB (%)"
+                name="ncb"
+                type="number"
+                step="any"
+                {...sharedProps}
+                rules={{ min: { value: 0, message: 'Cannot be negative' }, max: { value: 100, message: 'Cannot be more than 100' } }}
+              />
+              <DateField label="Policy Period From" name="policyPeriodFrom" control={control} required />
+              <DateField label="Policy Period To" name="policyPeriodTo" control={control} required minDate={values.policyPeriodFrom} />
+            </FormGrid>
+          </FormSection>
+        ) : (
+          <FormSection title="Life Policy">
+            <FormGrid columns={3}>
+              <DateField label="Date of Birth" name="dateOfBirth" control={control} required maxDate={new Date()} />
+              <DateField label="Date of Commencement" name="commencementDate" control={control} required minDate={values.dateOfBirth} />
+              <FormField label="Age">
+                <input className="input-field" value={ageOn(values.dateOfBirth, values.commencementDate)} readOnly disabled />
+              </FormField>
+              <TextField label="Payment Term (Y)" name="paymentTermYears" type="number" min="1" step="1" required {...sharedProps} />
+              <TextField label="Policy Term (Y)" name="policyTermYears" type="number" min="1" step="1" required {...sharedProps} />
+              <FormField label="Maturity Date">
+                <input className="input-field" value={displayDate(maturityDate(values.commencementDate, values.policyTermYears))} readOnly disabled />
+              </FormField>
+              <FormField label="Frequency" required error={errors.frequency}>
+                <select className="input-field" {...register('frequency', { required: 'Frequency is required' })}>
+                  <option value="">Select frequency</option>
+                  {FREQUENCIES.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+              <DateField label="Next Due Date" name="nextDueDate" control={control} />
+              <DateField label="Actual Payment Date" name="actualPaymentDate" control={control} required />
+            </FormGrid>
+          </FormSection>
+        ))}
 
-      {showCommission && (
-        <FormSection title="Commission">
+        <FormSection title="Premium">
           <FormGrid columns={3}>
-            {isGi ? (
+            {kind && (isGi ? (
               <>
-                <AmountField label="OD Commission" name="odCommission" required={false} {...sharedProps} />
-                <AmountField label="TP Commission" name="tpCommission" required={false} {...sharedProps} />
-                <AmountField label="Total Commission" name="totalCommission" required={false} {...sharedProps} />
-                <PercentField label="OD Commission (%)" name="odCommissionPercent" {...sharedProps} />
-                <PercentField label="TP Commission (%)" name="tpCommissionPercent" {...sharedProps} />
-                <PercentField label="Total Commission (%)" name="totalCommissionPercent" {...sharedProps} />
+                <AmountField label="OD Premium" name="odPremium" {...sharedProps} />
+                <AmountField label="Third-party Cover" name="thirdPartyCover" {...sharedProps} />
+                <AmountField label="Agent Stamp Duty" name="agentStampDuty" required={false} {...sharedProps} />
               </>
             ) : (
               <>
-                <AmountField label="Commission" name="commissionAmount" required={false} {...sharedProps} />
-                <PercentField label="Commission (%)" name="commissionPercent" {...sharedProps} />
+                <AmountField label="Premium Per Month" name="premiumPerMonth" {...sharedProps} />
+                <AmountField label="Sum Assured" name="sumAssured" {...sharedProps} />
+                <div className="hidden sm:block" />
               </>
-            )}
-            <FormField label="Commission Status">
-              <select
-                className={`input-field ${COMMISSION_STATUSES.find((item) => item.value === values.commissionStatus)?.className ?? ''}`}
-                {...register('commissionStatus')}
-              >
-                {COMMISSION_STATUSES.map((item) => (
-                  <option key={item.value} value={item.value} className={item.className}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </FormField>
+            ))}
+            <AmountField label="Net Premium" name="netPremium" readOnly={isGi} {...sharedProps} />
+            <AmountField label="GST" name="gst" {...sharedProps} />
+            <AmountField label="Premium" name="premium" readOnly {...sharedProps} />
           </FormGrid>
         </FormSection>
-      )}
-    </FormModal>
+
+        {showCommission && (
+          <FormSection title="Commission">
+            <FormGrid columns={3}>
+              {isGi ? (
+                <>
+                  <AmountField label="OD Commission" name="odCommission" required={false} {...sharedProps} />
+                  <AmountField label="TP Commission" name="tpCommission" required={false} {...sharedProps} />
+                  <AmountField label="Total Commission" name="totalCommission" required={false} {...sharedProps} />
+                  <PercentField label="OD Commission (%)" name="odCommissionPercent" {...sharedProps} />
+                  <PercentField label="TP Commission (%)" name="tpCommissionPercent" {...sharedProps} />
+                  <PercentField label="Total Commission (%)" name="totalCommissionPercent" {...sharedProps} />
+                </>
+              ) : (
+                <>
+                  <AmountField label="Commission" name="commissionAmount" required={false} {...sharedProps} />
+                  <PercentField label="Commission (%)" name="commissionPercent" {...sharedProps} />
+                </>
+              )}
+              <FormField label="Commission Status">
+                <select
+                  className={`input-field ${COMMISSION_STATUSES.find((item) => item.value === values.commissionStatus)?.className ?? ''}`}
+                  {...register('commissionStatus')}
+                >
+                  {COMMISSION_STATUSES.map((item) => (
+                    <option key={item.value} value={item.value} className={item.className}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+            </FormGrid>
+          </FormSection>
+        )}
+      </FormModal>
+      <ConfirmModal
+        open={askClose}
+        title="Save as draft?"
+        message="You have unsaved changes. Save them as a draft to finish later, or discard them."
+        variant="primary"
+        confirmLabel="Save as Draft"
+        secondaryLabel="Discard"
+        cancelLabel="Keep editing"
+        loading={savingDraft}
+        onConfirm={saveDraft}
+        onSecondary={onClose}
+        onCancel={() => setAskClose(false)}
+      />
+    </>
   );
 }

@@ -5,6 +5,7 @@ export const queryKeys = {
 	lookups: (department) => ["masters", "lookups", department ?? ""],
 	transaction: (id) => ["transactions", "detail", id],
 	transactions: (params) => ["transactions", "list", params ?? {}],
+	drafts: ["drafts"],
 	report: (name, params) => ["reports", name, params],
 	users: ["masters", "users"],
 	locationCities: ["masters", "locationCities"],

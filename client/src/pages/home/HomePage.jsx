@@ -21,7 +21,7 @@ export default function HomePage() {
     <div className="space-y-4">
       <PageBanner
         title={`Welcome${user?.name ? `, ${user.name}` : ''}`}
-        subtitle="Insurance MIS overview"
+        subtitle="Insurance Management Information Software overview"
       />
 
       <div className="dashboard-grid-4">

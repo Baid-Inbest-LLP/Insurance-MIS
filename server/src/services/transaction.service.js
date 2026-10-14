@@ -75,7 +75,7 @@ const canDelete = (actor, transaction) =>
 
 const findLiveTransaction = async (id) => {
 	const transaction = await Transaction.findOne({ _id: id, deletedAt: null });
-	if (!transaction) throw ApiError.notFound("Transaction not found");
+	if (!transaction) throw ApiError.notFound("Policy not found");
 	return transaction;
 };
 
@@ -248,7 +248,7 @@ export const listTransactions = async ({ actor, filters }) => {
 
 export const getTransaction = async ({ id, actor }) => {
 	const transaction = await Transaction.findOne({ _id: id, deletedAt: null }).lean();
-	if (!transaction) throw ApiError.notFound("Transaction not found");
+	if (!transaction) throw ApiError.notFound("Policy not found");
 
 	assertCanWorkIn(actor, transaction.department);
 	const [dto] = await hydrate([transaction], { populate: DETAIL_POPULATE, toDto: toTransactionDto });
@@ -276,11 +276,11 @@ export const createTransaction = async ({ actor, data }) => {
 export const updateTransaction = async ({ id, actor, data }) => {
 	const transaction = await findLiveTransaction(id);
 	if (!canModify(actor, transaction))
-		throw ApiError.forbidden("You do not have permission to edit this transaction");
+		throw ApiError.forbidden("You do not have permission to edit this policy");
 
 	const { kind, department, commission, ...fields } = data;
 	if (kind !== transaction.kind)
-		throw ApiError.badRequest("Transaction type cannot be changed");
+		throw ApiError.badRequest("Policy type cannot be changed");
 	if (!transaction.department.equals(department))
 		throw ApiError.badRequest("Department cannot be changed");
 
@@ -309,7 +309,7 @@ export const updateTransaction = async ({ id, actor, data }) => {
 export const deleteTransaction = async ({ id, actor }) => {
 	const transaction = await findLiveTransaction(id);
 	if (!canDelete(actor, transaction))
-		throw ApiError.forbidden("You do not have permission to delete this transaction");
+		throw ApiError.forbidden("You do not have permission to delete this policy");
 
 	transaction.deletedAt = new Date();
 	transaction.updatedBy = actor._id;

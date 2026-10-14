@@ -46,7 +46,7 @@ export const createTransaction = asyncHandler(async (req, res) => {
 		data: req.body,
 	});
 
-	ApiResponse.created(res, null, "Transaction created");
+	ApiResponse.created(res, null, "Policy created");
 });
 
 // Replaces the editable fields of a transaction.
@@ -58,7 +58,7 @@ export const updateTransaction = asyncHandler(async (req, res) => {
 		data: req.body,
 	});
 
-	ApiResponse.success(res, null, "Transaction updated");
+	ApiResponse.success(res, null, "Policy updated");
 });
 
 // Soft-deletes a transaction.
@@ -66,5 +66,5 @@ export const deleteTransaction = asyncHandler(async (req, res) => {
 	const { id } = req.validated.params;
 	await transactionService.deleteTransaction({ id, actor: req.user });
 
-	ApiResponse.success(res, null, "Transaction deleted");
+	ApiResponse.success(res, null, "Policy deleted");
 });
