@@ -1,6 +1,7 @@
 import { useExportReport, useReport } from '../../hooks/useReports';
+import { notifications } from '@mantine/notifications';
 import { canViewCommission } from '../../lib/commission';
-import { downloadBlobResponse, notifyExportError } from '../../utils/download';
+import { downloadBlobResponse } from '../../utils/download';
 import { formatCurrency } from '../../utils/format';
 import DataTable from '../../components/common/DataTable';
 import ControlCenterToolbar from '../control-center/ControlCenterToolbar';
@@ -16,6 +17,19 @@ const PREMIUM_MEASURES = [
   { key: 'premium', header: 'Premium' },
   { key: 'commission', header: 'Commission', commission: true },
 ];
+
+const exportErrorMessage = async (error) => {
+  const body = error?.response?.data;
+  if (body instanceof Blob) {
+    try {
+      const data = JSON.parse(await body.text());
+      return data.message || 'Export failed';
+    } catch {
+      return 'Export failed';
+    }
+  }
+  return body?.message || error?.message || 'Export failed';
+};
 
 // A report with one row per `groupKey` (lob, branch, ...) for one type (department), plus a totals row.
 export default function GroupedReport({ title, report, groupKey, groupHeader, measures = PREMIUM_MEASURES }) {
@@ -50,7 +64,7 @@ export default function GroupedReport({ title, report, groupKey, groupHeader, me
       const response = await exportReport.mutateAsync({ report, params: scope.params });
       downloadBlobResponse(response, `${report}-report.xlsx`);
     } catch (error) {
-      notifyExportError(error);
+      notifications.show({ message: await exportErrorMessage(error), color: 'red' });
     }
   };
 

@@ -4,9 +4,12 @@ import { ApiError } from "../utils/ApiError.js";
 import { COMMISSION_STATUSES, MASTER_FIELDS } from "../constants/transactions.js";
 import { assertCanWorkIn, canViewCommission } from "./transaction.service.js";
 
-const round = (value) => Math.round(value * 100) / 100;
+const round = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
 
-const sumOf = (rows, field) => round(rows.reduce((total, row) => total + row[field], 0));
+// Report amounts are validated to two decimal places. Sum their integer paise
+// values so binary floating point cannot create a one-paisa total difference.
+const sumOf = (rows, field) =>
+	rows.reduce((total, row) => total + Math.round(((row[field] ?? 0) + Number.EPSILON) * 100), 0) / 100;
 
 // GI keeps its total commission in `totalCommission`, LI in `amount`.
 const COMMISSION_AMOUNT = { $ifNull: ["$commission.totalCommission", "$commission.amount"] };
@@ -30,14 +33,21 @@ const agentNames = async ({ ids }) => new Map(ids.map((id) => [String(id), id]))
 
 // The department's live transactions in a policy date range; `ids` are further filters on id fields (branch, lob,
 // insurer, businessType).
-const reportMatch = ({ department, from, to, ...ids }) => ({
-	deletedAt: null,
-	department: new mongoose.Types.ObjectId(department),
-	...Object.fromEntries(Object.entries(ids).map(([field, id]) => [field, new mongoose.Types.ObjectId(id)])),
-	...((from || to) && {
-		policyDate: { ...(from && { $gte: from }), ...(to && { $lte: to }) },
-	}),
-});
+const reportMatch = ({ department, from, to, ...ids }) => {
+	// Dates from the query are midnight UTC. Use the next midnight as an
+	// exclusive boundary so the selected end date includes its whole day.
+	const endExclusive = to && new Date(to.getTime());
+	if (endExclusive) endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
+
+	return {
+		deletedAt: null,
+		department: new mongoose.Types.ObjectId(department),
+		...Object.fromEntries(Object.entries(ids).map(([field, id]) => [field, new mongoose.Types.ObjectId(id)])),
+		...((from || endExclusive) && {
+			policyDate: { ...(from && { $gte: from }), ...(endExclusive && { $lt: endExclusive }) },
+		}),
+	};
+};
 
 // One row per `groupField` value in a department, with the `sums` accumulated per group and their totals.
 // `filters` holds the department, the policy date range and the report's own extra filter; `scope` narrows the
