@@ -1,6 +1,6 @@
-import mongoose from "mongoose";
 import { Branch, Master, Transaction } from "../models/index.js";
 import { ApiError } from "../utils/ApiError.js";
+import { toObjectId } from "../utils/mongoAggregation.js";
 import { COMMISSION_STATUSES, MASTER_FIELDS } from "../constants/transactions.js";
 import { assertCanWorkIn, canViewCommission } from "./transaction.service.js";
 
@@ -32,8 +32,8 @@ const agentNames = async ({ ids }) => new Map(ids.map((id) => [String(id), id]))
 // insurer, businessType).
 const reportMatch = ({ department, from, to, ...ids }) => ({
 	deletedAt: null,
-	department: new mongoose.Types.ObjectId(department),
-	...Object.fromEntries(Object.entries(ids).map(([field, id]) => [field, new mongoose.Types.ObjectId(id)])),
+	department: toObjectId(department),
+	...Object.fromEntries(Object.entries(ids).map(([field, id]) => [field, toObjectId(id)])),
 	...((from || to) && {
 		policyDate: { ...(from && { $gte: from }), ...(to && { $lte: to }) },
 	}),
