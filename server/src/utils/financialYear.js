@@ -28,4 +28,5 @@ export const getPreviousFinancialYear = (financialYear) => {
 };
 
 // Every FY-scoped endpoint defaults to the current financial year when the client omits it.
-export const resolveFinancialYear = (requestedFinancialYear) => requestedFinancialYear || getFinancialYear();
+export const resolveFinancialYear = (requestedFinancialYear) =>
+  requestedFinancialYear || getFinancialYear();

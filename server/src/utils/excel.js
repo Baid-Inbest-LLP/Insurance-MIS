@@ -1,21 +1,22 @@
-import ExcelJS from 'exceljs';
+import ExcelJS from "exceljs";
 
 // Reusable visual system matching the supplied report screenshot.
 export const INBEST_REPORT_THEME = {
-  fontName: 'Calibri',
-  title: { size: 16, bold: true, color: { argb: 'FF002E86' } },
-  subtitle: { size: 10, color: { argb: 'FF5B6B86' } },
-  meta: { size: 10, color: { argb: 'FF5B6B86' } },
-  header: { size: 11, bold: true, color: { argb: 'FFFFFFFF' } },
-  total: { size: 11, bold: true, color: { argb: 'FFFFFFFF' } },
-  headerFill: 'FF006598',
-  totalFill: 'FF006598',
-  gridColor: 'FFD9E2F0',
+  fontName: "Calibri",
+  title: { size: 16, bold: true, color: { argb: "FF002E86" } },
+  subtitle: { size: 10, color: { argb: "FF5B6B86" } },
+  meta: { size: 10, color: { argb: "FF5B6B86" } },
+  header: { size: 11, bold: true, color: { argb: "FFFFFFFF" } },
+  total: { size: 11, bold: true, color: { argb: "FFFFFFFF" } },
+  headerFill: "FF006598",
+  totalFill: "FF006598",
+  gridColor: "FFD9E2F0",
 };
 
-const DEFAULT_BRANDING = { companyName: 'Insurance MIS' };
-const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-const SNO_COLUMN = { header: 'S.No.', key: '__sno', width: 7, align: 'center' };
+const DEFAULT_BRANDING = { companyName: "Insurance MIS" };
+const XLSX_MIME =
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const SNO_COLUMN = { header: "S.No.", key: "__sno", width: 7, align: "center" };
 const EMU_PER_PIXEL = 9525;
 
 const resolveTheme = (overrides = {}) => ({
@@ -30,24 +31,28 @@ const resolveTheme = (overrides = {}) => ({
 
 const applyColumnFormat = (cell, column) => {
   switch (column.type) {
-    case 'currency':
-      cell.numFmt = '[$₹-en-IN]#,##0.00';
-      cell.alignment = { horizontal: 'right', vertical: 'middle' };
+    case "currency":
+      cell.numFmt = "[$₹-en-IN]#,##0.00";
+      cell.alignment = { horizontal: "right", vertical: "middle" };
       break;
-    case 'number':
-      cell.numFmt = '#,##0';
-      cell.alignment = { horizontal: 'right', vertical: 'middle' };
+    case "number":
+      cell.numFmt = "#,##0";
+      cell.alignment = { horizontal: "right", vertical: "middle" };
       break;
-    case 'percent':
+    case "percent":
       cell.numFmt = '0.00"%"';
-      cell.alignment = { horizontal: 'right', vertical: 'middle' };
+      cell.alignment = { horizontal: "right", vertical: "middle" };
       break;
-    case 'date':
-      cell.numFmt = 'dd-mmm-yyyy';
-      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    case "date":
+      cell.numFmt = "dd-mmm-yyyy";
+      cell.alignment = { horizontal: "center", vertical: "middle" };
       break;
     default:
-      cell.alignment = { horizontal: column.align || 'left', vertical: 'middle', wrapText: true };
+      cell.alignment = {
+        horizontal: column.align || "left",
+        vertical: "middle",
+        wrapText: true,
+      };
   }
 };
 
@@ -62,25 +67,32 @@ const addLogo = ({
 }) => {
   if (!logo) return;
   const source = logo.buffer
-    ? { buffer: logo.buffer, extension: logo.extension || 'png' }
+    ? { buffer: logo.buffer, extension: logo.extension || "png" }
     : logo.base64
-      ? { base64: logo.base64, extension: logo.extension || 'png' }
+      ? { base64: logo.base64, extension: logo.extension || "png" }
       : logo.filename
-        ? { filename: logo.filename, extension: logo.extension || 'png' }
-      : null;
+        ? { filename: logo.filename, extension: logo.extension || "png" }
+        : null;
   if (!source) return;
 
   const width = logo.width || 62;
   // Excel column widths are character units. In Calibri 11, convert them to
   // display pixels before creating the native drawing offset.
-  const toColumnPixels = (columnWidth) => Math.floor((columnWidth || 12) * 7 + 5);
+  const toColumnPixels = (columnWidth) =>
+    Math.floor((columnWidth || 12) * 7 + 5);
   const centerColumnPixels = toColumnPixels(centerColumnWidth);
   const lastColumnPixels = toColumnPixels(rightColumnWidth);
   // For an even number of report columns, use the first column to the right of
   // centre. This puts the Sri logo in G for an A:L report and in D for A:G.
   const centerColumn = Math.floor(columnCount / 2);
-  const logoColumn = side === 'center' ? centerColumn : side === 'right' ? columnCount - 1 : 0;
-  const cellPixels = side === 'center' ? centerColumnPixels : side === 'right' ? lastColumnPixels : 84;
+  const logoColumn =
+    side === "center" ? centerColumn : side === "right" ? columnCount - 1 : 0;
+  const cellPixels =
+    side === "center"
+      ? centerColumnPixels
+      : side === "right"
+        ? lastColumnPixels
+        : 84;
   const offsetPixels = Math.max((cellPixels - width) / 2, 0);
   const imageId = workbook.addImage(source);
   worksheet.addImage(imageId, {
@@ -101,7 +113,7 @@ const addCentredLine = ({ worksheet, row, columnCount, value, font }) => {
   const cell = worksheet.getCell(row, 1);
   cell.value = value;
   cell.font = font;
-  cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+  cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
 };
 
 // Branding is optional. Each logo can be supplied as a PNG/JPEG buffer, base64 value
@@ -142,7 +154,7 @@ const addReportHeader = ({
     logo: brand.centerLogo || brand.leftLogo || brand.logo,
     columnCount,
     centerColumnWidth,
-    side: 'center',
+    side: "center",
   });
   addLogo({
     workbook,
@@ -150,7 +162,7 @@ const addReportHeader = ({
     logo: brand.rightLogo,
     columnCount,
     rightColumnWidth,
-    side: 'right',
+    side: "right",
   });
 
   worksheet.getRow(row).height = 28;
@@ -220,11 +232,14 @@ export const buildBrandedWorkbook = ({
   // Keep the branding inside the table's final column, even for a narrow report.
   const headerColumnCount = columns.length;
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'Insurance MIS';
+  workbook.creator = "Insurance MIS";
   workbook.created = new Date();
 
   const worksheet = workbook.addWorksheet(sheetName);
-  worksheet.columns = columns.map((column) => ({ key: column.key, width: column.width || 18 }));
+  worksheet.columns = columns.map((column) => ({
+    key: column.key,
+    width: column.width || 18,
+  }));
 
   const headerRowNumber = addReportHeader({
     workbook,
@@ -245,9 +260,19 @@ export const buildBrandedWorkbook = ({
     const cell = headerRow.getCell(index + 1);
     cell.value = column.header;
     cell.font = { name: theme.fontName, ...theme.header };
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.headerFill } };
-    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-    cell.border = { bottom: { style: 'thin', color: { argb: theme.gridColor } } };
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: theme.headerFill },
+    };
+    cell.alignment = {
+      horizontal: "center",
+      vertical: "middle",
+      wrapText: true,
+    };
+    cell.border = {
+      bottom: { style: "thin", color: { argb: theme.gridColor } },
+    };
   });
 
   let rowNumber = headerRowNumber + 1;
@@ -255,14 +280,15 @@ export const buildBrandedWorkbook = ({
     const dataRow = worksheet.getRow(rowNumber);
     columns.forEach((column, index) => {
       const cell = dataRow.getCell(index + 1);
-      cell.value = column.key === '__sno' ? rowIndex + 1 : (row[column.key] ?? null);
+      cell.value =
+        column.key === "__sno" ? rowIndex + 1 : (row[column.key] ?? null);
       cell.font = { name: theme.fontName, size: 11 };
       applyColumnFormat(cell, column);
       cell.border = {
-        top: { style: 'thin', color: { argb: theme.gridColor } },
-        left: { style: 'thin', color: { argb: theme.gridColor } },
-        bottom: { style: 'thin', color: { argb: theme.gridColor } },
-        right: { style: 'thin', color: { argb: theme.gridColor } },
+        top: { style: "thin", color: { argb: theme.gridColor } },
+        left: { style: "thin", color: { argb: theme.gridColor } },
+        bottom: { style: "thin", color: { argb: theme.gridColor } },
+        right: { style: "thin", color: { argb: theme.gridColor } },
       };
     });
     rowNumber += 1;
@@ -272,9 +298,18 @@ export const buildBrandedWorkbook = ({
     const totalRow = worksheet.getRow(rowNumber);
     columns.forEach((column, index) => {
       const cell = totalRow.getCell(index + 1);
-      cell.value = column.key === '__sno' ? null : index === 1 ? 'Total' : (totals[column.key] ?? null);
+      cell.value =
+        column.key === "__sno"
+          ? null
+          : index === 1
+            ? "Total"
+            : (totals[column.key] ?? null);
       cell.font = { name: theme.fontName, ...theme.total };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.totalFill } };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: theme.totalFill },
+      };
       applyColumnFormat(cell, column);
     });
   }
@@ -284,8 +319,8 @@ export const buildBrandedWorkbook = ({
 };
 
 export const sendWorkbook = async (res, workbook, filename) => {
-  res.setHeader('Content-Type', XLSX_MIME);
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader("Content-Type", XLSX_MIME);
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
   await workbook.xlsx.write(res);
   res.end();
 };

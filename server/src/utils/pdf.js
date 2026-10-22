@@ -1,30 +1,33 @@
-import fs from 'node:fs';
-import chromium from '@sparticuz/chromium';
-import puppeteerCore from 'puppeteer-core';
+import fs from "node:fs";
+import chromium from "@sparticuz/chromium";
+import puppeteerCore from "puppeteer-core";
 
 // Brand palette (hex) — mirrors the ARGB palette in utils/excel.js.
 const COLORS = {
-  brand: '#0B2F81',
-  headerFill: '#005887',
-  headerText: '#FFFFFF',
-  muted: '#6B7280',
-  border: '#D1D5DB',
-  black: '#000000',
-  companyCode: '#13AFCD',
+  brand: "#0B2F81",
+  headerFill: "#005887",
+  headerText: "#FFFFFF",
+  muted: "#6B7280",
+  border: "#D1D5DB",
+  black: "#000000",
+  companyCode: "#13AFCD",
 };
 
-const PDF_MIME = 'application/pdf';
+const PDF_MIME = "application/pdf";
 
 const escapeHtml = (value) =>
-  String(value ?? '').replace(
+  String(value ?? "").replace(
     /[&<>"']/g,
-    (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char],
+    (char) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        char
+      ],
   );
 
 // Renders the title's two lines ("Insurance MIS" / "FY 26-27") with the second line smaller —
 // mirrors the rich-text split in utils/excel.js's title cell.
 const renderTitle = (title) => {
-  const [line1, line2] = title.split('\n');
+  const [line1, line2] = title.split("\n");
   return line2
     ? `${escapeHtml(line1)}<br /><span class="fy">${escapeHtml(line2)}</span>`
     : escapeHtml(title);
@@ -32,38 +35,49 @@ const renderTitle = (title) => {
 
 // Mirrors excel.js's applyColumnFormat, producing a display string instead of a cell format.
 const formatCellValue = (value, column) => {
-  if (value === null || value === undefined || value === '') return '';
+  if (value === null || value === undefined || value === "") return "";
   switch (column.type) {
-    case 'currency':
-      return `₹${Number(value).toLocaleString('en-IN', {
+    case "currency":
+      return `₹${Number(value).toLocaleString("en-IN", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}`;
-    case 'number':
-      return Number(value).toLocaleString('en-IN');
-    case 'percent':
+    case "number":
+      return Number(value).toLocaleString("en-IN");
+    case "percent":
       return `${Number(value).toFixed(2)}%`;
-    case 'date':
+    case "date":
       return new Date(value)
-        .toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-        .replace(/ /g, '-');
+        .toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
+        .replace(/ /g, "-");
     default:
       return escapeHtml(value);
   }
 };
 
 const cellAlign = (column) => {
-  if (column.type === 'currency' || column.type === 'number' || column.type === 'percent') {
-    return 'right';
+  if (
+    column.type === "currency" ||
+    column.type === "number" ||
+    column.type === "percent"
+  ) {
+    return "right";
   }
-  if (column.type === 'date') return 'center';
-  return column.align || 'left';
+  if (column.type === "date") return "center";
+  return column.align || "left";
 };
 
 const renderTableHead = (columns) =>
   `<thead><tr>${columns
-    .map((column) => `<th style="text-align:center">${escapeHtml(column.header)}</th>`)
-    .join('')}</tr></thead>`;
+    .map(
+      (column) =>
+        `<th style="text-align:center">${escapeHtml(column.header)}</th>`,
+    )
+    .join("")}</tr></thead>`;
 
 const renderTableBody = (columns, rows) =>
   `<tbody>${rows
@@ -71,30 +85,31 @@ const renderTableBody = (columns, rows) =>
       (row, rowIndex) =>
         `<tr>${columns
           .map((column) => {
-            const value = column.key === '__sno' ? rowIndex + 1 : row[column.key];
+            const value =
+              column.key === "__sno" ? rowIndex + 1 : row[column.key];
             return `<td style="text-align:${cellAlign(column)}">${formatCellValue(value, column)}</td>`;
           })
-          .join('')}</tr>`,
+          .join("")}</tr>`,
     )
-    .join('')}</tbody>`;
+    .join("")}</tbody>`;
 
 // "Total" lands under the first real column (index 1, since 0 is the S.No. column).
 const renderTotalsRow = (columns, totals) =>
   `<tfoot><tr>${columns
     .map((column, index) => {
       const value =
-        column.key === '__sno'
-          ? ''
+        column.key === "__sno"
+          ? ""
           : index === 1
-            ? 'Total'
+            ? "Total"
             : formatCellValue(totals[column.key], column);
       return `<td style="text-align:${cellAlign(column)}">${escapeHtml(value)}</td>`;
     })
-    .join('')}</tr></tfoot>`;
+    .join("")}</tr></tfoot>`;
 
 // Auto-prepended to every export so row numbering is consistent without each report
 // having to declare it — mirrors excel.js's SNO_COLUMN.
-const SNO_COLUMN = { header: 'S.No.', key: '__sno', align: 'center' };
+const SNO_COLUMN = { header: "S.No.", key: "__sno", align: "center" };
 
 /**
  * Global report builder — the HTML counterpart to buildBrandedWorkbook. Same
@@ -156,18 +171,18 @@ const buildBrandedHtml = ({
     <div class="company-info">
       ${
         companyInfo
-          ? `<div class="code">${escapeHtml(companyInfo.code || '-')}</div>
-             <div class="gst">GST No.: ${escapeHtml(companyInfo.taxId || '-')}</div>`
-          : ''
+          ? `<div class="code">${escapeHtml(companyInfo.code || "-")}</div>
+             <div class="gst">GST No.: ${escapeHtml(companyInfo.taxId || "-")}</div>`
+          : ""
       }
     </div>
     <div class="title">${renderTitle(title)}</div>
-    <div class="subtitle">${subtitle ? escapeHtml(subtitle) : ''}</div>
+    <div class="subtitle">${subtitle ? escapeHtml(subtitle) : ""}</div>
   </div>
-  ${meta.map((line) => `<div class="meta">${escapeHtml(line)}</div>`).join('')}
+  ${meta.map((line) => `<div class="meta">${escapeHtml(line)}</div>`).join("")}
   <table>
     ${renderTableHead(columns)}
-    ${totals ? renderTotalsRow(columns, totals) : ''}
+    ${totals ? renderTotalsRow(columns, totals) : ""}
     ${renderTableBody(columns, rows)}
   </table>
 </body>
@@ -181,14 +196,15 @@ const usePackagedChromium = Boolean(process.env.VERCEL || process.env.RENDER);
 
 // Resolve an installed Chrome/Chromium executable for local development.
 const getLocalChromePath = () => {
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
+  if (process.env.PUPPETEER_EXECUTABLE_PATH)
+    return process.env.PUPPETEER_EXECUTABLE_PATH;
   const candidates = [
-    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-    '/usr/bin/google-chrome',
-    '/usr/bin/chromium-browser',
-    '/usr/bin/chromium',
-    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+    "/usr/bin/google-chrome",
+    "/usr/bin/chromium-browser",
+    "/usr/bin/chromium",
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
   ];
   for (const candidate of candidates) {
     try {
@@ -206,11 +222,11 @@ const launchPackagedBrowser = async () => {
 
   const executablePath = await chromium.executablePath();
   if (!executablePath) {
-    throw new Error('Packaged Chromium executable path could not be resolved');
+    throw new Error("Packaged Chromium executable path could not be resolved");
   }
 
   return puppeteerCore.launch({
-    args: [...chromium.args, '--disable-dev-shm-usage'],
+    args: [...chromium.args, "--disable-dev-shm-usage"],
     defaultViewport: chromium.defaultViewport,
     executablePath,
     headless: chromium.headless,
@@ -228,16 +244,20 @@ const getLocalBrowser = () => {
       const executablePath = getLocalChromePath();
       if (!executablePath) {
         throw new Error(
-          'Chrome/Chromium not found locally. Set PUPPETEER_EXECUTABLE_PATH in server/.env',
+          "Chrome/Chromium not found locally. Set PUPPETEER_EXECUTABLE_PATH in server/.env",
         );
       }
       const browser = await puppeteerCore.launch({
         headless: true,
         executablePath,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+        ],
       });
       // A crashed/killed browser must not stay cached — the next request should relaunch.
-      browser.once('disconnected', () => {
+      browser.once("disconnected", () => {
         browserPromise = null;
       });
       return browser;
@@ -251,19 +271,21 @@ const getLocalBrowser = () => {
 };
 
 const renderPdfBuffer = async (html) => {
-  const browser = usePackagedChromium ? await launchPackagedBrowser() : await getLocalBrowser();
+  const browser = usePackagedChromium
+    ? await launchPackagedBrowser()
+    : await getLocalBrowser();
   const page = await browser.newPage();
   try {
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.setContent(html, { waitUntil: "networkidle0" });
     return await page.pdf({
-      format: 'A4',
+      format: "A4",
       landscape: true,
       printBackground: true,
-      margin: { top: '12mm', bottom: '16mm', left: '10mm', right: '10mm' },
+      margin: { top: "12mm", bottom: "16mm", left: "10mm", right: "10mm" },
       displayHeaderFooter: true,
       // Header/footer templates render in an isolated context (no access to the page's own
       // <style>), so everything needed has to be inlined here.
-      headerTemplate: '<span></span>',
+      headerTemplate: "<span></span>",
       footerTemplate: `
         <div style="width:100%; font-size:8px; text-align:center; color:${COLORS.muted}; font-family:'Segoe UI', Arial, sans-serif;">
           Page <span class="pageNumber"></span> of <span class="totalPages"></span>
@@ -291,12 +313,30 @@ const renderPdfBuffer = async (html) => {
  *   company is in scope for the report
  * @returns {Promise<Buffer>}
  */
-export const buildBrandedPdf = ({ title, subtitle, meta, columns, rows, totals, companyInfo }) =>
-  renderPdfBuffer(buildBrandedHtml({ title, subtitle, meta, columns, rows, totals, companyInfo }));
+export const buildBrandedPdf = ({
+  title,
+  subtitle,
+  meta,
+  columns,
+  rows,
+  totals,
+  companyInfo,
+}) =>
+  renderPdfBuffer(
+    buildBrandedHtml({
+      title,
+      subtitle,
+      meta,
+      columns,
+      rows,
+      totals,
+      companyInfo,
+    }),
+  );
 
 // Send a rendered PDF buffer back to the client as a download.
 export const sendPdf = (res, buffer, filename) => {
-  res.setHeader('Content-Type', PDF_MIME);
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader("Content-Type", PDF_MIME);
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
   res.end(buffer);
 };

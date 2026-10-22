@@ -3,7 +3,7 @@
 const hasValue = (value) => {
   if (value === null || value === undefined) return false;
   if (Array.isArray(value)) return true;
-  if (typeof value === 'object') return Object.keys(value).length > 0;
+  if (typeof value === "object") return Object.keys(value).length > 0;
   return true;
 };
 
@@ -16,19 +16,30 @@ const withDefined = (base, extras) => {
 };
 
 export class ApiResponse {
-  static success(res, data, message = 'Success', statusCode = 200, meta = {}) {
-    return res.status(statusCode).json(withDefined({ success: true, message }, { data, meta }));
+  static success(res, data, message = "Success", statusCode = 200, meta = {}) {
+    return res
+      .status(statusCode)
+      .json(withDefined({ success: true, message }, { data, meta }));
   }
 
-  static created(res, data, message = 'Created successfully') {
+  static created(res, data, message = "Created successfully") {
     return this.success(res, data, message, 201);
   }
 
-  static paginated(res, data, pagination, message = 'Success') {
-    return res.status(200).json(withDefined({ success: true, message }, { data, pagination }));
+  static paginated(res, data, pagination, message = "Success") {
+    return res
+      .status(200)
+      .json(withDefined({ success: true, message }, { data, pagination }));
   }
 
-  static error(res, message = 'Something went wrong', statusCode = 500, errors = null) {
-    return res.status(statusCode).json(withDefined({ success: false, message }, { errors }));
+  static error(
+    res,
+    message = "Something went wrong",
+    statusCode = 500,
+    errors = null,
+  ) {
+    return res
+      .status(statusCode)
+      .json(withDefined({ success: false, message }, { errors }));
   }
 }
