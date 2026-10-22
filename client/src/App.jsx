@@ -17,6 +17,7 @@ import SettingsPage from './pages/settings/SettingsPage';
 import ControlCenterLayout from './pages/control-center/ControlCenterLayout';
 import CompanyListPage from './pages/control-center/CompanyListPage';
 import DepartmentListPage from './pages/control-center/DepartmentListPage';
+import AgentListPage from './pages/control-center/AgentListPage';
 import CatalogListPage from './pages/control-center/CatalogListPage';
 
 function PublicOnly({ children }) {
@@ -83,6 +84,14 @@ export default function App() {
                 }
               />
             ))}
+            <Route
+              path="agent"
+              element={
+                <ProtectedRoute roles={MASTER_VIEW_ROLES}>
+                  <AgentListPage />
+                </ProtectedRoute>
+              }
+            />
           </Route>
           <Route path="settings" element={<SettingsPage />} />
         </Route>

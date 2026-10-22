@@ -25,6 +25,9 @@ export const ASSIGNABLE_ROLES = [
 // Roles that can open the master-data tabs (departments and master lists) in Control Center.
 export const MASTER_VIEW_ROLES = [ROLES.SUPERADMIN, ROLES.ADMIN];
 
+// Roles that can add an agent from the policy form (superadmins also manage them in Control Center).
+export const AGENT_CREATE_ROLES = [ROLES.SUPERADMIN, ROLES.ADMIN, ROLES.HOD];
+
 // Everyone but the premium employee may see commission.
 export const COMMISSION_VIEW_ROLES = [ROLES.SUPERADMIN, ROLES.ADMIN, ROLES.HOD, ROLES.EMP_COMMISSION];
 

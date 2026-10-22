@@ -1,4 +1,4 @@
-import { Branch, Master, Transaction } from "../models/index.js";
+import { Agent, Branch, Master, Transaction } from "../models/index.js";
 import { ApiError } from "../utils/ApiError.js";
 import { toObjectId } from "../utils/mongoAggregation.js";
 import { COMMISSION_STATUSES, MASTER_FIELDS } from "../constants/transactions.js";
@@ -14,8 +14,8 @@ const sumOf = (rows, field) =>
 // GI keeps its total commission in `totalCommission`, LI in `amount`.
 const COMMISSION_AMOUNT = { $ifNull: ["$commission.totalCommission", "$commission.amount"] };
 
-// Names of the groups: line of business and insurer items live in the department's master lists, branches in
-// their own collection, and agents are typed in.
+// Names of the groups: line of business and insurer items live in the department's master lists, branches and
+// agents in their own collections.
 const masterNames =
 	(field) =>
 	async ({ department }) => {
@@ -28,11 +28,13 @@ const branchNames = async ({ ids }) => {
 	return new Map(branches.map((branch) => [String(branch._id), branch.label]));
 };
 
-// The agent is typed in, so a group's id is already its name.
-const agentNames = async ({ ids }) => new Map(ids.map((id) => [String(id), id]));
+const agentNames = async ({ ids }) => {
+	const agents = await Agent.find({ _id: { $in: ids } }).select("name").lean();
+	return new Map(agents.map((agent) => [String(agent._id), agent.name]));
+};
 
 // The department's live transactions in a policy date range; `ids` are further filters on id fields (branch, lob,
-// insurer, businessType).
+// insurer, businessType, agent).
 const reportMatch = ({ department, from, to, ...ids }) => {
 	// Dates from the query are midnight UTC. Use the next midnight as an
 	// exclusive boundary so the selected end date includes its whole day.
@@ -41,8 +43,8 @@ const reportMatch = ({ department, from, to, ...ids }) => {
 
 	return {
 		deletedAt: null,
-		department: new mongoose.Types.ObjectId(department),
-		...Object.fromEntries(Object.entries(ids).map(([field, id]) => [field, new mongoose.Types.ObjectId(id)])),
+		department: toObjectId(department),
+		...Object.fromEntries(Object.entries(ids).map(([field, id]) => [field, toObjectId(id)])),
 		...((from || endExclusive) && {
 			policyDate: { ...(from && { $gte: from }), ...(endExclusive && { $lt: endExclusive }) },
 		}),

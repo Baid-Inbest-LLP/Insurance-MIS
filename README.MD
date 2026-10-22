@@ -31,7 +31,7 @@ Insurance-MIS/
         ├── constants/      # roles, master slugs, transaction enums
         ├── controllers/    # request handlers
         ├── middleware/     # auth, validate (zod), upload, error handler
-        ├── models/         # User, Company, Branch, LocationCity, Master, Department, Transaction (GI + LI)
+        ├── models/         # User, Company, Branch, LocationCity, Master, Department, Agent, Transaction (GI + LI)
         ├── routes/         # /api/v1/* routers
         ├── seed/           # first-boot superadmin bootstrap
         ├── services/       # business logic
@@ -72,7 +72,8 @@ Users are created from **Settings** with one of these roles: `superadmin`, `admi
 | Dashboard | Placeholder KPI tiles for policies, premium, claims, renewals        |
 | Companies | CRUD for companies and branches (Control Center)             |
 | Transactions | GI and LI insurance transactions: list/filter, create, update, soft delete (`/api/v1/transactions`); the entry form can autofill from an uploaded policy PDF (`POST /api/v1/transactions/extract-policy`, needs `OPENROUTER_API_KEY`; the PDF's text is read on the server and sent to an LLM with a GI or LI prompt, nothing is saved until the user submits the form); an unfinished entry can be saved as a private draft (`/api/v1/transactions/drafts`, visible only to its creator) and resumed later (closing a half-filled form offers to save it as a draft); commission details are visible to everyone except premium employees and editable by superadmin, admin, HOD and the commission employee who created the entry |
-| Reports | LOB wise, office wise, agent wise and insurer wise reports (`/api/v1/reports/lob-wise`, `office-wise`, `agent-wise`, `insurer-wise`): policies, premium and commission per line of business, branch, agent or insurer, for one type and a policy date range, each filterable by branch, LOB, insurer and business type; commission report (`/api/v1/reports/commission`): commission per insurer, split into received and pending (not for premium employees) |
+| Reports | LOB wise, office wise, agent wise and insurer wise reports (`/api/v1/reports/lob-wise`, `office-wise`, `agent-wise`, `insurer-wise`): policies, premium and commission per line of business, branch, agent or insurer, for one type and a policy date range, each filterable by branch, LOB, insurer, business type and agent; commission report (`/api/v1/reports/commission`): commission per insurer, split into received and pending (not for premium employees) |
+| Agents    | Agent list shared by all departments (Control Center, `/api/v1/masters/agents`); superadmin, admin and HOD can also add an agent from the policy form (search the agent, then "Add agent"); `/api/v1/masters/lookups` returns the dropdown data for entry forms |
 | Settings  | User management (create/edit/deactivate/delete), change password     |
 
 ## Adding a module

@@ -26,8 +26,7 @@ const transactionSchema = new mongoose.Schema(
     lob: masterItemId(),
     // The plan or product name, typed in by hand.
     productType: { type: String, trim: true, maxlength: 100 },
-    // Typed in by hand; needed only for the Agents source.
-    agent: { type: String, trim: true, maxlength: 100 },
+    agent: { type: ObjectId, ref: 'Agent' },
     source: { type: String, enum: SOURCES, required: true },
 
     netPremium: amount(),
@@ -50,6 +49,7 @@ transactionSchema.index(
 transactionSchema.index({ department: 1, policyDate: -1 });
 transactionSchema.index({ insurer: 1, policyDate: -1 });
 transactionSchema.index({ lob: 1, policyDate: -1 });
+transactionSchema.index({ agent: 1, policyDate: -1 });
 transactionSchema.index({ branch: 1, policyDate: -1 });
 
 // Commission is optional on a transaction. Amounts and percentages are entered by hand, so both are stored.
