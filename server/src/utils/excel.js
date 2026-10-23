@@ -318,6 +318,197 @@ export const buildBrandedWorkbook = ({
   return workbook;
 };
 
+const reportBorder = (color = INBEST_REPORT_THEME.gridColor) => ({
+  top: { style: "thin", color: { argb: color } },
+  left: { style: "thin", color: { argb: color } },
+  bottom: { style: "thin", color: { argb: color } },
+  right: { style: "thin", color: { argb: color } },
+});
+
+const mergeWhenNeeded = (worksheet, fromRow, fromColumn, toRow, toColumn) => {
+  if (fromRow !== toRow || fromColumn !== toColumn) {
+    worksheet.mergeCells(fromRow, fromColumn, toRow, toColumn);
+  }
+};
+
+/**
+ * Builds the detailed Agent / Branch / Client source report.  Unlike the
+ * summary reports, this preserves the hierarchy used by the finance report:
+ * source, office, reference, agent, then each insured client.
+ */
+export const buildAgentClientWiseWorkbook = ({
+  sheetName = "Agent Client Wise",
+  title = "AGENT - BRANCH - CLIENT WISE SOURCE REPORT",
+  meta = [],
+  branding,
+  rows = [],
+  totals = {},
+}) => {
+  const theme = resolveTheme();
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "Insurance MIS";
+  workbook.created = new Date();
+
+  const worksheet = workbook.addWorksheet(sheetName);
+  const columns = [
+    { header: "SOURCE", width: 16 },
+    { header: "OFFICE", width: 18 },
+    { header: "REFERENCE", width: 18 },
+    { header: "AGENT'S NAME", width: 24 },
+    { header: "NAME OF THE INSURED", width: 34 },
+    { header: "NOP'S", width: 10 },
+    { header: "TOTAL PREMIUM", width: 18 },
+  ];
+  worksheet.columns = columns.map((column) => ({ width: column.width }));
+  worksheet.views = [{ showGridLines: false }];
+  worksheet.pageSetup = {
+    paperSize: 9,
+    orientation: "portrait",
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 0,
+    margins: { left: 0.25, right: 0.25, top: 0.35, bottom: 0.35, header: 0.15, footer: 0.15 },
+  };
+  worksheet.headerFooter = {
+    oddFooter: "&LInsurance MIS&CPage &P of &N&RGenerated &D &T",
+  };
+
+  const headerRowNumber = addReportHeader({
+    workbook,
+    worksheet,
+    title,
+    meta,
+    branding,
+    theme,
+    headerColumnCount: columns.length,
+    centerColumnWidth: columns[Math.floor(columns.length / 2)].width,
+    rightColumnWidth: columns[columns.length - 1].width,
+  });
+  worksheet.pageSetup.printTitlesRow = `1:${headerRowNumber}`;
+
+  const tableHeader = worksheet.getRow(headerRowNumber);
+  tableHeader.height = 27;
+  columns.forEach((column, index) => {
+    const cell = tableHeader.getCell(index + 1);
+    cell.value = column.header;
+    cell.font = { name: theme.fontName, size: 10, bold: true, color: theme.header.color };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: theme.headerFill } };
+    cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+    cell.border = reportBorder();
+  });
+
+  const tree = new Map();
+  for (const row of rows) {
+    const source = row.source || "-";
+    const office = row.branch?.name || "-";
+    const reference = row.reference || "-";
+    const agent = row.agent?.name || "-";
+    if (!tree.has(source)) tree.set(source, new Map());
+    const offices = tree.get(source);
+    if (!offices.has(office)) offices.set(office, new Map());
+    const references = offices.get(office);
+    if (!references.has(reference)) references.set(reference, new Map());
+    const agents = references.get(reference);
+    if (!agents.has(agent)) agents.set(agent, []);
+    agents.get(agent).push(row);
+  }
+
+  const moneyFormat = "[$\u20B9-en-IN]#,##0.00";
+  let rowNumber = headerRowNumber + 1;
+  const writeCells = (row, values, { fill, bold = false, fontSize = 9 } = {}) => {
+    const excelRow = worksheet.getRow(row);
+    excelRow.height = 17;
+    values.forEach((value, index) => {
+      const cell = excelRow.getCell(index + 1);
+      cell.value = value;
+      cell.font = { name: theme.fontName, size: fontSize, bold, color: { argb: "FF111111" } };
+      if (fill) cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: fill } };
+      cell.border = reportBorder();
+      cell.alignment = {
+        horizontal: index === 5 || index === 6 ? "right" : "left",
+        vertical: "middle",
+        wrapText: index < 5,
+      };
+    });
+    excelRow.getCell(6).alignment = { horizontal: "center", vertical: "middle" };
+    excelRow.getCell(7).numFmt = moneyFormat;
+  };
+  const verticalMerge = (column, firstRow, lastRow, value) => {
+    mergeWhenNeeded(worksheet, firstRow, column, lastRow, column);
+    const cell = worksheet.getCell(firstRow, column);
+    cell.value = value;
+    cell.alignment = { horizontal: "left", vertical: "middle", wrapText: true };
+  };
+  for (const [source, offices] of tree) {
+    const sourceStart = rowNumber;
+    const sourceRows = [];
+    for (const [office, references] of offices) {
+      const officeStart = rowNumber;
+      const officeRows = [];
+      for (const [reference, agents] of references) {
+        const referenceStart = rowNumber;
+        const referenceRows = [];
+        for (const [agent, clients] of agents) {
+          const agentStart = rowNumber;
+          clients.forEach((client) => {
+            writeCells(rowNumber, [null, null, null, null, client.clientName || "-", client.policies || 0, Number(client.premium || 0)]);
+            rowNumber += 1;
+          });
+          const agentTotal = clients.reduce(
+            (total, client) => ({ policies: total.policies + Number(client.policies || 0), premium: total.premium + Number(client.premium || 0) }),
+            { policies: 0, premium: 0 },
+          );
+          writeCells(rowNumber, [null, null, null, "TOTAL", null, agentTotal.policies, agentTotal.premium], { fill: "FFEAF3F8", bold: true });
+          verticalMerge(4, agentStart, rowNumber - 1, agent);
+          referenceRows.push(...clients);
+          officeRows.push(...clients);
+          sourceRows.push(...clients);
+          rowNumber += 1;
+        }
+        const referenceTotal = referenceRows.reduce(
+          (total, client) => ({ policies: total.policies + Number(client.policies || 0), premium: total.premium + Number(client.premium || 0) }),
+          { policies: 0, premium: 0 },
+        );
+        writeCells(rowNumber, [null, null, "REFERENCE TOTAL", null, null, referenceTotal.policies, referenceTotal.premium], { fill: "FFD6EAF4", bold: true });
+        verticalMerge(3, referenceStart, rowNumber - 1, reference);
+        rowNumber += 1;
+      }
+      const officeTotal = officeRows.reduce(
+        (total, client) => ({ policies: total.policies + Number(client.policies || 0), premium: total.premium + Number(client.premium || 0) }),
+        { policies: 0, premium: 0 },
+      );
+      writeCells(rowNumber, [null, "OFFICE TOTAL", null, null, null, officeTotal.policies, officeTotal.premium], { fill: "FFB9D7EA", bold: true });
+      verticalMerge(2, officeStart, rowNumber - 1, office);
+      rowNumber += 1;
+    }
+    const sourceTotal = sourceRows.reduce(
+      (total, client) => ({ policies: total.policies + Number(client.policies || 0), premium: total.premium + Number(client.premium || 0) }),
+      { policies: 0, premium: 0 },
+    );
+    verticalMerge(1, sourceStart, rowNumber - 1, source);
+    writeCells(rowNumber, ["SOURCE TOTAL", null, null, null, null, sourceTotal.policies, sourceTotal.premium], { fill: "FF8CC0DE", bold: true });
+    rowNumber += 1;
+  }
+
+  const grandTotal = worksheet.getRow(rowNumber);
+  grandTotal.height = 20;
+  mergeWhenNeeded(worksheet, rowNumber, 1, rowNumber, 5);
+  const totalLabel = grandTotal.getCell(1);
+  totalLabel.value = "GRAND TOTAL";
+  [totalLabel, grandTotal.getCell(6), grandTotal.getCell(7)].forEach((cell) => {
+    cell.font = { name: theme.fontName, size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: theme.totalFill } };
+    cell.border = reportBorder();
+    cell.alignment = { horizontal: cell === totalLabel ? "right" : "right", vertical: "middle" };
+  });
+  grandTotal.getCell(6).value = totals.policies || 0;
+  grandTotal.getCell(7).value = Number(totals.premium || 0);
+  grandTotal.getCell(6).alignment = { horizontal: "center", vertical: "middle" };
+  grandTotal.getCell(7).numFmt = moneyFormat;
+
+  return workbook;
+};
+
 export const sendWorkbook = async (res, workbook, filename) => {
   res.setHeader("Content-Type", XLSX_MIME);
   res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);

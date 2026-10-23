@@ -14,3 +14,8 @@ export const useExportReport = () =>
   useMutation({
     mutationFn: ({ report, params }) => reportsApi.export(report, params),
   });
+
+export const useExportPdfReport = () =>
+  useMutation({
+    mutationFn: ({ report, params }) => reportsApi.exportPdf(report, params),
+  });

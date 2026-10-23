@@ -10,6 +10,8 @@ router.use(authenticate);
 
 router.get("/lob-wise/export", validate(reportQuerySchema, "query"), reports.exportLobWiseReport);
 router.get("/office-wise/export", validate(reportQuerySchema, "query"), reports.exportOfficeWiseReport);
+router.get("/agent-wise/export", validate(reportQuerySchema, "query"), reports.exportAgentWiseReport);
+router.get("/agent-wise/export/pdf", validate(reportQuerySchema, "query"), reports.exportAgentWisePdfReport);
 router.get("/insurer-wise/export", validate(reportQuerySchema, "query"), reports.exportInsurerWiseReport);
 router.get("/commission/export", validate(reportQuerySchema, "query"), reports.exportCommissionReport);
 router.get("/lob-wise", validate(reportQuerySchema, "query"), reports.getLobWiseReport);

@@ -1,9 +1,11 @@
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import * as reportService from "../services/report.service.js";
-import { buildBrandedWorkbook, sendWorkbook } from "../utils/excel.js";
+import { buildAgentClientWiseWorkbook, buildBrandedWorkbook, sendWorkbook } from "../utils/excel.js";
+import { buildAgentClientWisePdf, sendPdf } from "../utils/pdf.js";
 import { canViewCommission } from "../services/transaction.service.js";
 import { fileURLToPath } from "url";
+import { getFinancialYear } from "../utils/financialYear.js";
 
 const reportAsset = (name) => fileURLToPath(new URL(`../../assets/${name}`, import.meta.url));
 
@@ -19,6 +21,13 @@ const reportMeta = (filters) => {
 		.map((date) => date.toISOString().slice(0, 10))
 		.join(" to ");
 	return [dateRange ? `Policy Date: ${dateRange}` : `Date: ${new Date().toISOString().slice(0, 10)}`];
+};
+
+const agentReportPeriod = (filters) => {
+	const date = filters.from || filters.to || new Date();
+	const month = date.toLocaleString("en-US", { month: "long", timeZone: "UTC" }).toUpperCase();
+	const year = String(date.getUTCFullYear()).slice(-2);
+	return `${month}'${year} (F.Y.- ${getFinancialYear(date)})`;
 };
 
 const premiumColumns = (groupHeader, groupKey, includeCommission) => [
@@ -88,6 +97,44 @@ export const exportOfficeWiseReport = exportGroupedReport({
 
 // The same figures per agent for one department; entries without an agent form one group.
 export const getAgentWiseReport = reportHandler(reportService.getAgentWiseReport);
+
+// Downloads the detailed source-to-client report in the layout used by the
+// operations Agent / Branch / Client report.
+export const exportAgentWiseReport = asyncHandler(async (req, res) => {
+	const report = await reportService.getAgentClientWiseReport({
+		actor: req.user,
+		filters: req.validated.query,
+	});
+	const workbook = buildAgentClientWiseWorkbook({
+		sheetName: "Agent Client Wise",
+		title: "AGENT - BRANCH - CLIENT WISE SOURCE REPORT",
+		branding: reportBranding,
+		meta: reportMeta(req.validated.query),
+		rows: report.rows,
+		totals: report.totals,
+	});
+
+	await sendWorkbook(res, workbook, "agent-client-wise-source-report.xlsx");
+});
+
+// The Agent tab alone also offers the portrait client-wise source report in the
+// operational PDF layout supplied by the business team.
+export const exportAgentWisePdfReport = asyncHandler(async (req, res) => {
+	const report = await reportService.getAgentClientWiseReport({
+		actor: req.user,
+		filters: req.validated.query,
+	});
+	const pdf = await buildAgentClientWisePdf({
+		title: `${report.departmentCode || "GI"} - BR - CLIENT WISE AGENTS SOURCE REPORT`,
+		period: agentReportPeriod(req.validated.query),
+		branding: reportBranding,
+		companyInfo: report.companyInfo,
+		rows: report.rows,
+		totals: report.totals,
+	});
+
+	sendPdf(res, pdf, "agent-client-wise-source-report.pdf");
+});
 
 // The same figures per insurer for one department.
 export const getInsurerWiseReport = reportHandler(reportService.getInsurerWiseReport);

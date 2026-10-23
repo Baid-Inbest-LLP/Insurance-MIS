@@ -150,7 +150,7 @@ const buildBrandedHtml = ({
   .meta { text-align: center; color: ${COLORS.muted}; font-size: 10.5px; margin: 1px 0; }
   table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 10.5px; }
   thead { display: table-header-group; }
-  tr { page-break-inside: avoid; }
+  tr { height: 21px; page-break-inside: avoid; }
   th {
     background: ${COLORS.headerFill};
     color: ${COLORS.headerText};
@@ -270,7 +270,14 @@ const getLocalBrowser = () => {
   return browserPromise;
 };
 
-const renderPdfBuffer = async (html) => {
+const renderPdfBuffer = async (
+  html,
+  {
+    landscape = true,
+    footerTemplate,
+    margin = { top: "12mm", bottom: "16mm", left: "10mm", right: "10mm" },
+  } = {},
+) => {
   const browser = usePackagedChromium
     ? await launchPackagedBrowser()
     : await getLocalBrowser();
@@ -279,14 +286,14 @@ const renderPdfBuffer = async (html) => {
     await page.setContent(html, { waitUntil: "networkidle0" });
     return await page.pdf({
       format: "A4",
-      landscape: true,
+      landscape,
       printBackground: true,
-      margin: { top: "12mm", bottom: "16mm", left: "10mm", right: "10mm" },
+      margin,
       displayHeaderFooter: true,
       // Header/footer templates render in an isolated context (no access to the page's own
       // <style>), so everything needed has to be inlined here.
       headerTemplate: "<span></span>",
-      footerTemplate: `
+      footerTemplate: footerTemplate || `
         <div style="width:100%; font-size:8px; text-align:center; color:${COLORS.muted}; font-family:'Segoe UI', Arial, sans-serif;">
           Page <span class="pageNumber"></span> of <span class="totalPages"></span>
         </div>
@@ -333,6 +340,231 @@ export const buildBrandedPdf = ({
       companyInfo,
     }),
   );
+
+const toDataUri = (filename) => {
+  if (!filename || !fs.existsSync(filename)) return "";
+  const extension = filename.split(".").pop()?.toLowerCase() || "png";
+  return `data:image/${extension};base64,${fs.readFileSync(filename).toString("base64")}`;
+};
+
+const formatRupees = (value) =>
+  `\u20B9${Number(value || 0).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+const sumClientRows = (rows) =>
+  rows.reduce(
+    (total, row) => ({
+      policies: total.policies + Number(row.policies || 0),
+      premium: total.premium + Number(row.premium || 0),
+    }),
+    { policies: 0, premium: 0 },
+  );
+
+// Creates the hierarchy from the detailed Agent report without making the PDF
+// renderer aware of MongoDB ids or report-service details.
+const buildAgentTree = (rows) => {
+  const sources = new Map();
+  for (const row of rows) {
+    const source = row.source || "-";
+    const office = row.branch?.name || "-";
+    const reference = row.reference || "-";
+    const agent = row.agent?.name || "-";
+    if (!sources.has(source)) sources.set(source, new Map());
+    const offices = sources.get(source);
+    if (!offices.has(office)) offices.set(office, new Map());
+    const references = offices.get(office);
+    if (!references.has(reference)) references.set(reference, new Map());
+    const agents = references.get(reference);
+    if (!agents.has(agent)) agents.set(agent, []);
+    agents.get(agent).push(row);
+  }
+  return sources;
+};
+
+const agentTableRows = (rows) => {
+  if (!rows.length) {
+    return '<tr class="empty-row"><td colspan="7">No policy records match the selected department, date range and filters.</td></tr>';
+  }
+  const tree = buildAgentTree(rows);
+  const output = [];
+  for (const [source, offices] of tree) {
+    const sourceClients = [...offices.values()].flatMap((references) =>
+      [...references.values()].flatMap((agents) => [...agents.values()].flat()),
+    );
+    const officeBlocks = [...offices].map(([office, references]) => {
+      const clients = [...references.values()].flatMap((agents) => [...agents.values()].flat());
+      const agentCount = [...references.values()].reduce((count, agents) => count + agents.size, 0);
+      return {
+        office,
+        references,
+        clients,
+        // Client rows + agent totals + reference totals. The office total is
+        // included in the source span but sits after the office rowspan.
+        officeSpan: clients.length + agentCount + references.size,
+      };
+    });
+
+    // The source cell must not be a single rowspan over several PDF pages:
+    // Chromium leaves a large blank continuation when that happens. Group
+    // several offices into one print-safe fragment instead, which retains one
+    // source label across related offices and repeats it only on a new fragment.
+    const sourceFragments = [];
+    let fragment = [];
+    let fragmentRows = 0;
+    // Keep each merged source cell well below a page body. Chromium can then
+    // use all available page space without leaving oversized blank continuations.
+    const maxFragmentRows = 18;
+    for (const block of officeBlocks) {
+      const blockRows = block.officeSpan + 1;
+      if (fragment.length && fragmentRows + blockRows > maxFragmentRows) {
+        sourceFragments.push(fragment);
+        fragment = [];
+        fragmentRows = 0;
+      }
+      fragment.push(block);
+      fragmentRows += blockRows;
+    }
+    if (fragment.length) sourceFragments.push(fragment);
+
+    for (const officeFragment of sourceFragments) {
+      const sourceFragmentSpan = officeFragment.reduce((count, block) => count + block.officeSpan + 1, 0);
+      // A rowspan cannot reliably discover a browser-generated page break.
+      // Label every bounded fragment so continuation pages never lose their
+      // source identity; fragments remain small enough for natural page flow.
+      const sourceLabel = escapeHtml(source);
+      const fragmentRows = [];
+      let sourceFirst = true;
+      for (const { office, references, clients: officeClients, officeSpan } of officeFragment) {
+      let officeFirst = true;
+      for (const [reference, agents] of references) {
+        const referenceClients = [...agents.values()].flat();
+        const referenceSpan = referenceClients.length + agents.size;
+        let referenceFirst = true;
+        for (const [agent, clients] of agents) {
+          clients.forEach((client, index) => {
+            fragmentRows.push(`<tr>
+              ${sourceFirst ? `<td class="group source-cell" rowspan="${sourceFragmentSpan}">${sourceLabel}</td>` : ""}
+              ${officeFirst ? `<td class="group office-cell" rowspan="${officeSpan}">${escapeHtml(office)}</td>` : ""}
+              ${referenceFirst ? `<td class="group reference-cell" rowspan="${referenceSpan}">${escapeHtml(reference)}</td>` : ""}
+              ${index === 0 ? `<td class="group agent-cell" rowspan="${clients.length}">${escapeHtml(agent)}</td>` : ""}
+              <td>${escapeHtml(client.clientName || "-")}</td>
+              <td class="number">${Number(client.policies || 0).toLocaleString("en-IN")}</td>
+              <td class="number">${formatRupees(client.premium)}</td>
+            </tr>`);
+            officeFirst = false;
+            sourceFirst = false;
+            referenceFirst = false;
+          });
+          const agentTotal = sumClientRows(clients);
+          fragmentRows.push(`<tr class="total agent-total"><td colspan="2">TOTAL</td><td class="number">${agentTotal.policies.toLocaleString("en-IN")}</td><td class="number">${formatRupees(agentTotal.premium)}</td></tr>`);
+        }
+        const referenceTotal = sumClientRows(referenceClients);
+        fragmentRows.push(`<tr class="total reference-total"><td colspan="3">${escapeHtml(reference)} TOTAL</td><td class="number">${referenceTotal.policies.toLocaleString("en-IN")}</td><td class="number">${formatRupees(referenceTotal.premium)}</td></tr>`);
+      }
+      const officeTotal = sumClientRows(officeClients);
+        fragmentRows.push(`<tr class="total office-total"><td colspan="4">${escapeHtml(office)} TOTAL</td><td class="number">${officeTotal.policies.toLocaleString("en-IN")}</td><td class="number">${formatRupees(officeTotal.premium)}</td></tr>`);
+      }
+      output.push(`<tbody class="source-fragment">${fragmentRows.join("")}</tbody>`);
+    }
+    const sourceTotal = sumClientRows(sourceClients);
+    // The supplied operational layout ends the Direct block at its office
+    // total; an explicit source total is used for Agents and any other source.
+    if (source !== "DIRECT") {
+      output.push(`<tbody><tr class="total source-total"><td colspan="5">${escapeHtml(source)} - TOTAL</td><td class="number">${sourceTotal.policies.toLocaleString("en-IN")}</td><td class="number">${formatRupees(sourceTotal.premium)}</td></tr></tbody>`);
+    }
+  }
+  return output.join("");
+};
+
+/**
+ * Builds the compact finance PDF supplied for the Agent source report. It is
+ * intentionally separate from the Excel visual system: its table hierarchy,
+ * colour bands, small typography and repeated masthead reproduce the document
+ * format used by operations.
+ */
+export const buildAgentClientWisePdf = ({
+  title,
+  period,
+  rows = [],
+  totals = {},
+  branding = {},
+  companyInfo,
+}) => {
+  const centerLogo = toDataUri(branding.centerLogo?.filename);
+  const rightLogo = toDataUri(branding.rightLogo?.filename);
+  const companyCode = companyInfo?.code || companyInfo?.name || "INSURANCE MIS";
+  const companyName = companyInfo?.name || "";
+  const taxId = companyInfo?.taxId || "";
+  const html = `<!doctype html>
+<html><head><meta charset="utf-8" /><style>
+  * { box-sizing: border-box; }
+  /* This is a dedicated print template, deliberately independent from the
+     Excel report theme and browser application styles. */
+  @page { size: A4 portrait; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #111; margin: 0; font-size: 7px; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  th, td { border: 0.5px solid #0d0d0d; padding: 3.5px 2.6px; line-height: 1.18; vertical-align: middle; overflow-wrap: anywhere; }
+  th.column-heading { color: #fff; background: #005887; text-align: center; font-size: 6.7px; font-weight: 700; padding: 11.5px 1.8px; }
+  th.masthead { border: 0; background: #fff; padding: 0 0 4px; }
+  .masthead-inner { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: start; min-height: 165px; padding-top: 15px; }
+  .company { text-align: left; padding-top: 1px; }
+  .company-code { color: #00b0f0; font-weight: 700; font-size: 32px; line-height: 1; }
+  .company-name { font-size: 8px; font-weight: 700; margin-top: 4px; }
+  .company-detail { font-size: 8px; font-weight: 700; line-height: 1.4; }
+  .title-block { text-align: center; }
+  .logo-center { display: block; margin: 0 auto 5px; max-width: 150px; max-height: 90px; }
+  .title { font-size: 12px; font-weight: 700; text-decoration: underline; margin-top: 4px; }
+  .period { font-size: 10px; font-weight: 700; margin-top: 3px; }
+  .right-logo { text-align: right; }
+  .logo-right { max-width: 165px; max-height: 110px; }
+  td.group { text-align: center; font-weight: 700; }
+  /* A source is rendered in office-sized spans so it never crosses a PDF page.
+     Keep the joins between those spans peach; black joins looked like stray rules. */
+  td.source-cell {
+    background: #f8cbad;
+    border-top-color: #f8cbad;
+    border-bottom-color: #f8cbad;
+    font-size: 14px;
+  }
+  td.office-cell { background: #fff; }
+  td.reference-cell { background: #ffe699; }
+  td.agent-cell { background: #f8cbad; font-size: 6.5px; }
+  td.number { text-align: right; white-space: nowrap; }
+  tbody.source-fragment { break-inside: auto; page-break-inside: auto; }
+  .total { font-weight: 700; text-align: right; }
+  .agent-total td { background: #ffe699; }
+  .reference-total td { background: #ffe699; }
+  .office-total td { background: #c6efce; color: #006100; }
+  .source-total td, tfoot td { background: #005887; color: #fff; }
+  .empty-row td { background: #fff4d6; color: #6b4f00; text-align: center; font-size: 7px; font-style: italic; padding: 10px; }
+  tfoot { display: table-row-group; }
+  .grand-total td { font-size: 7.8px; font-weight: 700; padding: 4.8px 2.8px; }
+</style></head><body>
+  <table>
+    <colgroup><col style="width:13.33%"><col style="width:10.61%"><col style="width:12.30%"><col style="width:11.46%"><col style="width:25.15%"><col style="width:7.04%"><col style="width:20.11%"></colgroup>
+    <thead>
+      <tr><th class="masthead" colspan="7"><div class="masthead-inner">
+        <div class="company"><div class="company-code">${escapeHtml(companyCode)}</div>${companyName ? `<div class="company-name">${escapeHtml(companyName)}</div>` : ""}${taxId ? `<div class="company-detail">GST No :- ${escapeHtml(taxId)}</div>` : ""}</div>
+        <div class="title-block">${centerLogo ? `<img class="logo-center" src="${centerLogo}" alt="" />` : ""}<div class="title">${escapeHtml(title)}</div><div class="period">${escapeHtml(period || "")}</div></div>
+        <div class="right-logo">${rightLogo ? `<img class="logo-right" src="${rightLogo}" alt="" />` : ""}</div>
+      </div></th></tr>
+      <tr><th class="column-heading">SOURCE</th><th class="column-heading">OFFICE</th><th class="column-heading">REFERENCE</th><th class="column-heading">AGENT'S</th><th class="column-heading">NAME OF THE INSURED</th><th class="column-heading">NOP'S</th><th class="column-heading">TOTAL PREMIUM</th></tr>
+    </thead>
+    ${agentTableRows(rows)}
+    <tfoot><tr class="grand-total"><td colspan="5" style="text-align:right">GRAND TOTAL</td><td class="number">${Number(totals.policies || 0).toLocaleString("en-IN")}</td><td class="number">${formatRupees(totals.premium)}</td></tr></tfoot>
+  </table>
+</body></html>`;
+
+  return renderPdfBuffer(html, {
+    landscape: false,
+    margin: { top: "5mm", bottom: "14mm", left: "13mm", right: "3mm" },
+    footerTemplate: `<div style="width:100%; padding:0 28px; font-family:Arial, sans-serif; font-size:5px; color:#111; display:flex; justify-content:space-between;"><span>${escapeHtml(companyCode)} - ${escapeHtml(title)} (${escapeHtml(period || "")})</span><span>Date - <span class="date"></span> &nbsp; PAGE <span class="pageNumber"></span> &nbsp; Time - <span class="time"></span></span></div>`,
+  });
+};
 
 // Send a rendered PDF buffer back to the client as a download.
 export const sendPdf = (res, buffer, filename) => {

@@ -1,4 +1,4 @@
-import { Agent, Branch, Master, Transaction } from "../models/index.js";
+import { Agent, Branch, Company, Department, Master, Transaction } from "../models/index.js";
 import { ApiError } from "../utils/ApiError.js";
 import { toObjectId } from "../utils/mongoAggregation.js";
 import { COMMISSION_STATUSES, MASTER_FIELDS } from "../constants/transactions.js";
@@ -31,6 +31,84 @@ const branchNames = async ({ ids }) => {
 const agentNames = async ({ ids }) => {
 	const agents = await Agent.find({ _id: { $in: ids } }).select("name").lean();
 	return new Map(agents.map((agent) => [String(agent._id), agent.name]));
+};
+
+// A drill-down for the exported Agent report. Each row is one insured client within
+// its source, office, reference and agent grouping.
+export const getAgentClientWiseReport = async ({ actor, filters }) => {
+	assertCanWorkIn(actor, filters.department);
+
+	const groups = await Transaction.aggregate([
+		{ $match: reportMatch(filters) },
+		{
+			$group: {
+				_id: {
+					source: "$source",
+					branch: "$branch",
+					reference: { $ifNull: ["$reference", ""] },
+					agent: "$agent",
+					clientName: "$clientName",
+					// Missing client names must remain separate rows. Otherwise all
+					// unnamed policies are incorrectly aggregated into one client.
+					clientKey: { $ifNull: ["$clientName", { $toString: "$_id" }] },
+				},
+				policies: { $sum: 1 },
+				premium: { $sum: "$premium" },
+			},
+		},
+	]);
+
+	const branchIds = groups.map((group) => group._id.branch);
+	const [branchDocs, agents, department] = await Promise.all([
+		Branch.find({ _id: { $in: branchIds } }).select("label company").lean(),
+		agentNames({ ids: groups.map((group) => group._id.agent).filter(Boolean) }),
+		Department.findById(filters.department).select("code").lean(),
+	]);
+	const branches = new Map(branchDocs.map((branch) => [String(branch._id), branch.label]));
+	const companyIds = [...new Set(branchDocs.map((branch) => (branch.company ? String(branch.company) : null)).filter(Boolean))];
+	const company = companyIds.length === 1
+		? await Company.findById(companyIds[0]).select("name code taxId").lean()
+		: null;
+
+	const rows = groups
+		.map(({ _id, policies, premium }) => ({
+			source: _id.source,
+			branch: { _id: _id.branch, name: branches.get(String(_id.branch)) ?? "-" },
+			reference: _id.reference || "-",
+			agent: { _id: _id.agent ?? null, name: agents.get(String(_id.agent)) ?? "-" },
+			clientName: _id.clientName || "Unnamed client",
+			policies,
+			premium: round(premium),
+		}))
+		.sort((a, b) =>
+			[
+				"sourceOrder",
+				"branch.name",
+				"reference",
+				"agent.name",
+				"clientName",
+			].reduce((result, key) => {
+				if (result) return result;
+				if (key === "sourceOrder") {
+					const sourceOrder = { DIRECT: 0, AGENTS: 1 };
+					return (sourceOrder[String(a.source).toUpperCase()] ?? 99) - (sourceOrder[String(b.source).toUpperCase()] ?? 99);
+				}
+				const read = (row) => key.split(".").reduce((value, part) => value?.[part], row) ?? "";
+				return String(read(a)).localeCompare(String(read(b)));
+			}, 0),
+		);
+
+	return {
+		rows,
+		companyInfo: company
+			? { name: company.name, code: company.code || company.name, taxId: company.taxId || "" }
+			: null,
+		departmentCode: department?.code || "",
+		totals: {
+			policies: rows.reduce((total, row) => total + row.policies, 0),
+			premium: sumOf(rows, "premium"),
+		},
+	};
 };
 
 // The department's live transactions in a policy date range; `ids` are further filters on id fields (branch, lob,

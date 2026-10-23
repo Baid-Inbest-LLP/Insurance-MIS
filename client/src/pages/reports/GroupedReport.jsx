@@ -1,4 +1,4 @@
-import { useExportReport, useReport } from '../../hooks/useReports';
+import { useExportPdfReport, useExportReport, useReport } from '../../hooks/useReports';
 import { notifications } from '@mantine/notifications';
 import { canViewCommission } from '../../lib/commission';
 import { downloadBlobResponse } from '../../utils/download';
@@ -36,6 +36,7 @@ export default function GroupedReport({ title, report, groupKey, groupHeader, me
   const scope = useReportScope();
   const { data, isLoading, isFetching } = useReport(report, scope.params, Boolean(scope.selected));
   const exportReport = useExportReport();
+  const exportPdfReport = useExportPdfReport();
 
   const withCommission = canViewCommission(scope.user);
   const shown = measures.filter((measure) => !measure.commission || withCommission);
@@ -68,12 +69,31 @@ export default function GroupedReport({ title, report, groupKey, groupHeader, me
     }
   };
 
+  const exportCurrentPdf = async () => {
+    try {
+      const response = await exportPdfReport.mutateAsync({ report, params: scope.params });
+      downloadBlobResponse(response, `${report}-report.pdf`);
+    } catch (error) {
+      notifications.show({ message: await exportErrorMessage(error), color: 'red' });
+    }
+  };
+
   return (
     <div>
       <ControlCenterToolbar
         title={title}
         subtitle={`${scope.selected?.name ?? ''}${isFetching && !isLoading ? ' · updating…' : ''}`}
-        showAction={report !== 'agent-wise'}
+        actions={report === 'agent-wise' ? (
+          <button
+            type="button"
+            className="btn-secondary whitespace-nowrap w-full sm:w-auto"
+            onClick={exportCurrentPdf}
+            disabled={!scope.selected || exportPdfReport.isPending}
+          >
+            {exportPdfReport.isPending ? 'Preparing PDF...' : 'Download PDF'}
+          </button>
+        ) : null}
+        showAction
         actionLabel={exportReport.isPending ? 'Exporting...' : 'Export Excel'}
         onAction={exportCurrentReport}
         actionDisabled={!scope.selected || exportReport.isPending}
