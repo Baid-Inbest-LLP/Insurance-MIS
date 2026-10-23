@@ -10,6 +10,7 @@ const FILTERS = [
   { key: 'lob', all: 'All LOBs', master: true, items: (options) => byName(options?.masters?.lob) },
   { key: 'insurer', all: 'All insurers', master: true, items: (options) => byName(options?.masters?.insurer) },
   { key: 'businessType', all: 'All business types', master: true, items: (options) => byName(options?.masters?.businessType) },
+  { key: 'agent', all: 'All agents', items: (options) => byName(options?.agents) },
 ];
 
 // Everything a list can be filtered by: the type (only when the user has more than one), the filters above

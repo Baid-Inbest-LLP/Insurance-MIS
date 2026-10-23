@@ -8,6 +8,7 @@ export const queryKeys = {
 	drafts: ["drafts"],
 	report: (name, params) => ["reports", name, params],
 	users: ["masters", "users"],
+	agents: ["masters", "agents"],
 	locationCities: ["masters", "locationCities"],
 	departments: ["masters", "departments"],
 	catalogItems: (departmentId, slug, activeOnly = true) => ["masters", "catalog", departmentId, slug, { activeOnly }],

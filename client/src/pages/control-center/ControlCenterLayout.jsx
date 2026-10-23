@@ -14,6 +14,7 @@ const tabs = [
     to: `${ROUTES.CONTROL_CENTER}/${path}`,
     roles: MASTER_VIEW_ROLES,
   })),
+  { label: 'Agent', to: `${ROUTES.CONTROL_CENTER}/agent`, roles: MASTER_VIEW_ROLES },
 ];
 
 export default function ControlCenterLayout() {

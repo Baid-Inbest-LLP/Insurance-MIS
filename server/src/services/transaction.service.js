@@ -1,4 +1,5 @@
 import {
+	Agent,
 	Branch,
 	GiTransaction,
 	LiTransaction,
@@ -29,6 +30,7 @@ const OPTIONAL_FIELDS = {
 const DETAIL_POPULATE = [
 	{ path: "department", select: "name" },
 	{ path: "branch", select: "label" },
+	{ path: "agent", select: "name" },
 	{ path: "createdBy", select: "name" },
 ];
 
@@ -87,6 +89,11 @@ const rethrowDuplicate = (error) => {
 	throw error;
 };
 
+const assertActiveAgent = async (agentId) => {
+	if (!(await Agent.exists({ _id: agentId, isActive: true, deletedAt: null })))
+		throw ApiError.badRequest("Agent not found or inactive");
+};
+
 const assertActiveBranch = async (branchId) => {
 	if (!(await Branch.exists({ _id: branchId, isActive: true })))
 		throw ApiError.badRequest("Branch not found or inactive");
@@ -129,6 +136,7 @@ const assertReferences = async (data, existing = null) => {
 	await Promise.all([
 		existing ? null : assertActiveDepartments([data.department]),
 		changed("branch") ? assertActiveBranch(data.branch) : null,
+		data.agent && changed("agent") ? assertActiveAgent(data.agent) : null,
 		assertMasterItems(data.department, references),
 	]);
 };
@@ -176,11 +184,12 @@ const masterItem = (transaction, field, names, departmentId) => {
 
 // The stored record without internal fields; master item ids become { _id, name }.
 const toTransactionDto = (transaction, names) => {
-	const { __v, deletedAt, updatedBy, branch, ...dto } = transaction;
+	const { __v, deletedAt, updatedBy, branch, agent, ...dto } = transaction;
 
 	for (const field of Object.keys(MASTER_FIELDS))
 		dto[field] = masterItem(transaction, field, names, transaction.department._id);
 
+	dto.agent = agent ? { _id: agent._id, name: agent.name } : null;
 	dto.branch = { _id: branch._id, code: branch.label };
 	return dto;
 };
@@ -218,7 +227,7 @@ export const listTransactions = async ({ actor, filters }) => {
 		query.department = department;
 	}
 	if (kind) query.kind = kind;
-	for (const field of ["branch", "insurer", "businessType", "lob"])
+	for (const field of ["branch", "insurer", "businessType", "lob", "agent"])
 		if (filters[field]) query[field] = filters[field];
 	if (from || to)
 		query.policyDate = { ...(from && { $gte: from }), ...(to && { $lte: to }) };

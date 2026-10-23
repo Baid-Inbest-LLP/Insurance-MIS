@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { notifications } from '@mantine/notifications';
 import { useMe } from '../../hooks/useAuth';
+import { useCreateAgent } from '../../hooks/useMasters';
 import {
   useCreateDraft,
   useCreateTransaction,
@@ -12,6 +13,7 @@ import {
   useUpdateTransaction,
 } from '../../hooks/useTransactions';
 import { AGENT_SOURCE, COMMISSION_STATUSES, FREQUENCIES, KIND_LABELS, SOURCES, TRANSACTION_KINDS } from '../../constants/transactions';
+import { AGENT_CREATE_ROLES } from '../../constants/roles';
 import { canManageCommission } from '../../lib/commission';
 import { getApiErrorMessage } from '../../lib/queryClient';
 import { ageOn, displayDate, maturityDate } from '../../lib/policyDates';
@@ -29,6 +31,7 @@ import FormField from '../../components/common/form/FormField';
 import FormGrid from '../../components/common/form/FormGrid';
 import FormModal from '../../components/common/form/FormModal';
 import FormSection from '../../components/common/form/FormSection';
+import SearchableSelect from '../../components/common/form/SearchableSelect';
 import PolicyUpload from './PolicyUpload';
 
 const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
@@ -115,6 +118,7 @@ export default function TransactionForm({ transaction, draft, onClose }) {
   const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();
   const extractPolicy = useExtractPolicy();
+  const createAgent = useCreateAgent();
   const createDraft = useCreateDraft();
   const updateDraft = useUpdateDraft();
   const deleteDraft = useDeleteDraft();
@@ -185,6 +189,19 @@ export default function TransactionForm({ transaction, draft, onClose }) {
 
   const resetMasters = () => {
     for (const name of ['insurer', 'businessType', 'lob']) setValue(name, '');
+  };
+
+  // Admins and HODs can add an agent that is not in the list yet; others pick from what exists.
+  const canAddAgent = AGENT_CREATE_ROLES.includes(user?.role);
+  const addAgent = async (name) => {
+    try {
+      const agent = await createAgent.mutateAsync({ name });
+      notifications.show({ message: 'Agent added', color: 'green' });
+      return agent;
+    } catch (err) {
+      notifications.show({ message: getApiErrorMessage(err, 'Failed to add agent'), color: 'red' });
+      return null;
+    }
   };
 
   // A draft's dropdown choices can only be applied once their lists are loaded.
@@ -349,7 +366,7 @@ export default function TransactionForm({ transaction, draft, onClose }) {
               </select>
             </FormField>
             {values.source === AGENT_SOURCE && (
-              <TextField label="Agent" name="agent" required maxLength={100} {...sharedProps} />
+              <SearchableSelect label="Agent" name="agent" control={control} items={options?.agents} current={transaction?.agent} required onCreate={canAddAgent ? addAgent : undefined} />
             )}
             <TextField label="Reference" name="reference" maxLength={200} {...sharedProps} />
           </FormGrid>
