@@ -219,6 +219,10 @@ const hydrate = async (transactions, { populate, toDto }) => {
 export const listTransactions = async ({ actor, filters }) => {
 	const { page, limit, search, from, to, kind, department } = filters;
 	const query = { deletedAt: null };
+	// Query dates are midnight UTC. Use the following midnight as an exclusive
+	// upper bound so the selected "to" date includes every policy on that day.
+	const endExclusive = to && new Date(to.getTime());
+	if (endExclusive) endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
 
 	if (isStaffRole(actor.role)) {
 		if (department) assertCanWorkIn(actor, department);
@@ -229,8 +233,8 @@ export const listTransactions = async ({ actor, filters }) => {
 	if (kind) query.kind = kind;
 	for (const field of ["branch", "insurer", "businessType", "lob", "agent"])
 		if (filters[field]) query[field] = filters[field];
-	if (from || to)
-		query.policyDate = { ...(from && { $gte: from }), ...(to && { $lte: to }) };
+	if (from || endExclusive)
+		query.policyDate = { ...(from && { $gte: from }), ...(endExclusive && { $lt: endExclusive }) };
 	if (search) {
 		const pattern = escapeRegex(search);
 		query.$or = [

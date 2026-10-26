@@ -546,7 +546,7 @@ const agentTableRows = (rows) => {
     const sourceTotal = sumClientRows(sourceClients);
     // The supplied operational layout ends the Direct block at its office
     // total; an explicit source total is used for Agents and any other source.
-    if (source !== "DIRECT") {
+    if (String(source).toUpperCase() !== "DIRECT") {
       output.push(`<tbody><tr class="total source-total"><td colspan="5">${escapeHtml(source)} - TOTAL</td><td class="number">${sourceTotal.policies.toLocaleString("en-IN")}</td><td class="number">${formatRupees(sourceTotal.premium)}</td></tr></tbody>`);
     }
   }

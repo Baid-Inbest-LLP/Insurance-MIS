@@ -1,6 +1,7 @@
 import { Master } from "../models/index.js";
 import { ApiError } from "../utils/ApiError.js";
 import { assertActiveDepartments } from "./department.service.js";
+import { assertCanWorkIn } from "./transaction.service.js";
 
 // Picks the fields exposed to API clients.
 const toItemDto = ({ _id, name, isActive }) => ({ _id, name, isActive });
@@ -31,7 +32,8 @@ const ensureUniqueName = (master, name, excludedItemId = null) => {
 };
 
 // Returns the live items of a master list, optionally including inactive ones.
-export const listItems = async ({ departmentId, slug, includeInactive = false }) => {
+export const listItems = async ({ actor, departmentId, slug, includeInactive = false }) => {
+	assertCanWorkIn(actor, departmentId);
 	const master = await Master.findOne({ department: departmentId, slug }).lean();
 	return (master?.items || [])
 		.filter((item) => isLive(item) && (includeInactive || item.isActive))

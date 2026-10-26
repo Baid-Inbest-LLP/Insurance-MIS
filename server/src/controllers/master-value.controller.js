@@ -10,6 +10,7 @@ export const listMasterItems = asyncHandler(async (req, res) => {
 		isSuperAdmin(req.user.role) &&
 		req.validated.query.activeOnly === "false";
 	const items = await masterValueService.listItems({
+		actor: req.user,
 		departmentId,
 		slug,
 		includeInactive,
