@@ -389,82 +389,157 @@ const agentTableRows = (rows) => {
   }
   const tree = buildAgentTree(rows);
   const output = [];
+  // A bounded fragment keeps every rowspan inside one printable table section.
+  // Chromium cannot split a rowspan that crosses a page break reliably: it leaves
+  // the merged cell behind and creates a large blank continuation area.
+  const maxFragmentRows = 18;
+
   for (const [source, offices] of tree) {
     const sourceClients = [...offices.values()].flatMap((references) =>
       [...references.values()].flatMap((agents) => [...agents.values()].flat()),
     );
-    const officeBlocks = [...offices].map(([office, references]) => {
-      const clients = [...references.values()].flatMap((agents) => [...agents.values()].flat());
-      const agentCount = [...references.values()].reduce((count, agents) => count + agents.size, 0);
-      return {
-        office,
-        references,
-        clients,
-        // Client rows + agent totals + reference totals. The office total is
-        // included in the source span but sits after the office rowspan.
-        officeSpan: clients.length + agentCount + references.size,
-      };
-    });
 
-    // The source cell must not be a single rowspan over several PDF pages:
-    // Chromium leaves a large blank continuation when that happens. Group
-    // several offices into one print-safe fragment instead, which retains one
-    // source label across related offices and repeats it only on a new fragment.
+    // Turn the hierarchy into small entries. An entry contains one or more
+    // client rows for an agent plus any totals that genuinely end at that row.
+    // Long client lists are split before pagination, so a single office or
+    // reference can no longer force a rowspan over a page boundary.
+    const entries = [];
+    for (const [office, references] of offices) {
+      const officeStart = entries.length;
+      for (const [reference, agents] of references) {
+        const referenceClients = [...agents.values()].flat();
+        for (const [agent, clients] of agents) {
+          const agentTotal = sumClientRows(clients);
+          // The final part may also contain agent, reference and office totals.
+          // Reserve three rows so even that part remains print-safe.
+          const clientChunkSize = Math.max(1, maxFragmentRows - 3);
+          for (let start = 0; start < clients.length; start += clientChunkSize) {
+            const chunk = clients.slice(start, start + clientChunkSize);
+            const isAgentEnd = start + clientChunkSize >= clients.length;
+            entries.push({
+              office,
+              reference,
+              agent,
+              clients: chunk,
+              agentEnd: isAgentEnd,
+              agentTotal,
+              referenceEnd: false,
+              officeEnd: false,
+              referenceTotal: null,
+              officeTotal: null,
+            });
+          }
+        }
+        const lastReferenceEntry = entries[entries.length - 1];
+        lastReferenceEntry.referenceEnd = true;
+        lastReferenceEntry.referenceTotal = sumClientRows(referenceClients);
+      }
+      const officeClients = entries
+        .slice(officeStart)
+        .flatMap((entry) => entry.clients);
+      const lastOfficeEntry = entries[entries.length - 1];
+      lastOfficeEntry.officeEnd = true;
+      lastOfficeEntry.officeTotal = sumClientRows(officeClients);
+    }
+
+    // Pack entries into fragments. Each fragment starts a new, local hierarchy;
+    // all of its rowspans therefore end before the next fragment begins.
     const sourceFragments = [];
     let fragment = [];
     let fragmentRows = 0;
-    // Keep each merged source cell well below a page body. Chromium can then
-    // use all available page space without leaving oversized blank continuations.
-    const maxFragmentRows = 18;
-    for (const block of officeBlocks) {
-      const blockRows = block.officeSpan + 1;
-      if (fragment.length && fragmentRows + blockRows > maxFragmentRows) {
+    for (const entry of entries) {
+      const entryRows =
+        entry.clients.length +
+        Number(entry.agentEnd) +
+        Number(entry.referenceEnd) +
+        Number(entry.officeEnd);
+      if (fragment.length && fragmentRows + entryRows > maxFragmentRows) {
         sourceFragments.push(fragment);
         fragment = [];
         fragmentRows = 0;
       }
-      fragment.push(block);
-      fragmentRows += blockRows;
+      fragment.push(entry);
+      fragmentRows += entryRows;
     }
     if (fragment.length) sourceFragments.push(fragment);
 
-    for (const officeFragment of sourceFragments) {
-      const sourceFragmentSpan = officeFragment.reduce((count, block) => count + block.officeSpan + 1, 0);
-      // A rowspan cannot reliably discover a browser-generated page break.
-      // Label every bounded fragment so continuation pages never lose their
-      // source identity; fragments remain small enough for natural page flow.
-      const sourceLabel = escapeHtml(source);
+    for (const fragment of sourceFragments) {
+      const sourceFragmentSpan = fragment.reduce(
+        (count, entry) =>
+          count +
+          entry.clients.length +
+          Number(entry.agentEnd) +
+          Number(entry.referenceEnd) +
+          Number(entry.officeEnd),
+        0,
+      );
       const fragmentRows = [];
       let sourceFirst = true;
-      for (const { office, references, clients: officeClients, officeSpan } of officeFragment) {
-      let officeFirst = true;
-      for (const [reference, agents] of references) {
-        const referenceClients = [...agents.values()].flat();
-        const referenceSpan = referenceClients.length + agents.size;
-        let referenceFirst = true;
-        for (const [agent, clients] of agents) {
-          clients.forEach((client, index) => {
-            fragmentRows.push(`<tr>
-              ${sourceFirst ? `<td class="group source-cell" rowspan="${sourceFragmentSpan}">${sourceLabel}</td>` : ""}
-              ${officeFirst ? `<td class="group office-cell" rowspan="${officeSpan}">${escapeHtml(office)}</td>` : ""}
-              ${referenceFirst ? `<td class="group reference-cell" rowspan="${referenceSpan}">${escapeHtml(reference)}</td>` : ""}
-              ${index === 0 ? `<td class="group agent-cell" rowspan="${clients.length}">${escapeHtml(agent)}</td>` : ""}
-              <td>${escapeHtml(client.clientName || "-")}</td>
-              <td class="number">${Number(client.policies || 0).toLocaleString("en-IN")}</td>
-              <td class="number">${formatRupees(client.premium)}</td>
-            </tr>`);
-            officeFirst = false;
-            sourceFirst = false;
-            referenceFirst = false;
-          });
-          const agentTotal = sumClientRows(clients);
-          fragmentRows.push(`<tr class="total agent-total"><td colspan="2">TOTAL</td><td class="number">${agentTotal.policies.toLocaleString("en-IN")}</td><td class="number">${formatRupees(agentTotal.premium)}</td></tr>`);
+      let entryIndex = 0;
+      while (entryIndex < fragment.length) {
+        const office = fragment[entryIndex].office;
+        const officeEntries = [];
+        while (entryIndex < fragment.length && fragment[entryIndex].office === office)
+          officeEntries.push(fragment[entryIndex++]);
+        const officeSpan = officeEntries.reduce(
+          (count, entry) => count + entry.clients.length + Number(entry.agentEnd) + Number(entry.referenceEnd),
+          0,
+        );
+        let officeFirst = true;
+        let officeIndex = 0;
+        while (officeIndex < officeEntries.length) {
+          const reference = officeEntries[officeIndex].reference;
+          const referenceEntries = [];
+          while (officeIndex < officeEntries.length && officeEntries[officeIndex].reference === reference)
+            referenceEntries.push(officeEntries[officeIndex++]);
+          const referenceSpan = referenceEntries.reduce(
+            (count, entry) => count + entry.clients.length + Number(entry.agentEnd),
+            0,
+          );
+          let referenceFirst = true;
+          let referenceIndex = 0;
+          while (referenceIndex < referenceEntries.length) {
+            const agent = referenceEntries[referenceIndex].agent;
+            const agentEntries = [];
+            while (referenceIndex < referenceEntries.length && referenceEntries[referenceIndex].agent === agent)
+              agentEntries.push(referenceEntries[referenceIndex++]);
+            const agentSpan = agentEntries.reduce(
+              (count, entry) => count + entry.clients.length,
+              0,
+            );
+            let agentFirst = true;
+            for (const entry of agentEntries) {
+              entry.clients.forEach((client) => {
+                fragmentRows.push(`<tr>
+                  ${sourceFirst ? `<td class="group source-cell" rowspan="${sourceFragmentSpan}">${escapeHtml(source)}</td>` : ""}
+                  ${officeFirst ? `<td class="group office-cell" rowspan="${officeSpan}">${escapeHtml(office)}</td>` : ""}
+                  ${referenceFirst ? `<td class="group reference-cell" rowspan="${referenceSpan}">${escapeHtml(reference)}</td>` : ""}
+                  ${agentFirst ? `<td class="group agent-cell" rowspan="${agentSpan}">${escapeHtml(agent)}</td>` : ""}
+                  <td>${escapeHtml(client.clientName || "-")}</td>
+                  <td class="number">${Number(client.policies || 0).toLocaleString("en-IN")}</td>
+                  <td class="number">${formatRupees(client.premium)}</td>
+                </tr>`);
+                sourceFirst = false;
+                officeFirst = false;
+                referenceFirst = false;
+                agentFirst = false;
+              });
+              if (entry.agentEnd) {
+                fragmentRows.push(`<tr class="total agent-total"><td colspan="2">TOTAL</td><td class="number">${entry.agentTotal.policies.toLocaleString("en-IN")}</td><td class="number">${formatRupees(entry.agentTotal.premium)}</td></tr>`);
+              }
+            }
+          }
+          const finalReferenceEntry = referenceEntries[referenceEntries.length - 1];
+          if (finalReferenceEntry.referenceEnd) {
+            const total = finalReferenceEntry.referenceTotal;
+            fragmentRows.push(`<tr class="total reference-total"><td colspan="3">${escapeHtml(reference)} TOTAL</td><td class="number">${total.policies.toLocaleString("en-IN")}</td><td class="number">${formatRupees(total.premium)}</td></tr>`);
+          }
         }
-        const referenceTotal = sumClientRows(referenceClients);
-        fragmentRows.push(`<tr class="total reference-total"><td colspan="3">${escapeHtml(reference)} TOTAL</td><td class="number">${referenceTotal.policies.toLocaleString("en-IN")}</td><td class="number">${formatRupees(referenceTotal.premium)}</td></tr>`);
-      }
-      const officeTotal = sumClientRows(officeClients);
-        fragmentRows.push(`<tr class="total office-total"><td colspan="4">${escapeHtml(office)} TOTAL</td><td class="number">${officeTotal.policies.toLocaleString("en-IN")}</td><td class="number">${formatRupees(officeTotal.premium)}</td></tr>`);
+        const finalOfficeEntry = officeEntries[officeEntries.length - 1];
+        if (finalOfficeEntry.officeEnd) {
+          const total = finalOfficeEntry.officeTotal;
+          fragmentRows.push(`<tr class="total office-total"><td colspan="4">${escapeHtml(office)} TOTAL</td><td class="number">${total.policies.toLocaleString("en-IN")}</td><td class="number">${formatRupees(total.premium)}</td></tr>`);
+        }
       }
       output.push(`<tbody class="source-fragment">${fragmentRows.join("")}</tbody>`);
     }
