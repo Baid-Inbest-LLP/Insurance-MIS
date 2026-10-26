@@ -2,7 +2,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import * as reportService from "../services/report.service.js";
 import { buildAgentClientWiseWorkbook, buildBrandedWorkbook, sendWorkbook } from "../utils/excel.js";
-import { buildAgentClientWisePdf, sendPdf } from "../utils/pdf.js";
+import { buildAgentClientWisePdf, buildBrandedPdf, sendPdf } from "../utils/pdf.js";
 import { canViewCommission } from "../services/transaction.service.js";
 import { fileURLToPath } from "url";
 import { getFinancialYear } from "../utils/financialYear.js";
@@ -54,6 +54,25 @@ const exportGroupedReport = ({ getReport, sheetName, title, filename, groupKey, 
 		await sendWorkbook(res, workbook, filename);
 	});
 
+// Summary reports use the same Puppeteer branding as the detailed Agent PDF,
+// while retaining their own concise columns and totals.
+const exportGroupedPdfReport = ({ getReport, title, filename, groupKey, columns }) =>
+	asyncHandler(async (req, res) => {
+		const report = await getReport({ actor: req.user, filters: req.validated.query });
+		const pdf = await buildBrandedPdf({
+			title,
+			subtitle: agentReportPeriod(req.validated.query),
+			meta: reportMeta(req.validated.query),
+			columns: columns(req.user),
+			rows: report.rows.map((row) => ({ ...row, [groupKey]: row[groupKey].name ?? "-" })),
+			totals: { ...report.totals, [groupKey]: "Total" },
+			companyInfo: { code: "INSURANCE MIS" },
+			branding: reportBranding,
+		});
+
+		sendPdf(res, pdf, filename);
+	});
+
 const reportHandler = (getReport) =>
 	asyncHandler(async (req, res) => {
 		const report = await getReport({ actor: req.user, filters: req.validated.query });
@@ -83,6 +102,13 @@ export const exportLobWiseReport = asyncHandler(async (req, res) => {
 
 	await sendWorkbook(res, workbook, "lob-wise-report.xlsx");
 });
+export const exportLobWisePdfReport = exportGroupedPdfReport({
+	getReport: reportService.getLobWiseReport,
+	title: "LOB WISE REPORT",
+	filename: "lob-wise-report.pdf",
+	groupKey: "lob",
+	columns: (actor) => premiumColumns("LOB", "lob", canViewCommission(actor)),
+});
 
 // The same figures per branch (office) for one department.
 export const getOfficeWiseReport = reportHandler(reportService.getOfficeWiseReport);
@@ -91,6 +117,13 @@ export const exportOfficeWiseReport = exportGroupedReport({
 	sheetName: "Office Wise",
 	title: "Office Wise Report",
 	filename: "office-wise-report.xlsx",
+	groupKey: "branch",
+	columns: (actor) => premiumColumns("Branch", "branch", canViewCommission(actor)),
+});
+export const exportOfficeWisePdfReport = exportGroupedPdfReport({
+	getReport: reportService.getOfficeWiseReport,
+	title: "OFFICE WISE REPORT",
+	filename: "office-wise-report.pdf",
 	groupKey: "branch",
 	columns: (actor) => premiumColumns("Branch", "branch", canViewCommission(actor)),
 });
@@ -146,6 +179,13 @@ export const exportInsurerWiseReport = exportGroupedReport({
 	groupKey: "insurer",
 	columns: (actor) => premiumColumns("Insurer", "insurer", canViewCommission(actor)),
 });
+export const exportInsurerWisePdfReport = exportGroupedPdfReport({
+	getReport: reportService.getInsurerWiseReport,
+	title: "INSURER WISE REPORT",
+	filename: "insurer-wise-report.pdf",
+	groupKey: "insurer",
+	columns: (actor) => premiumColumns("Insurer", "insurer", canViewCommission(actor)),
+});
 
 // Commission per insurer for one department, split into received and pending.
 export const getCommissionReport = reportHandler(reportService.getCommissionReport);
@@ -154,6 +194,20 @@ export const exportCommissionReport = exportGroupedReport({
 	sheetName: "Commission",
 	title: "Commission Report",
 	filename: "commission-report.xlsx",
+	groupKey: "insurer",
+	columns: () => [
+		{ header: "Insurer", key: "insurer", width: 28 },
+		{ header: "Policies", key: "policies", width: 12, type: "number" },
+		{ header: "Premium", key: "premium", width: 18, type: "currency" },
+		{ header: "Commission", key: "commission", width: 18, type: "currency" },
+		{ header: "Received", key: "received", width: 18, type: "currency" },
+		{ header: "Pending", key: "pending", width: 18, type: "currency" },
+	],
+});
+export const exportCommissionPdfReport = exportGroupedPdfReport({
+	getReport: reportService.getCommissionReport,
+	title: "COMMISSION REPORT",
+	filename: "commission-report.pdf",
 	groupKey: "insurer",
 	columns: () => [
 		{ header: "Insurer", key: "insurer", width: 28 },

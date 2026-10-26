@@ -83,7 +83,7 @@ export default function GroupedReport({ title, report, groupKey, groupHeader, me
       <ControlCenterToolbar
         title={title}
         subtitle={`${scope.selected?.name ?? ''}${isFetching && !isLoading ? ' · updating…' : ''}`}
-        actions={report === 'agent-wise' ? (
+        actions={(
           <button
             type="button"
             className="btn-secondary whitespace-nowrap w-full sm:w-auto"
@@ -92,7 +92,7 @@ export default function GroupedReport({ title, report, groupKey, groupHeader, me
           >
             {exportPdfReport.isPending ? 'Preparing PDF...' : 'Download PDF'}
           </button>
-        ) : null}
+        )}
         showAction
         actionLabel={exportReport.isPending ? 'Exporting...' : 'Export Excel'}
         onAction={exportCurrentReport}

@@ -124,8 +124,11 @@ const buildBrandedHtml = ({
   rows,
   totals,
   companyInfo,
+  branding = {},
 }) => {
   const columns = [SNO_COLUMN, ...reportColumns];
+  const centerLogo = toDataUri(branding.centerLogo?.filename);
+  const rightLogo = toDataUri(branding.rightLogo?.filename);
 
   return `<!doctype html>
 <html>
@@ -133,33 +136,38 @@ const buildBrandedHtml = ({
 <meta charset="utf-8" />
 <style>
   * { box-sizing: border-box; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; margin: 0; padding: 24px; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #111; margin: 0; padding: 12mm 11mm; }
   .header {
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    margin-bottom: 12px;
+    grid-template-columns: 1fr 1fr 1fr;
+    align-items: start;
+    min-height: 112px;
+    margin-bottom: 5px;
   }
-  .header .company-info { justify-self: start; line-height: 1.3; }
-  .header .company-info .code { font-size: 18px; font-weight: 700; color: ${COLORS.companyCode}; }
-  .header .company-info .gst { font-size: 10px; font-weight: 700; color: ${COLORS.black}; }
-  .header .title { justify-self: center; color: ${COLORS.brand}; font-size: 18px; font-weight: 700; text-align: center; line-height: 1.3; }
-  .header .title .fy { font-size: 12px; }
+  .header .company-info { justify-self: start; line-height: 1.35; padding-top: 2px; }
+  .header .company-info .code { font-size: 22px; font-weight: 700; color: ${COLORS.companyCode}; }
+  .header .company-info .gst { font-size: 7px; font-weight: 700; color: ${COLORS.black}; }
+  .header .title-block { justify-self: center; text-align: center; }
+  .header .logo-center { display: block; margin: 0 auto 3px; max-width: 90px; max-height: 56px; }
+  .header .title { color: ${COLORS.black}; font-size: 11px; font-weight: 700; text-decoration: underline; line-height: 1.15; }
+  .header .title .fy { font-size: 9px; }
   /* Report name — a second title line, not a muted annotation, so it keeps the brand color. */
-  .header .subtitle { justify-self: end; color: ${COLORS.brand}; font-size: 14px; font-weight: 700; text-align: right; }
-  .meta { text-align: center; color: ${COLORS.muted}; font-size: 10.5px; margin: 1px 0; }
-  table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 10.5px; }
+  .header .subtitle { color: ${COLORS.black}; font-size: 8px; font-weight: 700; margin-top: 3px; }
+  .header .right-logo { justify-self: end; text-align: right; }
+  .header .logo-right { max-width: 105px; max-height: 70px; }
+  .meta { text-align: center; color: ${COLORS.muted}; font-size: 8px; margin: 1px 0; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 8px; }
   thead { display: table-header-group; }
-  tr { height: 21px; page-break-inside: avoid; }
+  tr { height: 18px; page-break-inside: avoid; }
   th {
     background: ${COLORS.headerFill};
     color: ${COLORS.headerText};
     font-weight: 700;
-    padding: 7px 8px;
+    padding: 5px 6px;
     border: 1px solid ${COLORS.border};
   }
   td {
-    padding: 6px 8px;
+    padding: 4px 6px;
     border: 1px solid ${COLORS.border};
   }
   tbody tr:nth-child(even) { background: #F9FAFB; }
@@ -176,8 +184,8 @@ const buildBrandedHtml = ({
           : ""
       }
     </div>
-    <div class="title">${renderTitle(title)}</div>
-    <div class="subtitle">${subtitle ? escapeHtml(subtitle) : ""}</div>
+    <div class="title-block">${centerLogo ? `<img class="logo-center" src="${centerLogo}" alt="" />` : ""}<div class="title">${renderTitle(title)}</div><div class="subtitle">${subtitle ? escapeHtml(subtitle) : ""}</div></div>
+    <div class="right-logo">${rightLogo ? `<img class="logo-right" src="${rightLogo}" alt="" />` : ""}</div>
   </div>
   ${meta.map((line) => `<div class="meta">${escapeHtml(line)}</div>`).join("")}
   <table>
@@ -328,6 +336,7 @@ export const buildBrandedPdf = ({
   rows,
   totals,
   companyInfo,
+  branding,
 }) =>
   renderPdfBuffer(
     buildBrandedHtml({
@@ -338,6 +347,7 @@ export const buildBrandedPdf = ({
       rows,
       totals,
       companyInfo,
+      branding,
     }),
   );
 
