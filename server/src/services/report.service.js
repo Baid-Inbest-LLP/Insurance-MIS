@@ -153,15 +153,16 @@ const summarize = async ({ actor, filters, groupField, loadNames, sums, scope = 
 	return { rows, totals: Object.fromEntries(fields.map((field) => [field, sumOf(rows, field)])) };
 };
 
-// Policies and premium per group, and commission too for those who may see it.
+// Policies and premium per group, and commission too for those who may see it. `scope` narrows the transactions.
 const premiumReport =
-	(groupField, loadNames) =>
+	(groupField, loadNames, scope) =>
 	({ actor, filters }) =>
 		summarize({
 			actor,
 			filters,
 			groupField,
 			loadNames,
+			scope,
 			sums: {
 				policies: { $sum: 1 },
 				netPremium: { $sum: "$netPremium" },
@@ -175,7 +176,8 @@ export const getLobWiseReport = premiumReport("lob", masterNames("lob"));
 
 export const getOfficeWiseReport = premiumReport("branch", branchNames);
 
-export const getAgentWiseReport = premiumReport("agent", agentNames);
+// Only entries that have an agent; those from other sources (direct, sales, ...) have none and would form a nameless row.
+export const getAgentWiseReport = premiumReport("agent", agentNames, { $and: [{ agent: { $ne: null } }] });
 
 export const getInsurerWiseReport = premiumReport("insurer", masterNames("insurer"));
 
