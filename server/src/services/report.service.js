@@ -33,6 +33,33 @@ const agentNames = async ({ ids }) => {
 	return new Map(agents.map((agent) => [String(agent._id), agent.name]));
 };
 
+// Keep the company identity used by every PDF in one shape. `taxId` was the
+// original GST field, so retain it as a fallback for existing company records.
+const toCompanyInfo = (company) =>
+	company
+		? {
+				name: company.name,
+				code: company.code || company.name,
+				cinOrLlp: company.cinOrLlp || "",
+				registrationNumber: company.irdaiNumber || "",
+				gst: company.gst || company.taxId || "",
+			}
+		: null;
+
+const companyInfoForBranches = async (branchIds) => {
+	const ids = [...new Set(branchIds.filter(Boolean).map(String))];
+	if (!ids.length) return null;
+
+	const branches = await Branch.find({ _id: { $in: ids } }).select("company").lean();
+	const companyIds = [...new Set(branches.map((branch) => branch.company && String(branch.company)).filter(Boolean))];
+	if (companyIds.length !== 1) return null;
+
+	const company = await Company.findById(companyIds[0])
+		.select("name code taxId gst cinOrLlp irdaiNumber")
+		.lean();
+	return toCompanyInfo(company);
+};
+
 // A drill-down for the exported Agent report. Each row is one insured client within
 // its source, office, reference and agent grouping.
 export const getAgentClientWiseReport = async ({ actor, filters }) => {
@@ -67,7 +94,7 @@ export const getAgentClientWiseReport = async ({ actor, filters }) => {
 	const branches = new Map(branchDocs.map((branch) => [String(branch._id), branch.label]));
 	const companyIds = [...new Set(branchDocs.map((branch) => (branch.company ? String(branch.company) : null)).filter(Boolean))];
 	const company = companyIds.length === 1
-		? await Company.findById(companyIds[0]).select("name code taxId").lean()
+		? await Company.findById(companyIds[0]).select("name code taxId gst cinOrLlp irdaiNumber").lean()
 		: null;
 
 	const rows = groups
@@ -100,9 +127,7 @@ export const getAgentClientWiseReport = async ({ actor, filters }) => {
 
 	return {
 		rows,
-		companyInfo: company
-			? { name: company.name, code: company.code || company.name, taxId: company.taxId || "" }
-			: null,
+		companyInfo: toCompanyInfo(company),
 		departmentCode: department?.code || "",
 		totals: {
 			policies: rows.reduce((total, row) => total + row.policies, 0),
@@ -137,20 +162,25 @@ const summarize = async ({ actor, filters, groupField, loadNames, sums, scope = 
 
 	const groups = await Transaction.aggregate([
 		{ $match: { ...reportMatch(filters), ...scope } },
-		{ $group: { _id: `$${groupField}`, ...sums } },
+		{ $group: { _id: `$${groupField}`, branchIds: { $addToSet: "$branch" }, ...sums } },
 	]);
 
 	const names = await loadNames({ department: filters.department, ids: groups.map((group) => group._id) });
+	const companyInfo = await companyInfoForBranches(groups.flatMap((group) => group.branchIds));
 	const fields = Object.keys(sums);
 
 	const rows = groups
-		.map(({ _id, ...values }) => ({
+		.map(({ _id, branchIds, ...values }) => ({
 			[groupField]: { _id, name: names.get(String(_id)) ?? null },
 			...Object.fromEntries(fields.map((field) => [field, round(values[field])])),
 		}))
 		.sort((a, b) => (a[groupField].name ?? "").localeCompare(b[groupField].name ?? ""));
 
-	return { rows, totals: Object.fromEntries(fields.map((field) => [field, sumOf(rows, field)])) };
+	return {
+		rows,
+		totals: Object.fromEntries(fields.map((field) => [field, sumOf(rows, field)])),
+		companyInfo,
+	};
 };
 
 // Policies and premium per group, and commission too for those who may see it. `scope` narrows the transactions.

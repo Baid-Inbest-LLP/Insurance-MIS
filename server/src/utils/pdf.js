@@ -71,27 +71,47 @@ const cellAlign = (column) => {
   return column.align || "left";
 };
 
-const renderTableHead = (columns) =>
-  `<thead><tr>${columns
-    .map(
-      (column) =>
-        `<th style="text-align:center">${escapeHtml(column.header)}</th>`,
-    )
-    .join("")}</tr></thead>`;
+const renderTableHead = ({ columns, title, subtitle, meta, companyInfo, centerLogo, rightLogo }) =>
+  `<thead>
+    <tr><th class="masthead" colspan="${columns.length}"><div class="masthead-inner">
+      <div class="company">${
+        companyInfo
+          ? `<div class="company-code">${escapeHtml(companyInfo.code || "-")}</div>
+             ${companyInfo.name ? `<div class="company-name">${escapeHtml(companyInfo.name)}</div>` : ""}
+             ${companyInfo.cinOrLlp ? `<div class="company-detail">CIN :- ${escapeHtml(companyInfo.cinOrLlp)}</div>` : ""}
+             ${companyInfo.registrationNumber ? `<div class="company-detail">REG No :- ${escapeHtml(companyInfo.registrationNumber)}</div>` : ""}
+             ${companyInfo.gst ? `<div class="company-detail">GST No :- ${escapeHtml(companyInfo.gst)}</div>` : ""}`
+          : ""
+      }</div>
+      <div class="title-block">${centerLogo ? `<img class="logo-center" src="${centerLogo}" alt="" />` : ""}<div class="title">${renderTitle(title)}</div>${subtitle ? `<div class="period">${escapeHtml(subtitle)}</div>` : ""}${meta.map((line) => `<div class="meta">${escapeHtml(line)}</div>`).join("")}</div>
+      <div class="right-logo">${rightLogo ? `<img class="logo-right" src="${rightLogo}" alt="" />` : ""}</div>
+    </div></th></tr>
+    <tr>${columns.map((column) => `<th class="column-heading" style="text-align:center">${escapeHtml(column.header)}</th>`).join("")}</tr>
+  </thead>`;
+
+const renderColGroup = (columns) => {
+  const total = columns.reduce((sum, column) => sum + Number(column.width || 12), 0);
+  return `<colgroup>${columns
+    .map((column) => `<col style="width:${((Number(column.width || 12) / total) * 100).toFixed(2)}%">`)
+    .join("")}</colgroup>`;
+};
 
 const renderTableBody = (columns, rows) =>
-  `<tbody>${rows
-    .map(
-      (row, rowIndex) =>
-        `<tr>${columns
-          .map((column) => {
-            const value =
-              column.key === "__sno" ? rowIndex + 1 : row[column.key];
-            return `<td style="text-align:${cellAlign(column)}">${formatCellValue(value, column)}</td>`;
-          })
-          .join("")}</tr>`,
-    )
-    .join("")}</tbody>`;
+  `<tbody>${
+    rows.length
+      ? rows
+          .map(
+            (row, rowIndex) =>
+              `<tr>${columns
+                .map((column) => {
+                  const value = column.key === "__sno" ? rowIndex + 1 : row[column.key];
+                  return `<td style="text-align:${cellAlign(column)}">${formatCellValue(value, column)}</td>`;
+                })
+                .join("")}</tr>`,
+          )
+          .join("")
+      : `<tr class="empty-row"><td colspan="${columns.length}">No policy records found for the selected filters.</td></tr>`
+  }</tbody>`;
 
 // "Total" lands under the first real column (index 1, since 0 is the S.No. column).
 const renderTotalsRow = (columns, totals) =>
@@ -109,7 +129,7 @@ const renderTotalsRow = (columns, totals) =>
 
 // Auto-prepended to every export so row numbering is consistent without each report
 // having to declare it — mirrors excel.js's SNO_COLUMN.
-const SNO_COLUMN = { header: "S.No.", key: "__sno", align: "center" };
+const SNO_COLUMN = { header: "S.No.", key: "__sno", align: "center", width: 8 };
 
 /**
  * Global report builder — the HTML counterpart to buildBrandedWorkbook. Same
@@ -136,60 +156,53 @@ const buildBrandedHtml = ({
 <meta charset="utf-8" />
 <style>
   * { box-sizing: border-box; }
-  body { font-family: Arial, Helvetica, sans-serif; color: #111; margin: 0; padding: 12mm 11mm; }
-  .header {
+  body { font-family: Arial, Helvetica, sans-serif; color: #111; margin: 0; font-size: 7px; }
+  .masthead { border: 0; background: #fff; padding: 0 0 4px; }
+  .masthead-inner {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     align-items: start;
-    min-height: 112px;
-    margin-bottom: 5px;
+    min-height: 165px;
+    padding-top: 15px;
   }
-  .header .company-info { justify-self: start; line-height: 1.35; padding-top: 2px; }
-  .header .company-info .code { font-size: 22px; font-weight: 700; color: ${COLORS.companyCode}; }
-  .header .company-info .gst { font-size: 7px; font-weight: 700; color: ${COLORS.black}; }
-  .header .title-block { justify-self: center; text-align: center; }
-  .header .logo-center { display: block; margin: 0 auto 3px; max-width: 90px; max-height: 56px; }
-  .header .title { color: ${COLORS.black}; font-size: 11px; font-weight: 700; text-decoration: underline; line-height: 1.15; }
-  .header .title .fy { font-size: 9px; }
+  .company { text-align: left; padding-top: 1px; }
+  .company-code { color: #00b0f0; font-weight: 700; font-size: 32px; line-height: 1; }
+  .company-name { font-size: 8px; font-weight: 700; margin-top: 4px; }
+  .company-detail { font-size: 8px; font-weight: 700; line-height: 1.4; }
+  .title-block { text-align: center; }
+  .logo-center { display: block; margin: 0 auto 5px; max-width: 150px; max-height: 90px; }
+  .title { color: ${COLORS.black}; font-size: 12px; font-weight: 700; text-decoration: underline; line-height: 1.15; margin-top: 4px; }
+  .title .fy { font-size: 10px; }
   /* Report name — a second title line, not a muted annotation, so it keeps the brand color. */
-  .header .subtitle { color: ${COLORS.black}; font-size: 8px; font-weight: 700; margin-top: 3px; }
-  .header .right-logo { justify-self: end; text-align: right; }
-  .header .logo-right { max-width: 105px; max-height: 70px; }
-  .meta { text-align: center; color: ${COLORS.muted}; font-size: 8px; margin: 1px 0; }
-  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 8px; }
+  .period { color: ${COLORS.black}; font-size: 10px; font-weight: 700; margin-top: 3px; }
+  .meta { color: ${COLORS.muted}; font-size: 7px; font-weight: 400; margin-top: 2px; }
+  .right-logo { text-align: right; }
+  .logo-right { max-width: 165px; max-height: 110px; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 7px; }
   thead { display: table-header-group; }
-  tr { height: 18px; page-break-inside: avoid; }
-  th {
+  tr { page-break-inside: avoid; }
+  th.column-heading {
     background: ${COLORS.headerFill};
     color: ${COLORS.headerText};
     font-weight: 700;
-    padding: 5px 6px;
-    border: 1px solid ${COLORS.border};
+    padding: 11.5px 3px;
+    border: 0.5px solid #0d0d0d;
+    font-size: 6.7px;
   }
   td {
-    padding: 4px 6px;
-    border: 1px solid ${COLORS.border};
+    padding: 3.5px 2.6px;
+    line-height: 1.18;
+    border: 0.5px solid #0d0d0d;
   }
   tbody tr:nth-child(even) { background: #F9FAFB; }
   tfoot td { background: ${COLORS.headerFill}; color: ${COLORS.headerText}; font-weight: 700; }
+  .empty-row td { background: #fff4d6; color: #6b4f00; text-align: center; font-style: italic; padding: 10px; }
 </style>
 </head>
 <body>
-  <div class="header">
-    <div class="company-info">
-      ${
-        companyInfo
-          ? `<div class="code">${escapeHtml(companyInfo.code || "-")}</div>
-             <div class="gst">GST No.: ${escapeHtml(companyInfo.taxId || "-")}</div>`
-          : ""
-      }
-    </div>
-    <div class="title-block">${centerLogo ? `<img class="logo-center" src="${centerLogo}" alt="" />` : ""}<div class="title">${renderTitle(title)}</div><div class="subtitle">${subtitle ? escapeHtml(subtitle) : ""}</div></div>
-    <div class="right-logo">${rightLogo ? `<img class="logo-right" src="${rightLogo}" alt="" />` : ""}</div>
-  </div>
-  ${meta.map((line) => `<div class="meta">${escapeHtml(line)}</div>`).join("")}
   <table>
-    ${renderTableHead(columns)}
+    ${renderColGroup(columns)}
+    ${renderTableHead({ columns, title, subtitle, meta, companyInfo, centerLogo, rightLogo })}
     ${totals ? renderTotalsRow(columns, totals) : ""}
     ${renderTableBody(columns, rows)}
   </table>
@@ -324,7 +337,7 @@ const renderPdfBuffer = async (
  * @param {Array}    config.columns
  * @param {Array}    config.rows
  * @param {object}  [config.totals]
- * @param {object}  [config.companyInfo] - { code, taxId }; shown top-left when a single
+ * @param {object}  [config.companyInfo] - { code, cinOrLlp, registrationNumber, gst }; shown top-left when a single
  *   company is in scope for the report
  * @returns {Promise<Buffer>}
  */
@@ -337,8 +350,9 @@ export const buildBrandedPdf = ({
   totals,
   companyInfo,
   branding,
-}) =>
-  renderPdfBuffer(
+}) => {
+  const companyCode = companyInfo?.code || companyInfo?.name || "INSURANCE MIS";
+  return renderPdfBuffer(
     buildBrandedHtml({
       title,
       subtitle,
@@ -349,7 +363,13 @@ export const buildBrandedPdf = ({
       companyInfo,
       branding,
     }),
+    {
+      landscape: false,
+      margin: { top: "5mm", bottom: "14mm", left: "13mm", right: "3mm" },
+      footerTemplate: `<div style="width:100%; padding:0 28px; font-family:Arial, sans-serif; font-size:5px; color:#111; display:flex; justify-content:space-between;"><span>${escapeHtml(companyCode)} - ${escapeHtml(title)} (${escapeHtml(subtitle || "")})</span><span>Date - <span class="date"></span> &nbsp; PAGE <span class="pageNumber"></span> &nbsp; Time - <span class="time"></span></span></div>`,
+    },
   );
+};
 
 const toDataUri = (filename) => {
   if (!filename || !fs.existsSync(filename)) return "";
@@ -581,7 +601,9 @@ export const buildAgentClientWisePdf = ({
   const rightLogo = toDataUri(branding.rightLogo?.filename);
   const companyCode = companyInfo?.code || companyInfo?.name || "INSURANCE MIS";
   const companyName = companyInfo?.name || "";
-  const taxId = companyInfo?.taxId || "";
+  const cinOrLlp = companyInfo?.cinOrLlp || "";
+  const registrationNumber = companyInfo?.registrationNumber || "";
+  const gst = companyInfo?.gst || "";
   const html = `<!doctype html>
 <html><head><meta charset="utf-8" /><style>
   * { box-sizing: border-box; }
@@ -633,7 +655,7 @@ export const buildAgentClientWisePdf = ({
     <colgroup><col style="width:13.33%"><col style="width:10.61%"><col style="width:12.30%"><col style="width:11.46%"><col style="width:25.15%"><col style="width:7.04%"><col style="width:20.11%"></colgroup>
     <thead>
       <tr><th class="masthead" colspan="7"><div class="masthead-inner">
-        <div class="company"><div class="company-code">${escapeHtml(companyCode)}</div>${companyName ? `<div class="company-name">${escapeHtml(companyName)}</div>` : ""}${taxId ? `<div class="company-detail">GST No :- ${escapeHtml(taxId)}</div>` : ""}</div>
+        <div class="company"><div class="company-code">${escapeHtml(companyCode)}</div>${companyName ? `<div class="company-name">${escapeHtml(companyName)}</div>` : ""}${cinOrLlp ? `<div class="company-detail">CIN :- ${escapeHtml(cinOrLlp)}</div>` : ""}${registrationNumber ? `<div class="company-detail">REG No :- ${escapeHtml(registrationNumber)}</div>` : ""}${gst ? `<div class="company-detail">GST No :- ${escapeHtml(gst)}</div>` : ""}</div>
         <div class="title-block">${centerLogo ? `<img class="logo-center" src="${centerLogo}" alt="" />` : ""}<div class="title">${escapeHtml(title)}</div><div class="period">${escapeHtml(period || "")}</div></div>
         <div class="right-logo">${rightLogo ? `<img class="logo-right" src="${rightLogo}" alt="" />` : ""}</div>
       </div></th></tr>

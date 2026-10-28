@@ -66,7 +66,7 @@ const exportGroupedPdfReport = ({ getReport, title, filename, groupKey, columns 
 			columns: columns(req.user),
 			rows: report.rows.map((row) => ({ ...row, [groupKey]: row[groupKey].name ?? "-" })),
 			totals: { ...report.totals, [groupKey]: "Total" },
-			companyInfo: { code: "INSURANCE MIS" },
+			companyInfo: report.companyInfo,
 			branding: reportBranding,
 		});
 
