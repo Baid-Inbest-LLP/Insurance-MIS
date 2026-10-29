@@ -57,7 +57,7 @@ export const config = {
 		openRouter: {
 			apiKey: process.env.OPENROUTER_API_KEY,
 			baseUrl: process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
-			model: process.env.OPENROUTER_MODEL || "nvidia/nemotron-3-super-120b-a12b:free",
+			model: process.env.OPENROUTER_MODEL || "nvidia/nemotron-3-super-120b-a12b",
 		},
 	},
 	smtp: {
