@@ -12,6 +12,7 @@ import LobWiseReport from './pages/reports/LobWiseReport';
 import OfficeWiseReport from './pages/reports/OfficeWiseReport';
 import AgentWiseReport from './pages/reports/AgentWiseReport';
 import InsurerWiseReport from './pages/reports/InsurerWiseReport';
+import SourceWiseReport from './pages/reports/SourceWiseReport';
 import CommissionReport from './pages/reports/CommissionReport';
 import SettingsPage from './pages/settings/SettingsPage';
 import ControlCenterLayout from './pages/control-center/ControlCenterLayout';
@@ -53,6 +54,7 @@ export default function App() {
             <Route path="office-wise" element={<OfficeWiseReport />} />
             <Route path="agent-wise" element={<AgentWiseReport />} />
             <Route path="insurer-wise" element={<InsurerWiseReport />} />
+            <Route path="source-wise" element={<SourceWiseReport />} />
             <Route
               path="commission"
               element={

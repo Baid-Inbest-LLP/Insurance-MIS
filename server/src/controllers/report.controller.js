@@ -193,6 +193,24 @@ export const exportInsurerWisePdfReport = exportGroupedPdfReport({
 	columns: (actor) => premiumColumns("Insurer", "insurer", canViewCommission(actor)),
 });
 
+// The same figures per source for one department.
+export const getSourceWiseReport = reportHandler(reportService.getSourceWiseReport);
+export const exportSourceWiseReport = exportGroupedReport({
+	getReport: reportService.getSourceWiseReport,
+	sheetName: "Source Wise",
+	title: "Source Wise Report",
+	filename: "source-wise-report.xlsx",
+	groupKey: "source",
+	columns: (actor) => premiumColumns("Source", "source", canViewCommission(actor)),
+});
+export const exportSourceWisePdfReport = exportGroupedPdfReport({
+	getReport: reportService.getSourceWiseReport,
+	title: "SOURCE WISE REPORT",
+	filename: "source-wise-report.pdf",
+	groupKey: "source",
+	columns: (actor) => premiumColumns("Source", "source", canViewCommission(actor)),
+});
+
 // Commission per insurer for one department, split into received and pending.
 export const getCommissionReport = reportHandler(reportService.getCommissionReport);
 export const exportCommissionReport = exportGroupedReport({
