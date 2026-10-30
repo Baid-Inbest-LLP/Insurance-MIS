@@ -659,7 +659,7 @@ export const buildAgentClientWisePdf = ({
         <div class="title-block">${centerLogo ? `<img class="logo-center" src="${centerLogo}" alt="" />` : ""}<div class="title">${escapeHtml(title)}</div><div class="period">${escapeHtml(period || "")}</div></div>
         <div class="right-logo">${rightLogo ? `<img class="logo-right" src="${rightLogo}" alt="" />` : ""}</div>
       </div></th></tr>
-      <tr><th class="column-heading">SOURCE</th><th class="column-heading">OFFICE</th><th class="column-heading">REFERENCE</th><th class="column-heading">AGENT'S</th><th class="column-heading">NAME OF THE INSURED</th><th class="column-heading">NOP'S</th><th class="column-heading">TOTAL PREMIUM</th></tr>
+      <tr><th class="column-heading">SOURCE</th><th class="column-heading">OFFICE</th><th class="column-heading">REFERENCE</th><th class="column-heading">AGENT'S</th><th class="column-heading">NAME OF THE INSURED</th><th class="column-heading">NOP</th><th class="column-heading">TOTAL PREMIUM</th></tr>
     </thead>
     ${agentTableRows(rows)}
     <tfoot><tr class="grand-total"><td colspan="5" style="text-align:right">GRAND TOTAL</td><td class="number">${Number(totals.policies || 0).toLocaleString("en-IN")}</td><td class="number">${formatRupees(totals.premium)}</td></tr></tfoot>

@@ -39,6 +39,12 @@ const premiumColumns = (groupHeader, groupKey, includeCommission) => [
 	...(includeCommission ? [{ header: "Commission", key: "commission", width: 18, type: "currency" }] : []),
 ];
 
+// The operational PDF template uses the abbreviated policy-count heading,
+// while the UI and Excel workbook retain the more descriptive "Policies".
+const pdfColumns = (columns) => columns.map((column) =>
+	column.key === "policies" ? { ...column, header: "NOP" } : column,
+);
+
 const exportGroupedReport = ({ getReport, sheetName, title, filename, groupKey, columns }) =>
 	asyncHandler(async (req, res) => {
 		const report = await getReport({ actor: req.user, filters: req.validated.query });
@@ -63,7 +69,7 @@ const exportGroupedPdfReport = ({ getReport, title, filename, groupKey, columns 
 			title,
 			subtitle: agentReportPeriod(req.validated.query),
 			meta: reportMeta(req.validated.query),
-			columns: columns(req.user),
+			columns: pdfColumns(columns(req.user)),
 			rows: report.rows.map((row) => ({ ...row, [groupKey]: row[groupKey].name ?? "-" })),
 			totals: { ...report.totals, [groupKey]: "Total" },
 			companyInfo: report.companyInfo,
