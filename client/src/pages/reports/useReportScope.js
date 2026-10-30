@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMe } from '../../hooks/useAuth';
 import { useTransactionOptions } from '../../hooks/useTransactions';
 
-const NO_FILTERS = { branch: '', lob: '', insurer: '', businessType: '', agent: '' };
+const NO_FILTERS = { branch: '', lob: '', insurer: '', businessType: '', agent: '', source: '', productType: '' };
 
 // Filters whose choices are master items of one department, so they start again when the type changes.
 const DEPARTMENT_FILTERS = ['lob', 'insurer', 'businessType'];
@@ -14,10 +15,15 @@ const DEPARTMENT_FILTERS = ['lob', 'insurer', 'businessType'];
 // `onChange` runs after any filter changes, e.g. to go back to the first page.
 export default function useReportScope({ allTypes = false, onChange } = {}) {
   const { data: user } = useMe();
-  const [department, setDepartment] = useState('');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-  const [filters, setFilters] = useState(NO_FILTERS);
+  const [searchParams] = useSearchParams();
+  // Dashboard chart clicks pass their filters in the URL.  Initialise the
+  // shared report scope from it so the Transactions page is a real drill-down.
+  const [department, setDepartment] = useState(() => searchParams.get('department') ?? '');
+  const [from, setFrom] = useState(() => searchParams.get('from') ?? '');
+  const [to, setTo] = useState(() => searchParams.get('to') ?? '');
+  const [filters, setFilters] = useState(() =>
+    Object.fromEntries(Object.keys(NO_FILTERS).map((key) => [key, searchParams.get(key) ?? ''])),
+  );
 
   // The lookups are asked for once: with the user's only department when there is one (its master items come
   // along), then again for another department only when the user has more than one.

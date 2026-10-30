@@ -1603,6 +1603,72 @@
   color: #909296;
 }
 
+/* Dashboard cards use a few utility classes for their compact labels.  Those
+ * utilities are light-theme colours, so give the dashboard an explicit dark
+ * palette instead of leaving labels, values and chart axes nearly invisible. */
+[data-theme='dark'] #root .dashboard-card .text-gray-900,
+[data-theme='dark'] #root .dashboard-grid-4 .text-gray-900 {
+  color: #f1f3f5;
+}
+
+[data-theme='dark'] #root .dashboard-card .text-gray-700,
+[data-theme='dark'] #root .dashboard-card .text-gray-600,
+[data-theme='dark'] #root .dashboard-grid-4 .text-gray-500 {
+  color: #c1c2c5;
+}
+
+[data-theme='dark'] #root .dashboard-card .text-gray-500,
+[data-theme='dark'] #root .dashboard-muted,
+[data-theme='dark'] #root .dashboard-product-legend {
+  color: #a6a7ab;
+}
+
+[data-theme='dark'] #root .dashboard-card .bg-gray-100 {
+  background-color: #3b3d43;
+}
+
+[data-theme='dark'] #root .dashboard-card .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #45474d;
+}
+
+[data-theme='dark'] #root .dashboard-card button.hover\:bg-gray-50:hover {
+  background-color: #34363b;
+}
+
+[data-theme='dark'] #root .dashboard-tooltip {
+  background-color: #34363b;
+  border-color: #52545a;
+  color: #f1f3f5;
+}
+
+[data-theme='dark'] #root .dashboard-filters label {
+  color: #c1c2c5;
+}
+
+[data-theme='dark'] #root .dashboard-filters input {
+  background-color: #34363b;
+  border-color: #52545a;
+  color: #f1f3f5;
+  color-scheme: dark;
+}
+
+[data-theme='dark'] #root .dashboard-period-select {
+  background-color: #34363b;
+  border-color: #52545a;
+  color: #f1f3f5;
+}
+
+[data-theme='dark'] #root .dashboard-card .recharts-cartesian-axis-tick-value,
+[data-theme='dark'] #root .dashboard-card .recharts-legend-item-text {
+  fill: #b8bac0 !important;
+  color: #b8bac0 !important;
+}
+
+[data-theme='dark'] #root .dashboard-card .recharts-cartesian-axis-line,
+[data-theme='dark'] #root .dashboard-card .recharts-cartesian-axis-tick-line {
+  stroke: #52545a;
+}
+
 [data-theme='dark'] #root .stat-tile-label {
   color: #909296;
 }

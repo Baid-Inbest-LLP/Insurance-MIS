@@ -190,6 +190,8 @@ export const listTransactionsQuerySchema = z
     businessType: objectId('business type').optional(),
     lob: objectId('line of business').optional(),
     agent: objectId('agent').optional(),
+    productType: z.string().trim().min(1).max(100).optional(),
+    source: z.enum(SOURCES, { message: `Source must be one of: ${SOURCES.join(', ')}` }).optional(),
     from: date('From date').optional(),
     to: date('To date').optional(),
     search: z.string().trim().max(100).optional(),

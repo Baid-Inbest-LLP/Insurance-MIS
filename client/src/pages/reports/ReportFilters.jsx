@@ -2,6 +2,7 @@ import { DateInput } from '@mantine/dates';
 import { dateInputProps } from '../../components/common/form/DateField';
 
 const byName = (items) => (items ?? []).map((item) => ({ value: item._id, label: item.name }));
+const SOURCES = ['Sales', 'Agents', 'Direct', 'Telecalling', 'MD', 'Referral', 'Marketing', 'Others'];
 
 // The filters besides the type and the dates. `master` ones list one department's master items, so they need a
 // type to be chosen.
@@ -11,6 +12,8 @@ const FILTERS = [
   { key: 'insurer', all: 'All insurers', master: true, items: (options) => byName(options?.masters?.insurer) },
   { key: 'businessType', all: 'All business types', master: true, items: (options) => byName(options?.masters?.businessType) },
   { key: 'agent', all: 'All agents', items: (options) => byName(options?.agents) },
+  { key: 'source', all: 'All sources', items: () => SOURCES.map((source) => ({ value: source, label: source })) },
+  { key: 'productType', all: 'Product type', input: true },
 ];
 
 // Everything a list can be filtered by: the type (only when the user has more than one), the filters above
@@ -36,7 +39,16 @@ export default function ReportFilters({ scope, groupKey }) {
           ))}
         </select>
       )}
-      {offered.map((filter) => (
+      {offered.map((filter) => filter.input ? (
+        <input
+          key={filter.key}
+          className="input-field w-full sm:w-44"
+          value={filters[filter.key]}
+          onChange={(e) => scope.changeFilter(filter.key, e.target.value)}
+          placeholder={filter.all}
+          aria-label={filter.all}
+        />
+      ) : (
         <select
           key={filter.key}
           className="input-field w-full sm:w-44"

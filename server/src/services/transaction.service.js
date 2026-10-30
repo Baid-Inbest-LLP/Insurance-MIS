@@ -227,11 +227,14 @@ export const listTransactions = async ({ actor, filters }) => {
 	if (isStaffRole(actor.role)) {
 		if (department) assertCanWorkIn(actor, department);
 		query.department = department ?? { $in: actor.departments };
+		// Employees may work in an assigned department, but their policy list and
+		// dashboard drill-down must not expose another employee's client data.
+		if (!isHod(actor.role)) query.createdBy = actor._id;
 	} else if (department) {
 		query.department = department;
 	}
 	if (kind) query.kind = kind;
-	for (const field of ["branch", "insurer", "businessType", "lob", "agent"])
+	for (const field of ["branch", "insurer", "businessType", "lob", "agent", "source", "productType"])
 		if (filters[field]) query[field] = filters[field];
 	if (from || endExclusive)
 		query.policyDate = { ...(from && { $gte: from }), ...(endExclusive && { $lt: endExclusive }) };
@@ -264,6 +267,8 @@ export const getTransaction = async ({ id, actor }) => {
 	if (!transaction) throw ApiError.notFound("Policy not found");
 
 	assertCanWorkIn(actor, transaction.department);
+	if (isStaffRole(actor.role) && !isHod(actor.role) && !transaction.createdBy.equals(actor._id))
+		throw ApiError.forbidden("You do not have permission to view this policy");
 	const [dto] = await hydrate([transaction], { populate: DETAIL_POPULATE, toDto: toTransactionDto });
 	if (!canViewCommission(actor)) delete dto.commission;
 	return dto;
