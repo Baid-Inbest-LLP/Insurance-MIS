@@ -1,23 +1,27 @@
 import { DateInput } from '@mantine/dates';
 import { dateInputProps } from '../../components/common/form/DateField';
+import { SOURCES } from '../../constants/transactions';
 
 const byName = (items) => (items ?? []).map((item) => ({ value: item._id, label: item.name }));
 
-// The filters besides the type and the dates. `master` ones list one department's master items, so they need a
-// type to be chosen.
+const SOURCE_ITEMS = SOURCES.map((source) => ({ value: source, label: source }));
+
+// The filters besides the type and the dates. LOB, insurer and business type list one department's items, so they
+// have no choices until a type is chosen.
 const FILTERS = [
   { key: 'branch', all: 'All branches', items: (options) => (options?.branches ?? []).map((item) => ({ value: item._id, label: item.code })) },
-  { key: 'lob', all: 'All LOBs', master: true, items: (options) => byName(options?.masters?.lob) },
-  { key: 'insurer', all: 'All insurers', master: true, items: (options) => byName(options?.masters?.insurer) },
-  { key: 'businessType', all: 'All business types', master: true, items: (options) => byName(options?.masters?.businessType) },
+  { key: 'lob', all: 'All LOBs', items: (options) => byName(options?.masters?.lob) },
+  { key: 'insurer', all: 'All insurers', items: (options) => byName(options?.masters?.insurer) },
+  { key: 'businessType', all: 'All business types', items: (options) => byName(options?.masters?.businessType) },
+  { key: 'source', all: 'All sources', items: () => SOURCE_ITEMS },
   { key: 'agent', all: 'All agents', items: (options) => byName(options?.agents) },
 ];
 
-// Everything a list can be filtered by: the type (only when the user has more than one), the filters above
-// and the policy date range. The filter a report is grouped by (`groupKey`) is left out: its rows already list it.
+// The type (only when the user has more than one), the filters above and the policy date range. A report leaves
+// out the filter it is grouped by (`groupKey`).
 export default function ReportFilters({ scope, groupKey }) {
   const { departments, selected, allTypes, from, to, options, filters } = scope;
-  const offered = FILTERS.filter((filter) => filter.key !== groupKey && (!filter.master || selected));
+  const offered = FILTERS.filter((filter) => filter.key !== groupKey);
 
   return (
     <div className="card p-4 mb-4 flex flex-wrap items-center gap-2">

@@ -75,7 +75,7 @@ export default function TransactionListPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // The type, branch, LOB, insurer, business type, agent and date filters; a new one starts again from the first page.
+  // Type, filters and dates; changing one goes back to the first page.
   const scope = useReportScope({ allTypes: true, onChange: () => setPage(1) });
   const params = {
     page,

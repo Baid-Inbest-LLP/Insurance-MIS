@@ -28,6 +28,8 @@ export const date = (label) =>
 
 const optionalDate = (label) => z.preprocess(emptyToUndefined, date(label).optional());
 
+export const sourceSchema = z.enum(SOURCES, { message: `Source must be one of: ${SOURCES.join(', ')}` });
+
 const amount = (label) =>
   z
     .number({ required_error: `${label} is required`, invalid_type_error: `${label} must be a number` })
@@ -81,7 +83,7 @@ const sharedFields = {
   lob: objectId('line of business'),
   productType: optionalText('Product type', 100),
   agent: z.preprocess(emptyToUndefined, objectId('agent').optional()),
-  source: z.enum(SOURCES, { message: `Source must be one of: ${SOURCES.join(', ')}` }),
+  source: sourceSchema,
   netPremium: amount('Net premium'),
   gst: amount('GST'),
   premium: amount('Premium'),
@@ -190,6 +192,7 @@ export const listTransactionsQuerySchema = z
     businessType: objectId('business type').optional(),
     lob: objectId('line of business').optional(),
     agent: objectId('agent').optional(),
+    source: sourceSchema.optional(),
     from: date('From date').optional(),
     to: date('To date').optional(),
     search: z.string().trim().max(100).optional(),

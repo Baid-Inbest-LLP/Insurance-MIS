@@ -231,7 +231,7 @@ export const listTransactions = async ({ actor, filters }) => {
 		query.department = department;
 	}
 	if (kind) query.kind = kind;
-	for (const field of ["branch", "insurer", "businessType", "lob", "agent"])
+	for (const field of ["branch", "insurer", "businessType", "lob", "agent", "source"])
 		if (filters[field]) query[field] = filters[field];
 	if (from || endExclusive)
 		query.policyDate = { ...(from && { $gte: from }), ...(endExclusive && { $lt: endExclusive }) };

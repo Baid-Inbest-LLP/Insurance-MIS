@@ -2,15 +2,15 @@ import { useState } from 'react';
 import { useMe } from '../../hooks/useAuth';
 import { useTransactionOptions } from '../../hooks/useTransactions';
 
-const NO_FILTERS = { branch: '', lob: '', insurer: '', businessType: '', agent: '' };
+const NO_FILTERS = { branch: '', lob: '', insurer: '', businessType: '', agent: '', source: '' };
 
 // Filters whose choices are master items of one department, so they start again when the type changes.
 const DEPARTMENT_FILTERS = ['lob', 'insurer', 'businessType'];
 
 // What the reports and the transaction list share: the type (department), a policy date range, the filters
-// (branch, LOB, insurer, business type, agent) and the lookups that fill them.
-// A report always has one type selected; with `allTypes` a user who has several may leave it on "all types", and
-// then the filters that list one department's master items are not offered.
+// (branch, LOB, insurer, business type, source, agent) and the lookups that fill them.
+// A report always has one type selected; with `allTypes` the user may leave it on "all types", and then the
+// department-specific filters have no choices.
 // `onChange` runs after any filter changes, e.g. to go back to the first page.
 export default function useReportScope({ allTypes = false, onChange } = {}) {
   const { data: user } = useMe();

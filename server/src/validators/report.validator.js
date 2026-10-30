@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { date } from './transaction.validator.js';
+import { date, sourceSchema } from './transaction.validator.js';
 import { objectId } from './common.validator.js';
 
-// Every report is for one department and an optional policy-date range, and can be narrowed to a branch, line of
-// business, insurer, business type or agent.
+// Every report is for one department and an optional policy-date range, and can be narrowed by branch, LOB,
+// insurer, business type, agent or source.
 export const reportQuerySchema = z
   .object({
     department: objectId('department'),
@@ -14,6 +14,7 @@ export const reportQuerySchema = z
     insurer: objectId('insurer').optional(),
     businessType: objectId('business type').optional(),
     agent: objectId('agent').optional(),
+    source: sourceSchema.optional(),
   })
   .strict()
   .refine(({ from, to }) => !from || !to || to >= from, {
