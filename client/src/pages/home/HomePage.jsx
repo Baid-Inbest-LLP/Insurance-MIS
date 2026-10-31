@@ -6,9 +6,17 @@ import { useDashboard } from '../../hooks/useDashboard';
 import { formatCompactCurrency, formatCurrency, formatDate } from '../../utils/format';
 
 const COLORS = ['#0f6b8d', '#32875d', '#c38a29', '#7460a8', '#c46758', '#3f7fa7', '#a85c83', '#607d8b', '#b06c90', '#718b3d'];
+const MONTHLY_COLORS = ['#0f6b8d', '#178b9e', '#32875d', '#6a9f58', '#c38a29', '#cf7047', '#7460a8', '#aa5d82', '#3f7fa7', '#607d8b', '#718b3d', '#b06c90'];
+const COMPANY_COLORS = ['#6c5aa8', '#4d72b8', '#2786a8', '#218b7a', '#5e9a4b', '#bf8b32', '#c66d4d', '#a45a7f', '#718394'];
 const currentFinancialYear = () => {
-  const today = new Date();
-  return today.getMonth() < 3 ? today.getFullYear() - 1 : today.getFullYear();
+  const parts = new Intl.DateTimeFormat('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: 'numeric',
+  }).formatToParts();
+  const year = Number(parts.find((part) => part.type === 'year')?.value);
+  const month = Number(parts.find((part) => part.type === 'month')?.value);
+  return month < 4 ? year - 1 : year;
 };
 const fallbackFinancialYears = () => Array.from({ length: 6 }, (_, index) => {
   const year = currentFinancialYear() - index;
@@ -69,7 +77,10 @@ function DashboardPanel({ heading, section, years, className, children, onDrillD
   const params = useMemo(() => nonEmptyParams(periodParams(period)), [period]);
   const { data, isLoading, isError } = useDashboard({ ...params, section });
   const title = <><h2 className="dashboard-heading text-sm font-semibold text-gray-800">{heading}</h2><PeriodSelect value={period} onChange={setPeriod} years={years} /></>;
+  /*
   const body = isLoading ? <div className="dashboard-muted h-56 grid place-items-center text-sm text-gray-500">Loading…</div> : isError ? <div className="h-56 grid place-items-center text-sm text-red-500">Could not load this panel. Please retry.</div> : children({ data, drillDown: (extra = {}) => onDrillDown(params, extra) });
+  */
+  const body = isLoading ? <div className="dashboard-muted h-56 grid place-items-center text-sm text-gray-500">Loading&hellip;</div> : isError ? <div className="h-56 grid place-items-center text-sm text-red-500">Could not load this panel. Please retry.</div> : children({ data, drillDown: (extra = {}) => onDrillDown(params, extra) });
   return <ChartCard title={title} className={className}>{body}</ChartCard>;
 }
 
@@ -98,7 +109,7 @@ export default function HomePage() {
     <div className="dashboard-grid-trend-company">
       <DashboardPanel heading="Monthly Premium Collection" section="monthly" years={years} onDrillDown={drillDown}>{({ data }) => {
         const rows = data?.monthly.map((row) => ({ ...row, label: monthLabel(row.month) })) ?? [];
-        return rows.length ? <ResponsiveContainer width="100%" height={250}><BarChart data={rows}><XAxis dataKey="label" tick={{ fontSize: 12 }} /><YAxis tickFormatter={formatCompactCurrency} width={72} tick={{ fontSize: 11 }} /><Tooltip content={<PremiumTooltip />} cursor={false} /><Bar dataKey="premium" name="Premium" fill="#0f6b8d" radius={[4, 4, 0, 0]} activeBar={false} /></BarChart></ResponsiveContainer> : <EmptyChart />;
+        return rows.length ? <ResponsiveContainer width="100%" height={250}><BarChart data={rows}><XAxis dataKey="label" tick={{ fontSize: 12 }} /><YAxis tickFormatter={formatCompactCurrency} width={72} tick={{ fontSize: 11 }} /><Tooltip content={<PremiumTooltip />} cursor={false} /><Bar dataKey="premium" name="Premium" radius={[4, 4, 0, 0]} activeBar={false}>{rows.map((row, index) => <Cell key={row.month} fill={MONTHLY_COLORS[index % MONTHLY_COLORS.length]} />)}</Bar></BarChart></ResponsiveContainer> : <EmptyChart />;
       }}</DashboardPanel>
       <DashboardPanel heading="Product Types" section="products" years={years} onDrillDown={drillDown}>{({ data, drillDown: open }) => {
         const rows = topProductsWithOthers(data?.productTypes ?? []);
@@ -108,7 +119,7 @@ export default function HomePage() {
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
       <DashboardPanel heading="Companies Wise Premium" section="companies" years={years} className="xl:col-span-2" onDrillDown={drillDown}>{({ data, drillDown: open }) => {
         const rows = (data?.insurers ?? []).slice(0, 9).map((row) => ({ ...row, fullName: row.name, name: companyFirstWord(row.name) }));
-        return rows.length ? <ResponsiveContainer width="100%" height={300}><BarChart data={rows} layout="vertical" margin={{ left: 4, right: 12 }}><XAxis type="number" tickFormatter={formatCompactCurrency} /><YAxis type="category" dataKey="name" width={96} tick={{ fontSize: 11 }} /><Tooltip content={<PremiumTooltip />} cursor={false} /><Bar dataKey="premium" name="Premium" fill="#7460a8" radius={[0, 4, 4, 0]} activeBar={false} onClick={(row) => open({ insurer: row.id })} /></BarChart></ResponsiveContainer> : <EmptyChart />;
+        return rows.length ? <ResponsiveContainer width="100%" height={300}><BarChart data={rows} layout="vertical" margin={{ left: 4, right: 12 }}><XAxis type="number" tickFormatter={formatCompactCurrency} /><YAxis type="category" dataKey="name" width={96} tick={{ fontSize: 11 }} /><Tooltip content={<PremiumTooltip />} cursor={false} /><Bar dataKey="premium" name="Premium" radius={[0, 4, 4, 0]} activeBar={false} onClick={(row) => open({ insurer: row.id })}>{rows.map((row, index) => <Cell key={row.id} fill={COMPANY_COLORS[index % COMPANY_COLORS.length]} />)}</Bar></BarChart></ResponsiveContainer> : <EmptyChart />;
       }}</DashboardPanel>
       <div className="space-y-4"><DashboardPanel heading="Source Wise Premium" section="sources" years={years} onDrillDown={drillDown}>{({ data, drillDown: open }) => <Ranking rows={data?.sources ?? []} onSelect={(row) => open({ source: row.id })} />}</DashboardPanel><DashboardPanel heading="Office Wise Premium" section="offices" years={years} onDrillDown={drillDown}>{({ data, drillDown: open }) => <Ranking rows={data?.offices ?? []} onSelect={(row) => open({ branch: row.id })} />}</DashboardPanel></div>
     </div>

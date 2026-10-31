@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { date } from './transaction.validator.js';
 import { objectId } from './common.validator.js';
+import { SOURCES } from '../constants/transactions.js';
 
 export const DASHBOARD_SECTIONS = ['overview', 'monthly', 'products', 'companies', 'sources', 'offices', 'business-types', 'recent', 'years'];
 
@@ -17,6 +18,8 @@ export const dashboardQuerySchema = z
     insurer: objectId('insurer').optional(),
     businessType: objectId('business type').optional(),
     agent: objectId('agent').optional(),
+    source: z.enum(SOURCES, { message: `Source must be one of: ${SOURCES.join(', ')}` }).optional(),
+    productType: z.string().trim().min(1).max(100).optional(),
     section: z.enum(DASHBOARD_SECTIONS).optional(),
   })
   .strict()

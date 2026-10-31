@@ -6,18 +6,64 @@ import { toObjectId } from '../utils/mongoAggregation.js';
 
 const round = (value) => Math.round(((value ?? 0) + Number.EPSILON) * 100) / 100;
 const COMMISSION_AMOUNT = { $ifNull: ['$commission.totalCommission', '$commission.amount'] };
+const NORMALIZED_CLIENT_NAME = {
+  $toUpper: {
+    $trim: {
+      input: { $ifNull: ['$clientName', ''] },
+    },
+  },
+};
+
+const indiaCalendarParts = () => {
+  const parts = new Intl.DateTimeFormat('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  }).formatToParts();
+  return Object.fromEntries(parts.filter((part) => ['year', 'month', 'day'].includes(part.type)).map((part) => [part.type, Number(part.value)]));
+};
+
+const currentBusinessDate = () => {
+  const { year, month, day } = indiaCalendarParts();
+  return new Date(Date.UTC(year, month - 1, day));
+};
 
 const startOfFinancialYear = () => {
-  const now = new Date();
-  const year = now.getUTCFullYear() - (now.getUTCMonth() < 3 ? 1 : 0);
-  return new Date(Date.UTC(year, 3, 1));
+  const { year, month } = indiaCalendarParts();
+  const financialYear = month < 4 ? year - 1 : year;
+  return new Date(Date.UTC(financialYear, 3, 1));
+};
+
+const dashboardDateRange = (filters) => {
+  const from = filters.from ?? startOfFinancialYear();
+  const to = filters.to ?? currentBusinessDate();
+  const endExclusive = new Date(to.getTime());
+  endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
+  return { from, to, endExclusive };
+};
+
+const completeMonthlySeries = (monthly, { from, to }) => {
+  const byMonth = new Map(monthly.map((row) => [`${row._id.year}-${String(row._id.month).padStart(2, '0')}`, row]));
+  const cursor = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), 1));
+  const lastMonth = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), 1));
+  const result = [];
+
+  while (cursor <= lastMonth) {
+    const year = cursor.getUTCFullYear();
+    const month = cursor.getUTCMonth() + 1;
+    const key = `${year}-${String(month).padStart(2, '0')}`;
+    const row = byMonth.get(key);
+    result.push({ month: key, policies: row?.policies ?? 0, premium: round(row?.premium) });
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+  }
+
+  return result;
 };
 
 const dashboardMatch = (actor, filters) => {
   if (filters.department) assertCanWorkIn(actor, filters.department);
-  const from = filters.from ?? startOfFinancialYear();
-  const endExclusive = filters.to && new Date(filters.to.getTime());
-  if (endExclusive) endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
+  const { from, endExclusive } = dashboardDateRange(filters);
 
   return {
     deletedAt: null,
@@ -31,6 +77,8 @@ const dashboardMatch = (actor, filters) => {
         .filter((field) => filters[field])
         .map((field) => [field, toObjectId(filters[field])]),
     ),
+    ...(filters.source && { source: filters.source }),
+    ...(filters.productType && { productType: filters.productType }),
     policyDate: { $gte: from, ...(endExclusive && { $lt: endExclusive }) },
   };
 };
@@ -91,7 +139,7 @@ export const getDashboardSection = async ({ actor, filters }) => {
   if (section === 'overview') {
     const [summary] = await Transaction.aggregate([
       { $match: match },
-      { $group: { _id: null, policies: { $sum: 1 }, premium: { $sum: '$premium' }, commission: { $sum: COMMISSION_AMOUNT }, clients: { $addToSet: '$clientName' } } },
+      { $group: { _id: null, policies: { $sum: 1 }, premium: { $sum: '$premium' }, commission: { $sum: COMMISSION_AMOUNT }, clients: { $addToSet: NORMALIZED_CLIENT_NAME } } },
     ]);
     return withMeta({ kpis: {
       policies: summary?.policies ?? 0,
@@ -107,7 +155,7 @@ export const getDashboardSection = async ({ actor, filters }) => {
       { $group: { _id: { year: { $year: '$policyDate' }, month: { $month: '$policyDate' } }, policies: { $sum: 1 }, premium: { $sum: '$premium' } } },
       { $sort: { '_id.year': 1, '_id.month': 1 } },
     ]);
-    return withMeta({ monthly: monthly.map((row) => ({ month: `${row._id.year}-${String(row._id.month).padStart(2, '0')}`, policies: row.policies, premium: round(row.premium) })) });
+    return withMeta({ monthly: completeMonthlySeries(monthly, dashboardDateRange(filters)) });
   }
 
   if (section === 'products') {
@@ -164,7 +212,7 @@ export const getDashboard = async ({ actor, filters }) => {
             premium: { $sum: '$premium' },
             netPremium: { $sum: '$netPremium' },
             commission: { $sum: COMMISSION_AMOUNT },
-            clients: { $addToSet: '$clientName' },
+            clients: { $addToSet: NORMALIZED_CLIENT_NAME },
           },
         },
       ]),
@@ -220,11 +268,7 @@ export const getDashboard = async ({ actor, filters }) => {
       activeClients: summary.clients.filter(Boolean).length,
       ...(includeCommission && { commission: round(summary.commission) }),
     },
-    monthly: monthly.map((row) => ({
-      month: `${row._id.year}-${String(row._id.month).padStart(2, '0')}`,
-      policies: row.policies,
-      premium: round(row.premium),
-    })),
+    monthly: completeMonthlySeries(monthly, dashboardDateRange(filters)),
     insurers: namedRows(insurerGroups, insurers).slice(0, 10),
     lobs: namedRows(lobGroups, lobs),
     offices: namedRows(branchGroups, branchNames),
