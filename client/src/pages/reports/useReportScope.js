@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useMe } from '../../hooks/useAuth';
 import { useTransactionOptions } from '../../hooks/useTransactions';
+import { getFinancialYearRange } from '../../utils/financialYear';
 
 const NO_FILTERS = { branch: '', lob: '', insurer: '', businessType: '', agent: '', source: '', productType: '' };
 
@@ -16,11 +17,12 @@ const DEPARTMENT_FILTERS = ['lob', 'insurer', 'businessType'];
 export default function useReportScope({ allTypes = false, onChange } = {}) {
   const { data: user } = useMe();
   const [searchParams] = useSearchParams();
+  const defaultDateRange = getFinancialYearRange();
   // Dashboard chart clicks pass their filters in the URL.  Initialise the
   // shared report scope from it so the Transactions page is a real drill-down.
   const [department, setDepartment] = useState(() => searchParams.get('department') ?? '');
-  const [from, setFrom] = useState(() => searchParams.get('from') ?? '');
-  const [to, setTo] = useState(() => searchParams.get('to') ?? '');
+  const [from, setFrom] = useState(() => searchParams.get('from') ?? defaultDateRange.from);
+  const [to, setTo] = useState(() => searchParams.get('to') ?? defaultDateRange.to);
   const [filters, setFilters] = useState(() =>
     Object.fromEntries(Object.keys(NO_FILTERS).map((key) => [key, searchParams.get(key) ?? ''])),
   );

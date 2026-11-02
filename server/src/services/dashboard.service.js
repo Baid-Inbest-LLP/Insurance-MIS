@@ -3,6 +3,7 @@ import { MASTER_FIELDS } from '../constants/transactions.js';
 import { ROLES, isStaffRole } from '../constants/roles.js';
 import { assertCanWorkIn, canViewCommission } from './transaction.service.js';
 import { toObjectId } from '../utils/mongoAggregation.js';
+import { getFinancialYearStart, getIndiaBusinessDate } from '../utils/financialYear.js';
 
 const round = (value) => Math.round(((value ?? 0) + Number.EPSILON) * 100) / 100;
 const COMMISSION_AMOUNT = { $ifNull: ['$commission.totalCommission', '$commission.amount'] };
@@ -14,30 +15,9 @@ const NORMALIZED_CLIENT_NAME = {
   },
 };
 
-const indiaCalendarParts = () => {
-  const parts = new Intl.DateTimeFormat('en-IN', {
-    timeZone: 'Asia/Kolkata',
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-  }).formatToParts();
-  return Object.fromEntries(parts.filter((part) => ['year', 'month', 'day'].includes(part.type)).map((part) => [part.type, Number(part.value)]));
-};
-
-const currentBusinessDate = () => {
-  const { year, month, day } = indiaCalendarParts();
-  return new Date(Date.UTC(year, month - 1, day));
-};
-
-const startOfFinancialYear = () => {
-  const { year, month } = indiaCalendarParts();
-  const financialYear = month < 4 ? year - 1 : year;
-  return new Date(Date.UTC(financialYear, 3, 1));
-};
-
 const dashboardDateRange = (filters) => {
-  const from = filters.from ?? startOfFinancialYear();
-  const to = filters.to ?? currentBusinessDate();
+  const from = filters.from ?? getFinancialYearStart();
+  const to = filters.to ?? getIndiaBusinessDate();
   const endExclusive = new Date(to.getTime());
   endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
   return { from, to, endExclusive };
@@ -113,6 +93,7 @@ const namedRows = (groups, names) =>
   groups.map((group) => ({
     id: group._id ? String(group._id) : null,
     name: names.get(String(group._id)) ?? 'Unspecified',
+    isDrillable: Boolean(group._id),
     policies: group.policies,
     premium: round(group.premium),
   }));
@@ -123,6 +104,15 @@ export const getDashboardSection = async ({ actor, filters }) => {
   const { match, departmentIds, includeCommission } = dashboardContext(actor, filters);
   const section = filters.section;
   const withMeta = (data) => ({ permissions: { commission: includeCommission }, ...data });
+
+  if (section === 'initial') {
+    const { section: _section, ...dashboardFilters } = filters;
+    const [dashboard, years] = await Promise.all([
+      getDashboard({ actor, filters: dashboardFilters }),
+      getDashboardSection({ actor, filters: { ...dashboardFilters, section: 'years' } }),
+    ]);
+    return { ...dashboard, years: years.years };
+  }
 
   if (section === 'years') {
     const { policyDate: _policyDate, ...accessMatch } = match;
@@ -160,12 +150,12 @@ export const getDashboardSection = async ({ actor, filters }) => {
 
   if (section === 'products') {
     const groups = await Transaction.aggregate([{ $match: match }, ...groupBy('productType')]);
-    return withMeta({ productTypes: groups.map((group) => ({ id: group._id || null, name: group._id || 'Unspecified', policies: group.policies, premium: round(group.premium) })) });
+    return withMeta({ productTypes: groups.map((group) => ({ id: group._id || null, name: group._id || 'Unspecified', isDrillable: Boolean(group._id), policies: group.policies, premium: round(group.premium) })) });
   }
 
   if (section === 'sources') {
     const groups = await Transaction.aggregate([{ $match: match }, ...groupBy('source')]);
-    return withMeta({ sources: groups.map((group) => ({ id: group._id, name: group._id || 'Unspecified', policies: group.policies, premium: round(group.premium) })) });
+    return withMeta({ sources: groups.map((group) => ({ id: group._id || null, name: group._id || 'Unspecified', isDrillable: Boolean(group._id), policies: group.policies, premium: round(group.premium) })) });
   }
 
   if (section === 'companies' || section === 'business-types') {
@@ -260,21 +250,21 @@ export const getDashboard = async ({ actor, filters }) => {
 
   return {
     permissions: { commission: includeCommission },
-    appliedFilters: { ...filters, from: filters.from ?? startOfFinancialYear() },
+    appliedFilters: { ...filters, from: filters.from ?? getFinancialYearStart() },
     kpis: {
       policies: summary.policies,
       premium: round(summary.premium),
       netPremium: round(summary.netPremium),
-      activeClients: summary.clients.filter(Boolean).length,
+      activeClientNames: summary.clients.filter(Boolean).length,
       ...(includeCommission && { commission: round(summary.commission) }),
     },
     monthly: completeMonthlySeries(monthly, dashboardDateRange(filters)),
     insurers: namedRows(insurerGroups, insurers).slice(0, 10),
     lobs: namedRows(lobGroups, lobs),
     offices: namedRows(branchGroups, branchNames),
-    sources: sourceGroups.map((group) => ({ id: group._id, name: group._id || 'Unspecified', policies: group.policies, premium: round(group.premium) })),
+    sources: sourceGroups.map((group) => ({ id: group._id || null, name: group._id || 'Unspecified', isDrillable: Boolean(group._id), policies: group.policies, premium: round(group.premium) })),
     businessTypes: namedRows(businessGroups, businesses),
-    productTypes: productGroups.map((group) => ({ id: group._id, name: group._id || 'Unspecified', policies: group.policies, premium: round(group.premium) })),
+    productTypes: productGroups.map((group) => ({ id: group._id || null, name: group._id || 'Unspecified', isDrillable: Boolean(group._id), policies: group.policies, premium: round(group.premium) })),
     recentPolicies: recent.map((row) => ({
       _id: row._id,
       policyDate: row.policyDate,

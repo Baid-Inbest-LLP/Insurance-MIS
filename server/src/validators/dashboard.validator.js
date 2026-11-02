@@ -3,7 +3,7 @@ import { date } from './transaction.validator.js';
 import { objectId } from './common.validator.js';
 import { SOURCES } from '../constants/transactions.js';
 
-export const DASHBOARD_SECTIONS = ['overview', 'monthly', 'products', 'companies', 'sources', 'offices', 'business-types', 'recent', 'years'];
+export const DASHBOARD_SECTIONS = ['initial', 'overview', 'monthly', 'products', 'companies', 'sources', 'offices', 'business-types', 'recent', 'years'];
 
 // Dashboard filters are deliberately optional.  The server derives the user's
 // permitted departments from their authenticated account; this optional value

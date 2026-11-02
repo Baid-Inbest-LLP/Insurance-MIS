@@ -45,9 +45,15 @@ const pdfColumns = (columns) => columns.map((column) =>
 	column.key === "policies" ? { ...column, header: "NOP" } : column,
 );
 
+// Reports shown on screen and their exports must be evaluated with exactly the
+// same authenticated, validated request scope. Keep that hand-off in one place
+// so a future export cannot accidentally omit a filter.
+const loadReport = (getReport, req) =>
+	getReport({ actor: req.user, filters: req.validated.query });
+
 const exportGroupedReport = ({ getReport, sheetName, title, filename, groupKey, columns }) =>
 	asyncHandler(async (req, res) => {
-		const report = await getReport({ actor: req.user, filters: req.validated.query });
+		const report = await loadReport(getReport, req);
 		const workbook = buildBrandedWorkbook({
 			sheetName,
 			title,
@@ -64,7 +70,7 @@ const exportGroupedReport = ({ getReport, sheetName, title, filename, groupKey, 
 // while retaining their own concise columns and totals.
 const exportGroupedPdfReport = ({ getReport, title, filename, groupKey, columns }) =>
 	asyncHandler(async (req, res) => {
-		const report = await getReport({ actor: req.user, filters: req.validated.query });
+		const report = await loadReport(getReport, req);
 		const pdf = await buildBrandedPdf({
 			title,
 			subtitle: agentReportPeriod(req.validated.query),
@@ -81,7 +87,7 @@ const exportGroupedPdfReport = ({ getReport, title, filename, groupKey, columns 
 
 const reportHandler = (getReport) =>
 	asyncHandler(async (req, res) => {
-		const report = await getReport({ actor: req.user, filters: req.validated.query });
+		const report = await loadReport(getReport, req);
 
 		ApiResponse.success(res, report);
 	});
@@ -91,10 +97,7 @@ export const getLobWiseReport = reportHandler(reportService.getLobWiseReport);
 
 // Downloads the same LOB report visible in the UI as a branded Excel workbook.
 export const exportLobWiseReport = asyncHandler(async (req, res) => {
-	const report = await reportService.getLobWiseReport({
-		actor: req.user,
-		filters: req.validated.query,
-	});
+	const report = await loadReport(reportService.getLobWiseReport, req);
 	const includeCommission = canViewCommission(req.user);
 	const workbook = buildBrandedWorkbook({
 		sheetName: "LOB Wise",
@@ -140,10 +143,7 @@ export const getAgentWiseReport = reportHandler(reportService.getAgentWiseReport
 // Downloads the detailed source-to-client report in the layout used by the
 // operations Agent / Branch / Client report.
 export const exportAgentWiseReport = asyncHandler(async (req, res) => {
-	const report = await reportService.getAgentClientWiseReport({
-		actor: req.user,
-		filters: req.validated.query,
-	});
+	const report = await loadReport(reportService.getAgentClientWiseReport, req);
 	const workbook = buildAgentClientWiseWorkbook({
 		sheetName: "Agent Client Wise",
 		title: "AGENT - BRANCH - CLIENT WISE SOURCE REPORT",
@@ -159,10 +159,7 @@ export const exportAgentWiseReport = asyncHandler(async (req, res) => {
 // The Agent tab alone also offers the portrait client-wise source report in the
 // operational PDF layout supplied by the business team.
 export const exportAgentWisePdfReport = asyncHandler(async (req, res) => {
-	const report = await reportService.getAgentClientWiseReport({
-		actor: req.user,
-		filters: req.validated.query,
-	});
+	const report = await loadReport(reportService.getAgentClientWiseReport, req);
 	const pdf = await buildAgentClientWisePdf({
 		title: `${report.departmentCode || "GI"} - BR - CLIENT WISE AGENTS SOURCE REPORT`,
 		period: agentReportPeriod(req.validated.query),
