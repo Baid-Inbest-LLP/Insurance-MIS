@@ -136,9 +136,9 @@ export const getAgentClientWiseReport = async ({ actor, filters }) => {
 	};
 };
 
-// The department's live transactions in a policy date range; `ids` are further filters on id fields (branch, lob,
-// insurer, businessType, agent) and `source` is matched by name.
-const reportMatch = ({ department, from, to, source, ...ids }) => {
+// The department's live transactions in a policy date range. Master references
+// are ObjectIds; source and product type are stored as plain strings.
+const reportMatch = ({ department, from, to, source, productType, ...ids }) => {
 	// Dates from the query are midnight UTC. Use the next midnight as an
 	// exclusive boundary so the selected end date includes its whole day.
 	const endExclusive = to && new Date(to.getTime());
@@ -147,8 +147,9 @@ const reportMatch = ({ department, from, to, source, ...ids }) => {
 	return {
 		deletedAt: null,
 		department: toObjectId(department),
-		...(source && { source }),
 		...Object.fromEntries(Object.entries(ids).map(([field, id]) => [field, toObjectId(id)])),
+		...(source && { source }),
+		...(productType && { productType }),
 		...((from || endExclusive) && {
 			policyDate: { ...(from && { $gte: from }), ...(endExclusive && { $lt: endExclusive }) },
 		}),

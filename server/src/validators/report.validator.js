@@ -14,7 +14,9 @@ export const reportQuerySchema = z
     insurer: objectId('insurer').optional(),
     businessType: objectId('business type').optional(),
     agent: objectId('agent').optional(),
+    // Plain transaction fields, not master-item ids. Used by the shared report filter bar and dashboard drill-down links.
     source: sourceSchema.optional(),
+    productType: z.string().trim().min(1).max(100).optional(),
   })
   .strict()
   .refine(({ from, to }) => !from || !to || to >= from, {
