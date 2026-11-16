@@ -27,6 +27,7 @@ const navItems = [
       { to: ROUTES.REPORT_OFFICE_WISE, label: 'Office Wise Report' },
       { to: ROUTES.REPORT_AGENT_WISE, label: 'Agent Wise Report' },
       { to: ROUTES.REPORT_INSURER_WISE, label: 'Insurer Wise Report' },
+      { to: ROUTES.REPORT_SOURCE_WISE, label: 'Source Wise Report' },
       { to: ROUTES.REPORT_COMMISSION, label: 'Commission Report', roles: COMMISSION_VIEW_ROLES },
     ],
   },

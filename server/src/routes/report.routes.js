@@ -16,12 +16,15 @@ router.get("/agent-wise/export", validate(reportQuerySchema, "query"), reports.e
 router.get("/agent-wise/export/pdf", validate(reportQuerySchema, "query"), reports.exportAgentWisePdfReport);
 router.get("/insurer-wise/export", validate(reportQuerySchema, "query"), reports.exportInsurerWiseReport);
 router.get("/insurer-wise/export/pdf", validate(reportQuerySchema, "query"), reports.exportInsurerWisePdfReport);
+router.get("/source-wise/export", validate(reportQuerySchema, "query"), reports.exportSourceWiseReport);
+router.get("/source-wise/export/pdf", validate(reportQuerySchema, "query"), reports.exportSourceWisePdfReport);
 router.get("/commission/export", validate(reportQuerySchema, "query"), reports.exportCommissionReport);
 router.get("/commission/export/pdf", validate(reportQuerySchema, "query"), reports.exportCommissionPdfReport);
 router.get("/lob-wise", validate(reportQuerySchema, "query"), reports.getLobWiseReport);
 router.get("/office-wise", validate(reportQuerySchema, "query"), reports.getOfficeWiseReport);
 router.get("/insurer-wise", validate(reportQuerySchema, "query"), reports.getInsurerWiseReport);
 router.get("/agent-wise", validate(reportQuerySchema, "query"), reports.getAgentWiseReport);
+router.get("/source-wise", validate(reportQuerySchema, "query"), reports.getSourceWiseReport);
 router.get("/commission", validate(reportQuerySchema, "query"), reports.getCommissionReport);
 
 export default router;

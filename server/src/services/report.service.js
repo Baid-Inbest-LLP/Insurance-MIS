@@ -147,6 +147,7 @@ const reportMatch = ({ department, from, to, source, productType, ...ids }) => {
 	return {
 		deletedAt: null,
 		department: toObjectId(department),
+		...(source && { source }),
 		...Object.fromEntries(Object.entries(ids).map(([field, id]) => [field, toObjectId(id)])),
 		...(source && { source }),
 		...(productType && { productType }),
@@ -159,7 +160,7 @@ const reportMatch = ({ department, from, to, source, productType, ...ids }) => {
 // One row per `groupField` value in a department, with the `sums` accumulated per group and their totals.
 // `filters` holds the department, the policy date range and the report's own extra filter; `scope` narrows the
 // transactions further.
-const summarize = async ({ actor, filters, groupField, loadNames, sums, scope = {} }) => {
+const summarize = async ({ actor, filters, groupField, loadNames, sums, scope = {}, lastName }) => {
 	assertCanWorkIn(actor, filters.department);
 
 	const groups = await Transaction.aggregate([
@@ -176,7 +177,11 @@ const summarize = async ({ actor, filters, groupField, loadNames, sums, scope = 
 			[groupField]: { _id, name: names.get(String(_id)) ?? null },
 			...Object.fromEntries(fields.map((field) => [field, round(values[field])])),
 		}))
-		.sort((a, b) => (a[groupField].name ?? "").localeCompare(b[groupField].name ?? ""));
+		.sort(
+			(a, b) =>
+				(a[groupField].name === lastName) - (b[groupField].name === lastName) ||
+				(a[groupField].name ?? "").localeCompare(b[groupField].name ?? ""),
+		);
 
 	return {
 		rows,
@@ -185,9 +190,10 @@ const summarize = async ({ actor, filters, groupField, loadNames, sums, scope = 
 	};
 };
 
-// Policies and premium per group, and commission too for those who may see it. `scope` narrows the transactions.
+// Policies and premium per group, and commission too for those who may see it. `scope` narrows the transactions;
+// the group named `lastName` is listed last.
 const premiumReport =
-	(groupField, loadNames, scope) =>
+	(groupField, loadNames, { scope, lastName } = {}) =>
 	({ actor, filters }) =>
 		summarize({
 			actor,
@@ -195,6 +201,7 @@ const premiumReport =
 			groupField,
 			loadNames,
 			scope,
+			lastName,
 			sums: {
 				policies: { $sum: 1 },
 				netPremium: { $sum: "$netPremium" },
@@ -209,9 +216,16 @@ export const getLobWiseReport = premiumReport("lob", masterNames("lob"));
 export const getOfficeWiseReport = premiumReport("branch", branchNames);
 
 // Only entries that have an agent; those from other sources (direct, sales, ...) have none and would form a nameless row.
-export const getAgentWiseReport = premiumReport("agent", agentNames, { $and: [{ agent: { $ne: null } }] });
+export const getAgentWiseReport = premiumReport("agent", agentNames, { scope: { $and: [{ agent: { $ne: null } }] } });
 
 export const getInsurerWiseReport = premiumReport("insurer", masterNames("insurer"));
+
+// A source is stored by name, so each group is named by its own value.
+export const getSourceWiseReport = premiumReport(
+	"source",
+	async ({ ids }) => new Map(ids.map((id) => [String(id), id])),
+	{ lastName: "Others" },
+);
 
 const commissionOf = (status) => ({
 	$sum: { $cond: [{ $eq: ["$commission.status", status] }, COMMISSION_AMOUNT, 0] },

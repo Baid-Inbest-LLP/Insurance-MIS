@@ -16,6 +16,7 @@ export const ROUTES = {
   REPORT_OFFICE_WISE: '/reports/office-wise',
   REPORT_AGENT_WISE: '/reports/agent-wise',
   REPORT_INSURER_WISE: '/reports/insurer-wise',
+  REPORT_SOURCE_WISE: '/reports/source-wise',
   REPORT_COMMISSION: '/reports/commission',
   CONTROL_CENTER: '/control-center',
   CONTROL_CENTER_COMPANIES: '/control-center/companies',

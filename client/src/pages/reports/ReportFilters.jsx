@@ -14,8 +14,10 @@ const SOURCES = [
   "Others",
 ];
 
-// The filters besides the type and the dates. `master` ones list one department's master items, so they need a
-// type to be chosen.
+const SOURCE_ITEMS = SOURCES.map((source) => ({ value: source, label: source }));
+
+// The filters besides the type and the dates. LOB, insurer and business type list one department's items, so they
+// have no choices until a type is chosen.
 const FILTERS = [
   {
     key: "branch",
@@ -57,8 +59,8 @@ const FILTERS = [
   { key: "productType", all: "Product type", input: true },
 ];
 
-// Everything a list can be filtered by: the type (only when the user has more than one), the filters above
-// and the policy date range. The filter a report is grouped by (`groupKey`) is left out: its rows already list it.
+// The type (only when the user has more than one), the filters above and the policy date range. A report leaves
+// out the filter it is grouped by (`groupKey`).
 export default function ReportFilters({ scope, groupKey }) {
   const { departments, selected, allTypes, from, to, options, filters } = scope;
   const offered = FILTERS.filter(
