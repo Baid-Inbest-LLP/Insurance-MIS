@@ -1,0 +1,15 @@
+# Production (AWS EC2): API server only. The frontend is hosted on AWS Amplify.
+# Run on the server with:  docker compose -f docker-compose.prod.yml up -d --build
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: insurance-mis-server
+    restart: unless-stopped
+    env_file: ./server/.env
+    # Only reachable from the EC2 machine itself; Caddy handles public HTTPS traffic.
+    ports:
+      - '127.0.0.1:5004:5004'
+    volumes:
+      - ./server/uploads:/app/uploads
