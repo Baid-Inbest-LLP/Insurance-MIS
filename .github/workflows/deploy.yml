@@ -1,0 +1,50 @@
+name: Deploy to EC2 and Amplify
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-backend:
+    name: Deploy Backend to EC2
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to EC2
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          cd ~/app
+          git pull origin main
+          docker compose -f docker-compose.prod.yml up -d --build
+          docker compose -f docker-compose.prod.yml logs server | head -20
+          EOF
+
+      - name: Health check
+        run: |
+          sleep 10
+          curl -f https://13-205-55-157.sslip.io/api/v1/health || exit 1
+
+  notify:
+    name: Notify Deployment
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [deploy-backend]
+    steps:
+      - name: Deployment status
+        run: |
+          if [ "${{ needs.deploy-backend.result }}" == "success" ]; then
+            echo "✅ Backend deployed successfully to EC2"
+          else
+            echo "❌ Backend deployment failed"
+            exit 1
+          fi
