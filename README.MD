@@ -80,3 +80,4 @@ Users are created from **Settings** with one of these roles: `superadmin`, `admi
 
 1. **Server:** `models/X.js` → `validators/x.validator.js` → `services/x.service.js` → `controllers/x.controller.js` → `routes/x.routes.js`, then mount it in `routes/index.js`.
 2. **Client:** `api/x.api.js` → `hooks/useX.js` (add keys to `lib/queryKeys.js`) → `pages/x/*`, then add the route in `App.jsx`, the path in `constants/index.js` and a nav item in `components/layout/Sidebar.jsx`.
+# CI/CD is live
