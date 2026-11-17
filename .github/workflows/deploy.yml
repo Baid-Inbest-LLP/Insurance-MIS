@@ -1,38 +1,66 @@
-name: Deploy to EC2 and Amplify
+name: Deploy to EC2
 
 on:
   push:
     branches:
       - main
 
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy-backend:
     name: Deploy Backend to EC2
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://13-205-55-157.sslip.io/api/v1/health
+    env:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_USER: ${{ secrets.EC2_USER }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Setup SSH
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          set -euo pipefail
+          : "${EC2_HOST:?Missing EC2_HOST secret}"
+          : "${EC2_USER:?Missing EC2_USER secret}"
+          : "${EC2_SSH_KEY:?Missing EC2_SSH_KEY secret}"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -T 10 -H "$EC2_HOST" >> ~/.ssh/known_hosts
 
       - name: Deploy to EC2
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            -i ~/.ssh/deploy_key "$EC2_USER@$EC2_HOST" 'bash -se' << 'EOF'
+          set -euo pipefail
           cd ~/app
-          git pull origin main
+          test "$(git branch --show-current)" = main
+          test -f server/.env
+          git pull --ff-only origin main
+          docker compose -f docker-compose.prod.yml config --quiet
           docker compose -f docker-compose.prod.yml up -d --build
-          docker compose -f docker-compose.prod.yml logs server | head -20
+          docker compose -f docker-compose.prod.yml logs --tail=20 server
           EOF
 
       - name: Health check
         run: |
-          sleep 10
-          curl -f https://13-205-55-157.sslip.io/api/v1/health || exit 1
+          curl --fail --show-error --silent \
+            --connect-timeout 10 --max-time 20 \
+            --retry 12 --retry-delay 5 --retry-all-errors --retry-max-time 180 \
+            https://13-205-55-157.sslip.io/api/v1/health
+
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
 
   notify:
     name: Notify Deployment

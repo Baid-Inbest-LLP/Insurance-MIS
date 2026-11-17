@@ -8,6 +8,9 @@ services:
     container_name: insurance-mis-server
     restart: unless-stopped
     env_file: ./server/.env
+    environment:
+      NODE_ENV: production
+      PORT: '5004'
     # Only reachable from the EC2 machine itself; Caddy handles public HTTPS traffic.
     ports:
       - '127.0.0.1:5004:5004'
