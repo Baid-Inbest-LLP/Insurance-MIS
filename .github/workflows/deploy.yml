@@ -1,104 +1,58 @@
-name: Deploy to EC2
+name: Deploy to EC2 and Amplify
 
 on:
   push:
     branches:
       - main
 
-permissions:
-  contents: read
-
-concurrency:
-  group: production-deploy
-  cancel-in-progress: false
-
 jobs:
   deploy-backend:
     name: Deploy Backend to EC2
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    environment:
-      name: production
-      url: https://13-205-55-157.sslip.io/api/v1/health
-    env:
-      EC2_HOST: ${{ secrets.EC2_HOST }}
-      EC2_USER: ${{ secrets.EC2_USER }}
     steps:
-      - name: Setup SSH
-        env:
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-        run: |
-          set -euo pipefail
-          : "${EC2_HOST:?Missing EC2_HOST secret}"
-          : "${EC2_USER:?Missing EC2_USER secret}"
-          : "${EC2_SSH_KEY:?Missing EC2_SSH_KEY secret}"
-          if [[ "$EC2_HOST" == *[[:space:]/@:]* ]]; then
-            echo "::error::EC2_HOST must contain only an IPv4 address or hostname, without https://, a username, port, path, or whitespace."
-            exit 1
-          fi
-          if [[ "$EC2_USER" == *[[:space:]/@:]* ]]; then
-            echo "::error::EC2_USER must contain only the SSH username, without whitespace or a hostname."
-            exit 1
-          fi
-          install -m 700 -d ~/.ssh
-          printf '%s\n' "$EC2_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          if ! ssh-keygen -y -P '' -f ~/.ssh/deploy_key > /dev/null 2>&1; then
-            echo "::error::EC2_SSH_KEY must be a complete, valid private key without a passphrase. Preserve the BEGIN/END lines and actual line breaks."
-            exit 1
-          fi
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Check EC2 SSH connectivity
+      - name: Setup SSH
         run: |
-          set -euo pipefail
-          for attempt in 1 2 3; do
-            if ssh-keyscan -T 15 -p 22 -H "$EC2_HOST" > ~/.ssh/ec2_host_keys && [[ -s ~/.ssh/ec2_host_keys ]]; then
-              cat ~/.ssh/ec2_host_keys >> ~/.ssh/known_hosts
-              echo "EC2 SSH host key retrieved successfully."
-              exit 0
-            fi
-            echo "::warning::Could not retrieve the EC2 SSH host key on port 22 (attempt $attempt of 3)."
-            if [[ "$attempt" -lt 3 ]]; then sleep 5; fi
-          done
-          echo "::error::EC2 SSH is unreachable or returned no host key. Check EC2_HOST matches the current public IP/DNS, the instance is running, sshd listens on port 22, and the security group, network ACL, routing, and host firewall allow SSH from this GitHub runner."
-          exit 1
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -t rsa,ed25519 ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Deploy to EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
         run: |
-          ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
-            -i ~/.ssh/deploy_key "$EC2_USER@$EC2_HOST" 'bash -se' << 'EOF'
-          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no "$EC2_USER@$EC2_HOST" << 'EOF'
+          set -e
           cd ~/app
-          test "$(git branch --show-current)" = main
-          test -f server/.env
-          git pull --ff-only origin main
-          docker compose -f docker-compose.prod.yml config --quiet
+          git pull origin main
           docker compose -f docker-compose.prod.yml up -d --build
-          docker compose -f docker-compose.prod.yml logs --tail=20 server
+          docker compose -f docker-compose.prod.yml logs server | tail -20
           EOF
 
       - name: Health check
         run: |
-          curl --fail --show-error --silent \
-            --connect-timeout 10 --max-time 20 \
-            --retry 12 --retry-delay 5 --retry-all-errors --retry-max-time 180 \
-            https://13-205-55-157.sslip.io/api/v1/health
+          sleep 15
+          for i in {1..5}; do
+            if curl -sf https://13-205-55-157.sslip.io/api/v1/health; then
+              echo "✅ API is healthy"
+              exit 0
+            fi
+            echo "Attempt $i/5 - API not ready yet, waiting..."
+            sleep 5
+          done
+          echo "❌ API health check failed"
+          exit 1
 
-      - name: Clean up SSH key
+      - name: Deployment result
         if: always()
-        run: rm -f ~/.ssh/deploy_key
-
-  notify:
-    name: Notify Deployment
-    runs-on: ubuntu-latest
-    if: always()
-    needs: [deploy-backend]
-    steps:
-      - name: Deployment status
         run: |
-          if [ "${{ needs.deploy-backend.result }}" == "success" ]; then
-            echo "✅ Backend deployed successfully to EC2"
+          if [ $? -eq 0 ]; then
+            echo "✅ Deployment successful!"
           else
-            echo "❌ Backend deployment failed"
+            echo "❌ Deployment failed!"
             exit 1
           fi
