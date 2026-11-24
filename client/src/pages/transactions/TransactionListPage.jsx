@@ -1,29 +1,29 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { notifications } from '@mantine/notifications';
-import { useMe } from '../../hooks/useAuth';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { notifications } from "@mantine/notifications";
+import { useMe } from "../../hooks/useAuth";
 import {
   useDeleteTransaction,
   useDrafts,
   usePrefetchTransaction,
   useTransaction,
   useTransactions,
-} from '../../hooks/useTransactions';
-import { ROUTES } from '../../constants';
-import { isHod, isStaffRole } from '../../constants/roles';
-import { getApiErrorMessage } from '../../lib/queryClient';
-import { formatCurrency, formatDate } from '../../utils/format';
-import ControlCenterToolbar from '../control-center/ControlCenterToolbar';
-import ConfirmModal from '../../components/common/ConfirmModal';
-import DataTable from '../../components/common/DataTable';
-import Modal from '../../components/common/Modal';
-import Skeleton from '../../components/common/Skeleton';
-import RowActions from '../../components/common/RowActions';
-import ReportFilters from '../reports/ReportFilters';
-import useReportScope from '../reports/useReportScope';
-import DraftsModal from './DraftsModal';
-import KindBadge from './KindBadge';
-import TransactionForm from './TransactionForm';
+} from "../../hooks/useTransactions";
+import { ROUTES } from "../../constants";
+import { isHod, isStaffRole } from "../../constants/roles";
+import { getApiErrorMessage } from "../../lib/queryClient";
+import { formatCurrency, formatDate } from "../../utils/format";
+import ControlCenterToolbar from "../control-center/ControlCenterToolbar";
+import ConfirmModal from "../../components/common/ConfirmModal";
+import DataTable from "../../components/common/DataTable";
+import Modal from "../../components/common/Modal";
+import Skeleton from "../../components/common/Skeleton";
+import RowActions from "../../components/common/RowActions";
+import ReportFilters from "../reports/ReportFilters";
+import useReportScope from "../reports/useReportScope";
+import DraftsModal from "./DraftsModal";
+import KindBadge from "./KindBadge";
+import TransactionForm from "./TransactionForm";
 
 const LIMIT = 20;
 
@@ -37,14 +37,24 @@ function EditTransactionForm({ id, onClose }) {
 
   useEffect(() => {
     if (!error) return;
-    notifications.show({ message: getApiErrorMessage(error, 'Failed to load policy'), color: 'red' });
+    notifications.show({
+      message: getApiErrorMessage(error, "Failed to load policy"),
+      color: "red",
+    });
     onClose();
   }, [error, onClose]);
 
-  if (shown.current) return <TransactionForm transaction={transaction} onClose={onClose} />;
+  if (shown.current)
+    return <TransactionForm transaction={transaction} onClose={onClose} />;
 
   return (
-    <Modal open size="xl" title="Edit Policy" subtitle="Loading the policy details..." onClose={onClose}>
+    <Modal
+      open
+      size="xl"
+      title="Edit Policy"
+      subtitle="Loading the policy details..."
+      onClose={onClose}
+    >
       <div className="p-6 space-y-4">
         {[0, 1, 2, 3, 4, 5].map((row) => (
           <Skeleton key={row} className="h-9 w-full" />
@@ -57,8 +67,8 @@ function EditTransactionForm({ id, onClose }) {
 export default function TransactionListPage() {
   const navigate = useNavigate();
   const { data: user } = useMe();
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   // "new" while adding, the id of the transaction being edited, or null when the form is closed.
   const [editing, setEditing] = useState(null);
@@ -90,60 +100,121 @@ export default function TransactionListPage() {
   const { data: drafts = [] } = useDrafts();
 
   const staff = isStaffRole(user?.role);
-  const departmentIds = (user?.departments ?? []).map((department) => department._id);
+  const departmentIds = (user?.departments ?? []).map(
+    (department) => department._id,
+  );
   const canEdit = (transaction) =>
     !staff ||
     (departmentIds.includes(transaction.department) &&
       (isHod(user.role) || transaction.createdBy === user._id));
   const canDelete = (transaction) =>
-    !staff || (isHod(user.role) && departmentIds.includes(transaction.department));
+    !staff ||
+    (isHod(user.role) && departmentIds.includes(transaction.department));
 
   const closeForm = useCallback(() => setEditing(null), []);
 
   const handleDelete = () => {
     deleteTransaction.mutate(confirmDelete._id, {
-      onSuccess: () => notifications.show({ message: 'Policy deleted', color: 'green' }),
+      onSuccess: () =>
+        notifications.show({ message: "Policy deleted", color: "green" }),
       onError: (err) =>
-        notifications.show({ message: getApiErrorMessage(err, 'Delete failed'), color: 'red' }),
+        notifications.show({
+          message: getApiErrorMessage(err, "Delete failed"),
+          color: "red",
+        }),
       onSettled: () => setConfirmDelete(null),
     });
   };
 
   const columns = [
-    { key: 'policyDate', header: 'Policy Date', align: 'center', render: (t) => formatDate(t.policyDate) },
     {
-      key: 'kind',
-      header: 'Type',
-      align: 'center',
+      key: "policyDate",
+      header: "Policy Date",
+      align: "center",
+      render: (t) => formatDate(t.policyDate),
+    },
+    {
+      key: "kind",
+      header: "Type",
+      align: "center",
       render: (t) => <KindBadge kind={t.kind} />,
     },
-    { key: 'policyNo', header: 'Policy No.', align: 'center' },
-    { key: 'clientName', header: 'Client Name', align: 'center', render: (t) => <span className="settings-user-name">{t.clientName}</span> },
-    { key: 'insurer', header: 'Insurer', align: 'center', render: (t) => t.insurer?.name ?? '-' },
-    { key: 'businessType', header: 'Business Type', align: 'center', render: (t) => t.businessType?.name ?? '-' },
-    { key: 'lob', header: 'LOB', align: 'center', render: (t) => t.lob?.name ?? '-' },
-    { key: 'groupName', header: 'Group Name', align: 'center', render: (t) => t.groupName?.name ?? '-' },
-    { key: 'bqp', header: 'BQP', align: 'center', render: (t) => t.bqp?.name ?? '-' },
-    { key: 'branch', header: 'Branch', align: 'center', render: (t) => t.branch.code },
-    { key: 'premium', header: 'Premium', align: 'right', render: (t) => formatCurrency(t.premium) },
-    { key: 'source', header: 'Source', align: 'center' },
+    { key: "policyNo", header: "Policy No.", align: "center" },
     {
-      key: 'actions',
-      header: 'Actions',
-      align: 'center',
+      key: "clientName",
+      header: "Client Name",
+      align: "center",
+      render: (t) => <span className="settings-user-name">{t.clientName}</span>,
+    },
+    {
+      key: "insurer",
+      header: "Insurer",
+      align: "center",
+      render: (t) => t.insurer?.name ?? "-",
+    },
+    {
+      key: "businessType",
+      header: "Business Type",
+      align: "center",
+      render: (t) => t.businessType?.name ?? "-",
+    },
+    {
+      key: "lob",
+      header: "LOB",
+      align: "center",
+      render: (t) => t.lob?.name ?? "-",
+    },
+    {
+      key: "groupName",
+      header: "Group Name",
+      align: "center",
+      render: (t) => t.groupName?.name ?? "-",
+    },
+    {
+      key: "bqp",
+      header: "BQP",
+      align: "center",
+      render: (t) => t.bqp?.name ?? "-",
+    },
+    {
+      key: "branch",
+      header: "Branch",
+      align: "center",
+      render: (t) => t.branch.code,
+    },
+    {
+      key: "premium",
+      header: "Premium",
+      align: "right",
+      render: (t) => formatCurrency(t.premium),
+    },
+    { key: "source", header: "Source", align: "center" },
+    {
+      key: "actions",
+      header: "Actions",
+      align: "center",
       render: (t) => (
         <RowActions
           onView={() => navigate(`${ROUTES.TRANSACTIONS}/${t._id}`)}
           onEdit={() => setEditing(t._id)}
           onDelete={canDelete(t) ? () => setConfirmDelete(t) : undefined}
-          viewProps={{ title: 'View Policy', ariaLabel: `View ${t.policyNo}`, onPrefetch: () => prefetchTransaction(t._id) }}
+          viewProps={{
+            title: "View Policy",
+            ariaLabel: `View ${t.policyNo}`,
+            onPrefetch: () => prefetchTransaction(t._id),
+          }}
           editProps={{
             disabled: !canEdit(t),
-            title: canEdit(t) ? 'Edit Policy' : 'You do not have permission to edit this policy',
+            title: canEdit(t)
+              ? "Edit Policy"
+              : "You do not have permission to edit this policy",
             ariaLabel: `Edit ${t.policyNo}`,
             onPrefetch: () => prefetchTransaction(t._id),
           }}
-          deleteProps={{ title: 'Delete Policy', ariaLabel: `Delete ${t.policyNo}` }}
+          deleteProps={{
+            title: "Delete Policy",
+            ariaLabel: `Delete ${t.policyNo}`,
+          }}
         />
       ),
     },
@@ -155,20 +226,24 @@ export default function TransactionListPage() {
     <div>
       <ControlCenterToolbar
         title="Policies"
-        subtitle={`${total} polic${total !== 1 ? 'ies' : 'y'}${isFetching && !isLoading ? ' · updating…' : ''}`}
+        subtitle={`${total} polic${total !== 1 ? "ies" : "y"}${isFetching && !isLoading ? " · updating…" : ""}`}
         search={search}
         onSearchChange={setSearch}
         searchPlaceholder="Search policy no. or client..."
         actions={
           drafts.length > 0 && (
-            <button type="button" className="btn-secondary whitespace-nowrap w-full sm:w-auto" onClick={() => setShowDrafts(true)}>
+            <button
+              type="button"
+              className="btn-secondary whitespace-nowrap w-full sm:w-auto"
+              onClick={() => setShowDrafts(true)}
+            >
               Drafts ({drafts.length})
             </button>
           )
         }
         showAction
         actionLabel="Add Policy"
-        onAction={() => setEditing('new')}
+        onAction={() => setEditing("new")}
       />
 
       <ReportFilters scope={scope} />
@@ -182,11 +257,15 @@ export default function TransactionListPage() {
         serialNumber
         emptyTitle="No policies found"
         emptyDescription="Add a policy or change the filters"
-        pagination={data?.pagination && { ...data.pagination, onPageChange: setPage }}
+        pagination={
+          data?.pagination && { ...data.pagination, onPageChange: setPage }
+        }
       />
 
-      {editing === 'new' && <TransactionForm onClose={closeForm} />}
-      {editing && editing !== 'new' && <EditTransactionForm id={editing} onClose={closeForm} />}
+      {editing === "new" && <TransactionForm onClose={closeForm} />}
+      {editing && editing !== "new" && (
+        <EditTransactionForm id={editing} onClose={closeForm} />
+      )}
 
       {showDrafts && (
         <DraftsModal
@@ -198,7 +277,12 @@ export default function TransactionListPage() {
           onClose={() => setShowDrafts(false)}
         />
       )}
-      {resumingDraft && <TransactionForm draft={resumingDraft} onClose={() => setResumingDraft(null)} />}
+      {resumingDraft && (
+        <TransactionForm
+          draft={resumingDraft}
+          onClose={() => setResumingDraft(null)}
+        />
+      )}
 
       <ConfirmModal
         open={!!confirmDelete}

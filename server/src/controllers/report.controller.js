@@ -55,8 +55,11 @@ const pdfColumns = (columns) => columns.map((column) =>
 // Reports shown on screen and their exports must be evaluated with exactly the
 // same authenticated, validated request scope. Keep that hand-off in one place
 // so a future export cannot accidentally omit a filter.
-const loadReport = (getReport, req) =>
-	getReport({ actor: req.user, filters: req.validated.query });
+const loadReport = async (getReport, req) => {
+	const filters = req.validated.query;
+	await reportService.assertValidReportFilters({ actor: req.user, filters });
+	return getReport({ actor: req.user, filters });
+};
 
 const exportGroupedReport = ({ getReport, sheetName, title, filename, groupKey, columns }) =>
 	asyncHandler(async (req, res) => {

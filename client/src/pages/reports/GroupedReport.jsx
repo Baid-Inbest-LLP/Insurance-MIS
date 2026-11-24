@@ -31,10 +31,19 @@ const exportErrorMessage = async (error) => {
   return body?.message || error?.message || 'Export failed';
 };
 
+const reportErrorMessage = (error) => {
+  const body = error?.response?.data;
+  return body?.message || error?.message || 'The report could not be loaded. Please try again.';
+};
+
 // A report with one row per `groupKey` (lob, branch, ...) for one type (department), plus a totals row.
 export default function GroupedReport({ title, report, groupKey, groupHeader, measures = PREMIUM_MEASURES }) {
   const scope = useReportScope();
-  const { data, isLoading, isFetching } = useReport(report, scope.params, Boolean(scope.selected));
+  const { data, isLoading, isFetching, isError, error, refetch } = useReport(
+    report,
+    scope.params,
+    Boolean(scope.selected),
+  );
   const exportReport = useExportReport();
   const exportPdfReport = useExportPdfReport();
 
@@ -109,8 +118,11 @@ export default function GroupedReport({ title, report, groupKey, groupHeader, me
         noWrap
         serialNumber
         footer={footer}
-        emptyTitle="No policies found"
-        emptyDescription="Change the filters to see other policies"
+        emptyTitle={isError ? 'Unable to load report' : 'No policies found'}
+        emptyDescription={
+          isError ? reportErrorMessage(error) : 'Change the filters to see other policies'
+        }
+        emptyAction={isError ? { label: 'Try again', onClick: () => refetch() } : undefined}
       />
     </div>
   );

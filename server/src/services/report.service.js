@@ -60,6 +60,50 @@ const companyInfoForBranches = async (branchIds) => {
 	return toCompanyInfo(company);
 };
 
+// A report filter is user-controlled query-string input. Validate referenced
+// catalog values before aggregating so a stale browser URL cannot silently look
+// like a valid report with no data. Branches and agents are shared records;
+// department-owned references live in their corresponding master catalog.
+export const assertValidReportFilters = async ({ actor, filters }) => {
+	assertCanWorkIn(actor, filters.department);
+
+	const requestedMasterFields = Object.keys(MASTER_FIELDS).filter((field) => Boolean(filters[field]));
+
+	const [department, branch, agent, masters] = await Promise.all([
+		Department.exists({ _id: filters.department, isActive: true }),
+		filters.branch ? Branch.exists({ _id: filters.branch, isActive: true }) : null,
+		filters.agent ? Agent.exists({ _id: filters.agent, isActive: true, deletedAt: null }) : null,
+		requestedMasterFields.length
+			? Master.find({
+					department: filters.department,
+					$or: requestedMasterFields.map((field) => ({
+						slug: MASTER_FIELDS[field].slug,
+						items: {
+							$elemMatch: {
+								_id: filters[field],
+								isActive: true,
+								deletedAt: null,
+							},
+						},
+					})),
+				})
+					.select("slug")
+					.lean()
+			: [],
+	]);
+
+	if (!department) throw ApiError.badRequest("Department not found or inactive");
+	if (filters.branch && !branch) throw ApiError.badRequest("Branch not found or inactive");
+	if (filters.agent && !agent) throw ApiError.badRequest("Agent not found or inactive");
+
+	const validMasterSlugs = new Set(masters.map((master) => master.slug));
+	for (const field of requestedMasterFields) {
+		const { slug, label } = MASTER_FIELDS[field];
+		if (!validMasterSlugs.has(slug))
+			throw ApiError.badRequest(`${label} is not an active item of this department`);
+	}
+};
+
 // A drill-down for the exported Agent report. Each row is one insured client within
 // its source, office, reference and agent grouping.
 export const getAgentClientWiseReport = async ({ actor, filters }) => {
