@@ -10,6 +10,9 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 const app = express();
 
+// Behind one reverse proxy (Caddy on EC2): trust its X-Forwarded-For so rate limiting sees real client IPs.
+app.set('trust proxy', 1);
+
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 // In development any localhost port is allowed, so a Vite port change or 127.0.0.1 doesn't break login.
 const LOCAL_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
