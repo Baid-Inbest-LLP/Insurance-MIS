@@ -12,6 +12,8 @@ import LobWiseReport from './pages/reports/LobWiseReport';
 import OfficeWiseReport from './pages/reports/OfficeWiseReport';
 import AgentWiseReport from './pages/reports/AgentWiseReport';
 import InsurerWiseReport from './pages/reports/InsurerWiseReport';
+import GroupWiseReport from './pages/reports/GroupWiseReport';
+import BqpWiseReport from './pages/reports/BqpWiseReport';
 import SourceWiseReport from './pages/reports/SourceWiseReport';
 import CommissionReport from './pages/reports/CommissionReport';
 import SettingsPage from './pages/settings/SettingsPage';
@@ -54,6 +56,8 @@ export default function App() {
             <Route path="office-wise" element={<OfficeWiseReport />} />
             <Route path="agent-wise" element={<AgentWiseReport />} />
             <Route path="insurer-wise" element={<InsurerWiseReport />} />
+            <Route path="group-wise" element={<GroupWiseReport />} />
+            <Route path="bqp-wise" element={<BqpWiseReport />} />
             <Route path="source-wise" element={<SourceWiseReport />} />
             <Route
               path="commission"
@@ -64,7 +68,14 @@ export default function App() {
               }
             />
           </Route>
-          <Route path="control-center" element={<ControlCenterLayout />}>
+          <Route
+            path="control-center"
+            element={
+              <ProtectedRoute roles={MASTER_VIEW_ROLES}>
+                <ControlCenterLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<Navigate to="companies" replace />} />
             <Route path="companies" element={<CompanyListPage />} />
             <Route

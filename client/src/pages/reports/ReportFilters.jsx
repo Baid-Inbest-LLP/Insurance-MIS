@@ -37,6 +37,18 @@ const FILTERS = [
     items: (options) => byName(options?.masters?.businessType),
   },
   {
+    key: "groupName",
+    all: "All group names",
+    master: true,
+    items: (options) => byName(options?.masters?.groupName),
+  },
+  {
+    key: "bqp",
+    all: "All BQPs",
+    master: true,
+    items: (options) => byName(options?.masters?.bqp),
+  },
+  {
     key: "agent",
     all: "All agents",
     items: (options) => byName(options?.agents),

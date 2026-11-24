@@ -14,6 +14,8 @@ export const reportQuerySchema = z
     insurer: objectId('insurer').optional(),
     businessType: objectId('business type').optional(),
     agent: objectId('agent').optional(),
+    groupName: objectId('group name').optional(),
+    bqp: objectId('Broker Qualified Person').optional(),
     // Plain transaction fields, not master-item ids. Used by the shared report filter bar and dashboard drill-down links.
     source: sourceSchema.optional(),
     productType: z.string().trim().min(1).max(100).optional(),

@@ -1,6 +1,6 @@
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { isSuperAdmin } from "../constants/roles.js";
+import { isStaffRole, isSuperAdmin } from "../constants/roles.js";
 import * as departmentService from "../services/department.service.js";
 
 // Lists active departments; superadmins can also include inactive ones.
@@ -9,6 +9,7 @@ export const listDepartments = asyncHandler(async (req, res) => {
 		isSuperAdmin(req.user.role) && req.validated.query.activeOnly === "false";
 	const departments = await departmentService.listDepartments({
 		includeInactive,
+		departmentIds: isStaffRole(req.user.role) ? req.user.departments : undefined,
 	});
 
 	ApiResponse.success(res, departments);

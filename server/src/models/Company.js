@@ -17,6 +17,9 @@ const companySchema = new mongoose.Schema(
 		msmeNumber: { type: String, trim: true },
 		cinOrLlp: { type: String, trim: true },
 		isActive: { type: Boolean, default: true },
+		// The legal entity shown on consolidated, cross-company PDF reports.
+		// A company-specific report still uses its own company details.
+		isReportingEntity: { type: Boolean, default: false },
 	},
 	{ timestamps: true },
 );

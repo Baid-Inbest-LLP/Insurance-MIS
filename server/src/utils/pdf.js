@@ -71,7 +71,15 @@ const cellAlign = (column) => {
   return column.align || "left";
 };
 
-const renderTableHead = ({ columns, title, subtitle, meta, companyInfo, centerLogo, rightLogo }) =>
+const renderTableHead = ({
+  columns,
+  title,
+  subtitle,
+  meta,
+  companyInfo,
+  centerLogo,
+  rightLogo,
+}) =>
   `<thead>
     <tr><th class="masthead" colspan="${columns.length}"><div class="masthead-inner">
       <div class="company">${
@@ -90,9 +98,15 @@ const renderTableHead = ({ columns, title, subtitle, meta, companyInfo, centerLo
   </thead>`;
 
 const renderColGroup = (columns) => {
-  const total = columns.reduce((sum, column) => sum + Number(column.width || 12), 0);
+  const total = columns.reduce(
+    (sum, column) => sum + Number(column.width || 12),
+    0,
+  );
   return `<colgroup>${columns
-    .map((column) => `<col style="width:${((Number(column.width || 12) / total) * 100).toFixed(2)}%">`)
+    .map(
+      (column) =>
+        `<col style="width:${((Number(column.width || 12) / total) * 100).toFixed(2)}%">`,
+    )
     .join("")}</colgroup>`;
 };
 
@@ -104,7 +118,8 @@ const renderTableBody = (columns, rows) =>
             (row, rowIndex) =>
               `<tr>${columns
                 .map((column) => {
-                  const value = column.key === "__sno" ? rowIndex + 1 : row[column.key];
+                  const value =
+                    column.key === "__sno" ? rowIndex + 1 : row[column.key];
                   return `<td style="text-align:${cellAlign(column)}">${formatCellValue(value, column)}</td>`;
                 })
                 .join("")}</tr>`,
@@ -160,24 +175,30 @@ const buildBrandedHtml = ({
   .masthead { border: 0; background: #fff; padding: 0 0 4px; }
   .masthead-inner {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    /* Three equal tracks keep the report title at the physical page centre,
+       independent of the company text and logo widths. */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: start;
     min-height: 165px;
     padding-top: 15px;
   }
-  .company { text-align: left; padding-top: 1px; }
-  .company-code { color: #00b0f0; font-weight: 700; font-size: 32px; line-height: 1; }
-  .company-name { font-size: 8px; font-weight: 700; margin-top: 4px; }
-  .company-detail { font-size: 8px; font-weight: 700; line-height: 1.4; }
-  .title-block { text-align: center; }
-  .logo-center { display: block; margin: 0 auto 5px; max-width: 150px; max-height: 90px; }
+  .company { width: 100%; text-align: left; padding-top: 1px; justify-self: start; }
+  .company-code { color: #00b0f0; font-weight: 700; font-size: 29px; line-height: 1; }
+  .company-name { font-size: 9px; font-weight: 700; margin-top: 4px; }
+  .company-detail { font-size: 9px; font-weight: 700; line-height: 1.35; }
+  .title-block { width: 100%; text-align: center; justify-self: center; }
+  /* The square Shree PNG has substantial transparent space above its visible
+     mark. Scale and lift only the artwork so its visible height matches the
+     left/right identity blocks without moving the report title in document flow. */
+  .logo-center { display: block; margin: 0 auto 5px; max-width: 135px; max-height: 81px; transform: translateY(-10px); }
   .title { color: ${COLORS.black}; font-size: 12px; font-weight: 700; text-decoration: underline; line-height: 1.15; margin-top: 4px; }
   .title .fy { font-size: 10px; }
   /* Report name — a second title line, not a muted annotation, so it keeps the brand color. */
   .period { color: ${COLORS.black}; font-size: 10px; font-weight: 700; margin-top: 3px; }
   .meta { color: ${COLORS.muted}; font-size: 7px; font-weight: 400; margin-top: 2px; }
-  .right-logo { text-align: right; }
-  .logo-right { max-width: 165px; max-height: 110px; }
+  .right-logo { width: 100%; text-align: right; justify-self: end; padding-top: 3px; }
+  /* Match the full vertical footprint of the left BSIBPL identity block. */
+  .logo-right { width: auto; height: 75px; max-width: 128px; object-fit: contain; }
   table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 7px; }
   thead { display: table-header-group; }
   tr { page-break-inside: avoid; }
@@ -314,7 +335,9 @@ const renderPdfBuffer = async (
       // Header/footer templates render in an isolated context (no access to the page's own
       // <style>), so everything needed has to be inlined here.
       headerTemplate: "<span></span>",
-      footerTemplate: footerTemplate || `
+      footerTemplate:
+        footerTemplate ||
+        `
         <div style="width:100%; font-size:8px; text-align:center; color:${COLORS.muted}; font-family:'Segoe UI', Arial, sans-serif;">
           Page <span class="pageNumber"></span> of <span class="totalPages"></span>
         </div>
@@ -365,7 +388,9 @@ export const buildBrandedPdf = ({
     }),
     {
       landscape: false,
-      margin: { top: "5mm", bottom: "14mm", left: "13mm", right: "3mm" },
+      // Keep the table and masthead centred on the physical A4 page. The old
+      // 13mm/3mm split made every portrait PDF visibly left-heavy.
+      margin: { top: "5mm", bottom: "14mm", left: "8mm", right: "8mm" },
       footerTemplate: `<div style="width:100%; padding:0 28px; font-family:Arial, sans-serif; font-size:5px; color:#111; display:flex; justify-content:space-between;"><span>${escapeHtml(companyCode)} - ${escapeHtml(title)} (${escapeHtml(subtitle || "")})</span><span>Date - <span class="date"></span> &nbsp; PAGE <span class="pageNumber"></span> &nbsp; Time - <span class="time"></span></span></div>`,
     },
   );
@@ -443,7 +468,11 @@ const agentTableRows = (rows) => {
           // The final part may also contain agent, reference and office totals.
           // Reserve three rows so even that part remains print-safe.
           const clientChunkSize = Math.max(1, maxFragmentRows - 3);
-          for (let start = 0; start < clients.length; start += clientChunkSize) {
+          for (
+            let start = 0;
+            start < clients.length;
+            start += clientChunkSize
+          ) {
             const chunk = clients.slice(start, start + clientChunkSize);
             const isAgentEnd = start + clientChunkSize >= clients.length;
             entries.push({
@@ -509,10 +538,17 @@ const agentTableRows = (rows) => {
       while (entryIndex < fragment.length) {
         const office = fragment[entryIndex].office;
         const officeEntries = [];
-        while (entryIndex < fragment.length && fragment[entryIndex].office === office)
+        while (
+          entryIndex < fragment.length &&
+          fragment[entryIndex].office === office
+        )
           officeEntries.push(fragment[entryIndex++]);
         const officeSpan = officeEntries.reduce(
-          (count, entry) => count + entry.clients.length + Number(entry.agentEnd) + Number(entry.referenceEnd),
+          (count, entry) =>
+            count +
+            entry.clients.length +
+            Number(entry.agentEnd) +
+            Number(entry.referenceEnd),
           0,
         );
         let officeFirst = true;
@@ -520,10 +556,14 @@ const agentTableRows = (rows) => {
         while (officeIndex < officeEntries.length) {
           const reference = officeEntries[officeIndex].reference;
           const referenceEntries = [];
-          while (officeIndex < officeEntries.length && officeEntries[officeIndex].reference === reference)
+          while (
+            officeIndex < officeEntries.length &&
+            officeEntries[officeIndex].reference === reference
+          )
             referenceEntries.push(officeEntries[officeIndex++]);
           const referenceSpan = referenceEntries.reduce(
-            (count, entry) => count + entry.clients.length + Number(entry.agentEnd),
+            (count, entry) =>
+              count + entry.clients.length + Number(entry.agentEnd),
             0,
           );
           let referenceFirst = true;
@@ -531,7 +571,10 @@ const agentTableRows = (rows) => {
           while (referenceIndex < referenceEntries.length) {
             const agent = referenceEntries[referenceIndex].agent;
             const agentEntries = [];
-            while (referenceIndex < referenceEntries.length && referenceEntries[referenceIndex].agent === agent)
+            while (
+              referenceIndex < referenceEntries.length &&
+              referenceEntries[referenceIndex].agent === agent
+            )
               agentEntries.push(referenceEntries[referenceIndex++]);
             const agentSpan = agentEntries.reduce(
               (count, entry) => count + entry.clients.length,
@@ -555,29 +598,40 @@ const agentTableRows = (rows) => {
                 agentFirst = false;
               });
               if (entry.agentEnd) {
-                fragmentRows.push(`<tr class="total agent-total"><td colspan="2">TOTAL</td><td class="number">${entry.agentTotal.policies.toLocaleString("en-IN")}</td><td class="number">${formatRupees(entry.agentTotal.premium)}</td></tr>`);
+                fragmentRows.push(
+                  `<tr class="total agent-total"><td colspan="2">TOTAL</td><td class="number">${entry.agentTotal.policies.toLocaleString("en-IN")}</td><td class="number">${formatRupees(entry.agentTotal.premium)}</td></tr>`,
+                );
               }
             }
           }
-          const finalReferenceEntry = referenceEntries[referenceEntries.length - 1];
+          const finalReferenceEntry =
+            referenceEntries[referenceEntries.length - 1];
           if (finalReferenceEntry.referenceEnd) {
             const total = finalReferenceEntry.referenceTotal;
-            fragmentRows.push(`<tr class="total reference-total"><td colspan="3">${escapeHtml(reference)} TOTAL</td><td class="number">${total.policies.toLocaleString("en-IN")}</td><td class="number">${formatRupees(total.premium)}</td></tr>`);
+            fragmentRows.push(
+              `<tr class="total reference-total"><td colspan="3">${escapeHtml(reference)} TOTAL</td><td class="number">${total.policies.toLocaleString("en-IN")}</td><td class="number">${formatRupees(total.premium)}</td></tr>`,
+            );
           }
         }
         const finalOfficeEntry = officeEntries[officeEntries.length - 1];
         if (finalOfficeEntry.officeEnd) {
           const total = finalOfficeEntry.officeTotal;
-          fragmentRows.push(`<tr class="total office-total"><td colspan="4">${escapeHtml(office)} TOTAL</td><td class="number">${total.policies.toLocaleString("en-IN")}</td><td class="number">${formatRupees(total.premium)}</td></tr>`);
+          fragmentRows.push(
+            `<tr class="total office-total"><td colspan="4">${escapeHtml(office)} TOTAL</td><td class="number">${total.policies.toLocaleString("en-IN")}</td><td class="number">${formatRupees(total.premium)}</td></tr>`,
+          );
         }
       }
-      output.push(`<tbody class="source-fragment">${fragmentRows.join("")}</tbody>`);
+      output.push(
+        `<tbody class="source-fragment">${fragmentRows.join("")}</tbody>`,
+      );
     }
     const sourceTotal = sumClientRows(sourceClients);
     // The supplied operational layout ends the Direct block at its office
     // total; an explicit source total is used for Agents and any other source.
     if (String(source).toUpperCase() !== "DIRECT") {
-      output.push(`<tbody><tr class="total source-total"><td colspan="5">${escapeHtml(source)} - TOTAL</td><td class="number">${sourceTotal.policies.toLocaleString("en-IN")}</td><td class="number">${formatRupees(sourceTotal.premium)}</td></tr></tbody>`);
+      output.push(
+        `<tbody><tr class="total source-total"><td colspan="5">${escapeHtml(source)} - TOTAL</td><td class="number">${sourceTotal.policies.toLocaleString("en-IN")}</td><td class="number">${formatRupees(sourceTotal.premium)}</td></tr></tbody>`,
+      );
     }
   }
   return output.join("");
@@ -617,17 +671,17 @@ export const buildAgentClientWisePdf = ({
   th, td { border: 0.5px solid #0d0d0d; padding: 3.5px 2.6px; line-height: 1.18; vertical-align: middle; overflow-wrap: anywhere; }
   th.column-heading { color: #fff; background: #005887; text-align: center; font-size: 6.7px; font-weight: 700; padding: 11.5px 1.8px; }
   th.masthead { border: 0; background: #fff; padding: 0 0 4px; }
-  .masthead-inner { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: start; min-height: 165px; padding-top: 15px; }
-  .company { text-align: left; padding-top: 1px; }
-  .company-code { color: #00b0f0; font-weight: 700; font-size: 32px; line-height: 1; }
-  .company-name { font-size: 8px; font-weight: 700; margin-top: 4px; }
-  .company-detail { font-size: 8px; font-weight: 700; line-height: 1.4; }
-  .title-block { text-align: center; }
-  .logo-center { display: block; margin: 0 auto 5px; max-width: 150px; max-height: 90px; }
+  .masthead-inner { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; min-height: 165px; padding-top: 15px; }
+  .company { width: 100%; text-align: left; padding-top: 1px; justify-self: start; }
+  .company-code { color: #00b0f0; font-weight: 700; font-size: 29px; line-height: 1; }
+  .company-name { font-size: 9px; font-weight: 700; margin-top: 4px; }
+  .company-detail { font-size: 9px; font-weight: 700; line-height: 1.35; }
+  .title-block { width: 100%; text-align: center; justify-self: center; }
+  .logo-center { display: block; margin: 0 auto 5px; max-width: 135px; max-height: 81px; transform: translateY(-10px); }
   .title { font-size: 12px; font-weight: 700; text-decoration: underline; margin-top: 4px; }
   .period { font-size: 10px; font-weight: 700; margin-top: 3px; }
-  .right-logo { text-align: right; }
-  .logo-right { max-width: 165px; max-height: 110px; }
+  .right-logo { width: 100%; text-align: right; justify-self: end; padding-top: 3px; }
+  .logo-right { width: auto; height: 75px; max-width: 128px; object-fit: contain; }
   td.group { text-align: center; font-weight: 700; }
   /* A source is rendered in office-sized spans so it never crosses a PDF page.
      Keep the joins between those spans peach; black joins looked like stray rules. */
@@ -668,7 +722,7 @@ export const buildAgentClientWisePdf = ({
 
   return renderPdfBuffer(html, {
     landscape: false,
-    margin: { top: "5mm", bottom: "14mm", left: "13mm", right: "3mm" },
+    margin: { top: "5mm", bottom: "14mm", left: "8mm", right: "8mm" },
     footerTemplate: `<div style="width:100%; padding:0 28px; font-family:Arial, sans-serif; font-size:5px; color:#111; display:flex; justify-content:space-between;"><span>${escapeHtml(companyCode)} - ${escapeHtml(title)} (${escapeHtml(period || "")})</span><span>Date - <span class="date"></span> &nbsp; PAGE <span class="pageNumber"></span> &nbsp; Time - <span class="time"></span></span></div>`,
   });
 };

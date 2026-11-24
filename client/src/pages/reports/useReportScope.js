@@ -4,10 +4,10 @@ import { useMe } from '../../hooks/useAuth';
 import { useTransactionOptions } from '../../hooks/useTransactions';
 import { getFinancialYearRange } from '../../utils/financialYear';
 
-const NO_FILTERS = { branch: '', lob: '', insurer: '', businessType: '', agent: '', source: '', productType: '' };
+const NO_FILTERS = { branch: '', lob: '', insurer: '', businessType: '', groupName: '', bqp: '', agent: '', source: '', productType: '' };
 
 // Filters whose choices are master items of one department, so they start again when the type changes.
-const DEPARTMENT_FILTERS = ['lob', 'insurer', 'businessType'];
+const DEPARTMENT_FILTERS = ['lob', 'insurer', 'businessType', 'groupName', 'bqp'];
 
 // What the reports and the transaction list share: the type (department), a policy date range, the filters
 // (branch, LOB, insurer, business type, source, agent) and the lookups that fill them.

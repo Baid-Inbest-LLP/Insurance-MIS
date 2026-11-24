@@ -34,7 +34,7 @@ const completeMonthlySeries = (monthly, { from, to }) => {
     const month = cursor.getUTCMonth() + 1;
     const key = `${year}-${String(month).padStart(2, '0')}`;
     const row = byMonth.get(key);
-    result.push({ month: key, policies: row?.policies ?? 0, premium: round(row?.premium) });
+    result.push({ month: key, policies: row?.policies ?? 0, premium: round(row?.premium), commission: round(row?.commission) });
     cursor.setUTCMonth(cursor.getUTCMonth() + 1);
   }
 
@@ -53,7 +53,7 @@ const dashboardMatch = (actor, filters) => {
     ...([ROLES.EMP_PREMIUM, ROLES.EMP_COMMISSION].includes(actor.role) && { createdBy: actor._id }),
     ...(!isStaffRole(actor.role) && filters.department && { department: toObjectId(filters.department) }),
     ...Object.fromEntries(
-      ['branch', 'lob', 'insurer', 'businessType', 'agent']
+      ['branch', 'lob', 'insurer', 'businessType', 'groupName', 'bqp', 'agent']
         .filter((field) => filters[field])
         .map((field) => [field, toObjectId(filters[field])]),
     ),
@@ -142,10 +142,48 @@ export const getDashboardSection = async ({ actor, filters }) => {
   if (section === 'monthly') {
     const monthly = await Transaction.aggregate([
       { $match: match },
-      { $group: { _id: { year: { $year: '$policyDate' }, month: { $month: '$policyDate' } }, policies: { $sum: 1 }, premium: { $sum: '$premium' } } },
+      { $group: { _id: { year: { $year: '$policyDate' }, month: { $month: '$policyDate' } }, policies: { $sum: 1 }, premium: { $sum: '$premium' }, commission: { $sum: COMMISSION_AMOUNT } } },
       { $sort: { '_id.year': 1, '_id.month': 1 } },
     ]);
     return withMeta({ monthly: completeMonthlySeries(monthly, dashboardDateRange(filters)) });
+  }
+
+  if (section === 'commission-status') {
+    if (!includeCommission) return withMeta({ commissionStatus: [] });
+    const [summary] = await Transaction.aggregate([
+      { $match: match },
+      { $group: {
+        _id: null,
+        received: { $sum: { $cond: [{ $eq: ['$commission.status', 'received'] }, COMMISSION_AMOUNT, 0] } },
+        pending: { $sum: { $cond: [{ $eq: ['$commission.status', 'pending'] }, COMMISSION_AMOUNT, 0] } },
+      } },
+    ]);
+    return withMeta({ commissionStatus: [
+      { id: 'received', name: 'Received', premium: round(summary?.received), policies: 0, isDrillable: false },
+      { id: 'pending', name: 'Pending', premium: round(summary?.pending), policies: 0, isDrillable: false },
+    ] });
+  }
+
+  if (section === 'monthly-commission') {
+    if (!includeCommission) return withMeta({ monthly: [] });
+    const monthly = await Transaction.aggregate([
+      { $match: match },
+      { $group: { _id: { year: { $year: '$policyDate' }, month: { $month: '$policyDate' } }, policies: { $sum: 1 }, premium: { $sum: '$premium' }, commission: { $sum: COMMISSION_AMOUNT } } },
+      { $sort: { '_id.year': 1, '_id.month': 1 } },
+    ]);
+    return withMeta({ monthly: completeMonthlySeries(monthly, dashboardDateRange(filters)) });
+  }
+
+  if (section === 'od-tp-commission') {
+    if (!includeCommission) return withMeta({ odTpCommission: [] });
+    const [summary] = await Transaction.aggregate([
+      { $match: match },
+      { $group: { _id: null, od: { $sum: { $ifNull: ['$commission.odCommission', 0] } }, tp: { $sum: { $ifNull: ['$commission.tpCommission', 0] } } } },
+    ]);
+    return withMeta({ odTpCommission: [
+      { id: 'od', name: 'OD Commission', premium: round(summary?.od), policies: 0, isDrillable: false },
+      { id: 'tp', name: 'TP Commission', premium: round(summary?.tp), policies: 0, isDrillable: false },
+    ] });
   }
 
   if (section === 'products') {
@@ -191,7 +229,7 @@ export const getDashboard = async ({ actor, filters }) => {
   const departmentIds = filters.department ? [toObjectId(filters.department)] : isStaffRole(actor.role) ? actor.departments : [];
   const includeCommission = canViewCommission(actor);
 
-  const [summaryRows, monthly, insurerGroups, lobGroups, branchGroups, sourceGroups, businessGroups, productGroups, recent] =
+  const [summaryRows, monthly, insurerGroups, lobGroups, branchGroups, sourceGroups, businessGroups, productGroups, recent, commissionStatusRows, odTpRows] =
     await Promise.all([
       Transaction.aggregate([
         { $match: match },
@@ -213,6 +251,7 @@ export const getDashboard = async ({ actor, filters }) => {
             _id: { year: { $year: '$policyDate' }, month: { $month: '$policyDate' } },
             policies: { $sum: 1 },
             premium: { $sum: '$premium' },
+            commission: { $sum: COMMISSION_AMOUNT },
           },
         },
         { $sort: { '_id.year': 1, '_id.month': 1 } },
@@ -228,6 +267,14 @@ export const getDashboard = async ({ actor, filters }) => {
         .sort({ policyDate: -1, _id: -1 })
         .limit(8)
         .lean(),
+      Transaction.aggregate([
+        { $match: match },
+        { $group: { _id: null, received: { $sum: { $cond: [{ $eq: ['$commission.status', 'received'] }, COMMISSION_AMOUNT, 0] } }, pending: { $sum: { $cond: [{ $eq: ['$commission.status', 'pending'] }, COMMISSION_AMOUNT, 0] } } } },
+      ]),
+      Transaction.aggregate([
+        { $match: match },
+        { $group: { _id: null, od: { $sum: { $ifNull: ['$commission.odCommission', 0] } }, tp: { $sum: { $ifNull: ['$commission.tpCommission', 0] } } } },
+      ]),
     ]);
 
   // Admins can span departments, so load every department that occurs in their
@@ -247,6 +294,8 @@ export const getDashboard = async ({ actor, filters }) => {
   const recentBranches = await Branch.find({ _id: { $in: recent.map((row) => row.branch) } }).select('label').lean();
   const recentBranchNames = new Map(recentBranches.map((branch) => [String(branch._id), branch.label]));
   const summary = summaryRows[0] ?? { policies: 0, premium: 0, netPremium: 0, commission: 0, clients: [] };
+  const commissionStatus = commissionStatusRows[0] ?? { received: 0, pending: 0 };
+  const odTp = odTpRows[0] ?? { od: 0, tp: 0 };
 
   return {
     permissions: { commission: includeCommission },
@@ -259,6 +308,16 @@ export const getDashboard = async ({ actor, filters }) => {
       ...(includeCommission && { commission: round(summary.commission) }),
     },
     monthly: completeMonthlySeries(monthly, dashboardDateRange(filters)),
+    ...(includeCommission && {
+      commissionStatus: [
+        { id: 'received', name: 'Received', premium: round(commissionStatus.received), policies: 0, isDrillable: false },
+        { id: 'pending', name: 'Pending', premium: round(commissionStatus.pending), policies: 0, isDrillable: false },
+      ],
+      odTpCommission: [
+        { id: 'od', name: 'OD Commission', premium: round(odTp.od), policies: 0, isDrillable: false },
+        { id: 'tp', name: 'TP Commission', premium: round(odTp.tp), policies: 0, isDrillable: false },
+      ],
+    }),
     insurers: namedRows(insurerGroups, insurers).slice(0, 10),
     lobs: namedRows(lobGroups, lobs),
     offices: namedRows(branchGroups, branchNames),

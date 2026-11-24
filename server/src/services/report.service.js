@@ -46,18 +46,82 @@ const toCompanyInfo = (company) =>
 			}
 		: null;
 
+const COMPANY_INFO_FIELDS = "name code taxId gst cinOrLlp irdaiNumber";
+
+// Consolidated reports need one declared legal entity instead of losing their
+// header whenever their rows span companies. The oldest active company remains
+// a deterministic compatibility fallback until an administrator selects the
+// reporting company in Control Centre.
+const reportingCompanyInfo = async () => {
+	let company = await Company.findOne({ isActive: true, isReportingEntity: true })
+		.sort({ updatedAt: -1 })
+		.select(COMPANY_INFO_FIELDS)
+		.lean();
+	if (!company) {
+		company = await Company.findOne({ isActive: true })
+			.sort({ createdAt: 1, _id: 1 })
+			.select(COMPANY_INFO_FIELDS)
+			.lean();
+	}
+	return toCompanyInfo(company);
+};
+
 const companyInfoForBranches = async (branchIds) => {
 	const ids = [...new Set(branchIds.filter(Boolean).map(String))];
 	if (!ids.length) return null;
 
 	const branches = await Branch.find({ _id: { $in: ids } }).select("company").lean();
 	const companyIds = [...new Set(branches.map((branch) => branch.company && String(branch.company)).filter(Boolean))];
-	if (companyIds.length !== 1) return null;
+	if (companyIds.length !== 1) return reportingCompanyInfo();
 
 	const company = await Company.findById(companyIds[0])
-		.select("name code taxId gst cinOrLlp irdaiNumber")
+		.select(COMPANY_INFO_FIELDS)
 		.lean();
 	return toCompanyInfo(company);
+};
+
+// A report filter is user-controlled query-string input. Validate referenced
+// catalog values before aggregating so a stale browser URL cannot silently look
+// like a valid report with no data. Branches and agents are shared records;
+// department-owned references live in their corresponding master catalog.
+export const assertValidReportFilters = async ({ actor, filters }) => {
+	assertCanWorkIn(actor, filters.department);
+
+	const requestedMasterFields = Object.keys(MASTER_FIELDS).filter((field) => Boolean(filters[field]));
+
+	const [department, branch, agent, masters] = await Promise.all([
+		Department.exists({ _id: filters.department, isActive: true }),
+		filters.branch ? Branch.exists({ _id: filters.branch, isActive: true }) : null,
+		filters.agent ? Agent.exists({ _id: filters.agent, isActive: true, deletedAt: null }) : null,
+		requestedMasterFields.length
+			? Master.find({
+					department: filters.department,
+					$or: requestedMasterFields.map((field) => ({
+						slug: MASTER_FIELDS[field].slug,
+						items: {
+							$elemMatch: {
+								_id: filters[field],
+								isActive: true,
+								deletedAt: null,
+							},
+						},
+					})),
+				})
+					.select("slug")
+					.lean()
+			: [],
+	]);
+
+	if (!department) throw ApiError.badRequest("Department not found or inactive");
+	if (filters.branch && !branch) throw ApiError.badRequest("Branch not found or inactive");
+	if (filters.agent && !agent) throw ApiError.badRequest("Agent not found or inactive");
+
+	const validMasterSlugs = new Set(masters.map((master) => master.slug));
+	for (const field of requestedMasterFields) {
+		const { slug, label } = MASTER_FIELDS[field];
+		if (!validMasterSlugs.has(slug))
+			throw ApiError.badRequest(`${label} is not an active item of this department`);
+	}
 };
 
 // A drill-down for the exported Agent report. Each row is one insured client within
@@ -92,10 +156,7 @@ export const getAgentClientWiseReport = async ({ actor, filters }) => {
 		Department.findById(filters.department).select("code").lean(),
 	]);
 	const branches = new Map(branchDocs.map((branch) => [String(branch._id), branch.label]));
-	const companyIds = [...new Set(branchDocs.map((branch) => (branch.company ? String(branch.company) : null)).filter(Boolean))];
-	const company = companyIds.length === 1
-		? await Company.findById(companyIds[0]).select("name code taxId gst cinOrLlp irdaiNumber").lean()
-		: null;
+	const companyInfo = await companyInfoForBranches(branchIds);
 
 	const rows = groups
 		.map(({ _id, policies, premium }) => ({
@@ -127,7 +188,7 @@ export const getAgentClientWiseReport = async ({ actor, filters }) => {
 
 	return {
 		rows,
-		companyInfo: toCompanyInfo(company),
+		companyInfo,
 		departmentCode: department?.code || "",
 		totals: {
 			policies: rows.reduce((total, row) => total + row.policies, 0),
@@ -218,6 +279,13 @@ export const getOfficeWiseReport = premiumReport("branch", branchNames);
 export const getAgentWiseReport = premiumReport("agent", agentNames, { scope: { $and: [{ agent: { $ne: null } }] } });
 
 export const getInsurerWiseReport = premiumReport("insurer", masterNames("insurer"));
+
+// These values are maintained in the department's master catalog. Keeping
+// them as their own reports also avoids widening the operational client-wise
+// Agent PDF, whose fixed layout is used by the business team.
+export const getGroupWiseReport = premiumReport("groupName", masterNames("groupName"));
+
+export const getBqpWiseReport = premiumReport("bqp", masterNames("bqp"));
 
 // A source is stored by name, so each group is named by its own value.
 export const getSourceWiseReport = premiumReport(
