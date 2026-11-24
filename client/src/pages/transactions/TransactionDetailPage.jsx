@@ -1,26 +1,32 @@
-import { Link, useParams } from 'react-router-dom';
-import { ROUTES } from '../../constants';
-import { COMMISSION_STATUSES, FREQUENCIES, TRANSACTION_KINDS } from '../../constants/transactions';
-import { useMe } from '../../hooks/useAuth';
-import { useTransaction } from '../../hooks/useTransactions';
-import { canViewCommission } from '../../lib/commission';
-import { getApiErrorMessage } from '../../lib/queryClient';
-import { ageOn, maturityDate } from '../../lib/policyDates';
-import { formatCurrency, formatDate } from '../../utils/format';
-import Skeleton from '../../components/common/Skeleton';
-import KindBadge from './KindBadge';
+import { Link, useParams } from "react-router-dom";
+import { ROUTES } from "../../constants";
+import {
+  COMMISSION_STATUSES,
+  FREQUENCIES,
+  TRANSACTION_KINDS,
+} from "../../constants/transactions";
+import { useMe } from "../../hooks/useAuth";
+import { useTransaction } from "../../hooks/useTransactions";
+import { canViewCommission } from "../../lib/commission";
+import { getApiErrorMessage } from "../../lib/queryClient";
+import { ageOn, maturityDate } from "../../lib/policyDates";
+import { formatCurrency, formatDate } from "../../utils/format";
+import Skeleton from "../../components/common/Skeleton";
+import KindBadge from "./KindBadge";
 
-const day = (value) => (value ? String(value).slice(0, 10) : '');
+const day = (value) => (value ? String(value).slice(0, 10) : "");
 const date = (value) => (value ? formatDate(value) : null);
-const percent = (value) => (value === undefined || value === null ? null : `${value}%`);
-const money = (value) => (value === undefined || value === null ? null : formatCurrency(value));
+const percent = (value) =>
+  value === undefined || value === null ? null : `${value}%`;
+const money = (value) =>
+  value === undefined || value === null ? null : formatCurrency(value);
 
 function Detail({ label, children }) {
-  const empty = children === undefined || children === null || children === '';
+  const empty = children === undefined || children === null || children === "";
   return (
     <div>
       <p className="detail-label">{label}</p>
-      <p className="detail-value">{empty ? '-' : children}</p>
+      <p className="detail-value">{empty ? "-" : children}</p>
     </div>
   );
 }
@@ -29,7 +35,9 @@ function Section({ title, children }) {
   return (
     <section className="card p-6">
       <h3 className="company-form-section-title mb-4">{title}</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-6 gap-y-5">{children}</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-6 gap-y-5">
+        {children}
+      </div>
     </section>
   );
 }
@@ -38,7 +46,7 @@ function Stat({ label, children }) {
   return (
     <div className="card p-4">
       <p className="detail-label">{label}</p>
-      <p className="detail-stat">{children || '-'}</p>
+      <p className="detail-stat">{children || "-"}</p>
     </div>
   );
 }
@@ -67,14 +75,18 @@ export default function TransactionDetailPage() {
   if (error) {
     return (
       <div className="card text-center py-16">
-        <p className="company-empty-title">{getApiErrorMessage(error, 'Policy not found')}</p>
+        <p className="company-empty-title">
+          {getApiErrorMessage(error, "Policy not found")}
+        </p>
         <div className="mt-4">{backLink}</div>
       </div>
     );
   }
 
   const t = transaction;
-  const commissionStatus = COMMISSION_STATUSES.find((item) => item.value === t.commission?.status) ?? {};
+  const commissionStatus =
+    COMMISSION_STATUSES.find((item) => item.value === t.commission?.status) ??
+    {};
   const isGi = t.kind === TRANSACTION_KINDS.GI;
 
   return (
@@ -82,8 +94,7 @@ export default function TransactionDetailPage() {
       <div className="card p-4 flex flex-wrap items-center justify-between gap-4">
         <div className="min-w-0">
           <h2 className="control-center-toolbar-title text-lg font-semibold text-gray-900">
-            {t.policyNo}{' '}
-            <KindBadge kind={t.kind} />
+            {t.policyNo} <KindBadge kind={t.kind} />
           </h2>
           <p className="control-center-toolbar-subtitle text-sm text-gray-500 mt-0.5">
             {t.clientName} · {t.department.name}
@@ -125,21 +136,33 @@ export default function TransactionDetailPage() {
           <Detail label="MFG Date">{date(t.mfgDate)}</Detail>
           <Detail label="Maker">{t.maker}</Detail>
           <Detail label="Model">{t.model}</Detail>
-          <Detail label="NCB">{t.ncb === undefined ? null : `${t.ncb}%`}</Detail>
+          <Detail label="NCB">
+            {t.ncb === undefined ? null : `${t.ncb}%`}
+          </Detail>
           <Detail label="Policy Period From">{date(t.policyPeriodFrom)}</Detail>
           <Detail label="Policy Period To">{date(t.policyPeriodTo)}</Detail>
         </Section>
       ) : (
         <Section title="Life Policy">
           <Detail label="Date of Birth">{date(t.dateOfBirth)}</Detail>
-          <Detail label="Date of Commencement">{date(t.commencementDate)}</Detail>
-          <Detail label="Age">{ageOn(day(t.dateOfBirth), day(t.commencementDate))}</Detail>
+          <Detail label="Date of Commencement">
+            {date(t.commencementDate)}
+          </Detail>
+          <Detail label="Age">
+            {ageOn(day(t.dateOfBirth), day(t.commencementDate))}
+          </Detail>
           <Detail label="Payment Term (Y)">{t.paymentTermYears}</Detail>
           <Detail label="Policy Term (Y)">{t.policyTermYears}</Detail>
-          <Detail label="Maturity Date">{date(maturityDate(day(t.commencementDate), t.policyTermYears))}</Detail>
-          <Detail label="Frequency">{FREQUENCIES.find((item) => item.value === t.frequency)?.label}</Detail>
+          <Detail label="Maturity Date">
+            {date(maturityDate(day(t.commencementDate), t.policyTermYears))}
+          </Detail>
+          <Detail label="Frequency">
+            {FREQUENCIES.find((item) => item.value === t.frequency)?.label}
+          </Detail>
           <Detail label="Next Due Date">{date(t.nextDueDate)}</Detail>
-          <Detail label="Actual Payment Date">{date(t.actualPaymentDate)}</Detail>
+          <Detail label="Actual Payment Date">
+            {date(t.actualPaymentDate)}
+          </Detail>
         </Section>
       )}
 
@@ -147,12 +170,16 @@ export default function TransactionDetailPage() {
         {isGi ? (
           <>
             <Detail label="OD Premium">{money(t.odPremium)}</Detail>
-            <Detail label="Third-party Cover">{money(t.thirdPartyCover)}</Detail>
+            <Detail label="Third-party Cover">
+              {money(t.thirdPartyCover)}
+            </Detail>
             <Detail label="Agent Stamp Duty">{money(t.agentStampDuty)}</Detail>
           </>
         ) : (
           <>
-            <Detail label="Premium Per Month">{money(t.premiumPerMonth)}</Detail>
+            <Detail label="Premium Per Month">
+              {money(t.premiumPerMonth)}
+            </Detail>
             <Detail label="Sum Assured">{money(t.sumAssured)}</Detail>
           </>
         )}
@@ -167,21 +194,39 @@ export default function TransactionDetailPage() {
             <>
               {isGi ? (
                 <>
-                  <Detail label="OD Commission">{money(t.commission.odCommission)}</Detail>
-                  <Detail label="TP Commission">{money(t.commission.tpCommission)}</Detail>
-                  <Detail label="Total Commission">{money(t.commission.totalCommission)}</Detail>
-                  <Detail label="OD Commission (%)">{percent(t.commission.odCommissionPercent)}</Detail>
-                  <Detail label="TP Commission (%)">{percent(t.commission.tpCommissionPercent)}</Detail>
-                  <Detail label="Total Commission (%)">{percent(t.commission.totalCommissionPercent)}</Detail>
+                  <Detail label="OD Commission">
+                    {money(t.commission.odCommission)}
+                  </Detail>
+                  <Detail label="TP Commission">
+                    {money(t.commission.tpCommission)}
+                  </Detail>
+                  <Detail label="Total Commission">
+                    {money(t.commission.totalCommission)}
+                  </Detail>
+                  <Detail label="OD Commission (%)">
+                    {percent(t.commission.odCommissionPercent)}
+                  </Detail>
+                  <Detail label="TP Commission (%)">
+                    {percent(t.commission.tpCommissionPercent)}
+                  </Detail>
+                  <Detail label="Total Commission (%)">
+                    {percent(t.commission.totalCommissionPercent)}
+                  </Detail>
                 </>
               ) : (
                 <>
-                  <Detail label="Commission">{money(t.commission.amount)}</Detail>
-                  <Detail label="Commission (%)">{percent(t.commission.percent)}</Detail>
+                  <Detail label="Commission">
+                    {money(t.commission.amount)}
+                  </Detail>
+                  <Detail label="Commission (%)">
+                    {percent(t.commission.percent)}
+                  </Detail>
                 </>
               )}
               <Detail label="Commission Status">
-                <span className={commissionStatus.className}>{commissionStatus.label}</span>
+                <span className={commissionStatus.className}>
+                  {commissionStatus.label}
+                </span>
               </Detail>
             </>
           ) : (

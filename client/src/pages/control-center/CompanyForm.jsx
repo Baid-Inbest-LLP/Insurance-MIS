@@ -29,6 +29,7 @@ const buildDefaultValues = (company) => ({
   phone: company?.phone || '',
   taxId: company?.taxId || '',
   isActive: company ? company.isActive !== false : true,
+  isReportingEntity: Boolean(company?.isReportingEntity),
   branches: company?.branches?.length
     ? company.branches.map((l) => ({ ...l, label: (l.label || '').toUpperCase() }))
     : [emptyBranch(true)],
@@ -195,6 +196,17 @@ export default function CompanyForm({ company, onClose }) {
           <input type="checkbox" id="companyActive" className="rounded" {...register('isActive')} />
           <label htmlFor="companyActive" className="company-form-checkbox-label">
             Active company
+          </label>
+        </div>
+        <div className="flex items-center gap-2 mt-2">
+          <input
+            type="checkbox"
+            id="companyReportingEntity"
+            className="rounded"
+            {...register('isReportingEntity')}
+          />
+          <label htmlFor="companyReportingEntity" className="company-form-checkbox-label">
+            Use as reporting company for consolidated PDF reports
           </label>
         </div>
       </FormSection>

@@ -162,6 +162,11 @@ export default function CompanyListPage() {
 													{company.companyCode}
 												</span>
 											)}
+											{company.isReportingEntity && (
+												<span className="company-location-default-badge">
+													Reporting company
+												</span>
+											)}
 										</div>
 										<div className="flex flex-wrap items-center gap-2 mt-1">
 											{company.email && (

@@ -34,7 +34,17 @@ const normalizeCompanyFields = (body = {}) => ({
 	phone: body.phone?.trim(),
 	taxId: body.taxId?.trim()?.toUpperCase(),
 	isActive: body.isActive !== false,
+	isReportingEntity: body.isActive !== false && Boolean(body.isReportingEntity),
 });
+
+// Only one active company may be used as the legal header for a consolidated report.
+const ensureSingleReportingEntity = async (company) => {
+	if (!company.isReportingEntity) return;
+	await Company.updateMany(
+		{ _id: { $ne: company._id } },
+		{ $set: { isReportingEntity: false } },
+	);
+};
 
 const loadCompanyBranches = (companyId) =>
 	Branch.find({ company: companyId, isActive: true })
@@ -176,6 +186,7 @@ export const createCompany = asyncHandler(async (req, res) => {
 	const company = await Company.create(fields);
 	try {
 		await syncBranches(company._id, branches);
+		await ensureSingleReportingEntity(company);
 	} catch (err) {
 		await Company.findByIdAndDelete(company._id);
 		if (err instanceof ApiError) throw err;
@@ -197,6 +208,7 @@ export const updateCompany = asyncHandler(async (req, res) => {
 	);
 
 	await company.save();
+	await ensureSingleReportingEntity(company);
 
 	if (Array.isArray(branches)) {
 		await syncBranches(company._id, branches);

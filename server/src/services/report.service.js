@@ -46,16 +46,36 @@ const toCompanyInfo = (company) =>
 			}
 		: null;
 
+const COMPANY_INFO_FIELDS = "name code taxId gst cinOrLlp irdaiNumber";
+
+// Consolidated reports need one declared legal entity instead of losing their
+// header whenever their rows span companies. The oldest active company remains
+// a deterministic compatibility fallback until an administrator selects the
+// reporting company in Control Centre.
+const reportingCompanyInfo = async () => {
+	let company = await Company.findOne({ isActive: true, isReportingEntity: true })
+		.sort({ updatedAt: -1 })
+		.select(COMPANY_INFO_FIELDS)
+		.lean();
+	if (!company) {
+		company = await Company.findOne({ isActive: true })
+			.sort({ createdAt: 1, _id: 1 })
+			.select(COMPANY_INFO_FIELDS)
+			.lean();
+	}
+	return toCompanyInfo(company);
+};
+
 const companyInfoForBranches = async (branchIds) => {
 	const ids = [...new Set(branchIds.filter(Boolean).map(String))];
 	if (!ids.length) return null;
 
 	const branches = await Branch.find({ _id: { $in: ids } }).select("company").lean();
 	const companyIds = [...new Set(branches.map((branch) => branch.company && String(branch.company)).filter(Boolean))];
-	if (companyIds.length !== 1) return null;
+	if (companyIds.length !== 1) return reportingCompanyInfo();
 
 	const company = await Company.findById(companyIds[0])
-		.select("name code taxId gst cinOrLlp irdaiNumber")
+		.select(COMPANY_INFO_FIELDS)
 		.lean();
 	return toCompanyInfo(company);
 };
@@ -136,10 +156,7 @@ export const getAgentClientWiseReport = async ({ actor, filters }) => {
 		Department.findById(filters.department).select("code").lean(),
 	]);
 	const branches = new Map(branchDocs.map((branch) => [String(branch._id), branch.label]));
-	const companyIds = [...new Set(branchDocs.map((branch) => (branch.company ? String(branch.company) : null)).filter(Boolean))];
-	const company = companyIds.length === 1
-		? await Company.findById(companyIds[0]).select("name code taxId gst cinOrLlp irdaiNumber").lean()
-		: null;
+	const companyInfo = await companyInfoForBranches(branchIds);
 
 	const rows = groups
 		.map(({ _id, policies, premium }) => ({
@@ -171,7 +188,7 @@ export const getAgentClientWiseReport = async ({ actor, filters }) => {
 
 	return {
 		rows,
-		companyInfo: toCompanyInfo(company),
+		companyInfo,
 		departmentCode: department?.code || "",
 		totals: {
 			policies: rows.reduce((total, row) => total + row.policies, 0),
