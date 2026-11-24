@@ -24,6 +24,10 @@ const transactionSchema = new mongoose.Schema(
     insurer: masterItemId(),
     businessType: masterItemId(),
     lob: masterItemId(),
+    // Optional, department-controlled attribution values. They are optional so
+    // existing policies remain valid after the feature is enabled.
+    groupName: masterItemId({ required: false }),
+    bqp: masterItemId({ required: false }),
     // The plan or product name, typed in by hand.
     productType: { type: String, trim: true, maxlength: 100 },
     agent: { type: ObjectId, ref: 'Agent' },

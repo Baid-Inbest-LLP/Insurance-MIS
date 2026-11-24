@@ -32,7 +32,7 @@ const router = Router();
 
 router.use(authenticate);
 
-router.get('/branches', master.branchController.list);
+router.get('/branches', authorize('superadmin', 'admin', 'hod'), master.branchController.list);
 router.post('/branches', authorize('superadmin'), master.branchController.create);
 router.put('/branches/:id', authorize('superadmin'), master.branchController.update);
 router.delete('/branches/:id', authorize('superadmin'), master.branchController.remove);
@@ -44,7 +44,7 @@ router.get('/lookups', validate(lookupsQuerySchema, 'query'), getLookups);
 
 router.get(
   '/departments',
-  authorize('superadmin', 'admin'),
+  authorize('superadmin', 'admin', 'hod'),
   validate(departmentsQuerySchema, 'query'),
   departments.listDepartments,
 );
@@ -62,9 +62,8 @@ router.put(
   departments.updateDepartment,
 );
 
-router.get('/agents', validate(agentsQuerySchema, 'query'), agents.listAgents);
-// Agents can also be added from the policy form, so creating one is open to admins and HODs too.
-router.post('/agents', authorize('superadmin', 'admin', 'hod'), validate(createAgentSchema), agents.createAgent);
+router.get('/agents', authorize('superadmin', 'admin', 'hod'), validate(agentsQuerySchema, 'query'), agents.listAgents);
+router.post('/agents', authorize('superadmin', 'admin'), validate(createAgentSchema), agents.createAgent);
 router.put(
   '/agents/:id',
   authorize('superadmin'),
@@ -81,6 +80,7 @@ router.delete(
 
 router.get(
   '/catalog/:departmentId/:slug',
+	authorize('superadmin', 'admin', 'hod'),
   validate(masterSlugParamsSchema, 'params'),
   validate(masterItemsQuerySchema, 'query'),
   masterValues.listMasterItems,

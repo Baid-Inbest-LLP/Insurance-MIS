@@ -122,6 +122,8 @@ export default function TransactionListPage() {
     { key: 'insurer', header: 'Insurer', align: 'center', render: (t) => t.insurer?.name ?? '-' },
     { key: 'businessType', header: 'Business Type', align: 'center', render: (t) => t.businessType?.name ?? '-' },
     { key: 'lob', header: 'LOB', align: 'center', render: (t) => t.lob?.name ?? '-' },
+    { key: 'groupName', header: 'Group Name', align: 'center', render: (t) => t.groupName?.name ?? '-' },
+    { key: 'bqp', header: 'BQP', align: 'center', render: (t) => t.bqp?.name ?? '-' },
     { key: 'branch', header: 'Branch', align: 'center', render: (t) => t.branch.code },
     { key: 'premium', header: 'Premium', align: 'right', render: (t) => formatCurrency(t.premium) },
     { key: 'source', header: 'Source', align: 'center' },

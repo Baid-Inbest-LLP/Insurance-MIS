@@ -2,7 +2,6 @@ import {
   IconChartBar,
   IconCurrencyRupee,
   IconFileCertificate,
-  IconUsers,
 } from "@tabler/icons-react";
 import {
   Bar,
@@ -349,9 +348,9 @@ function Overview({
       tone: "bg-blue-100 text-blue-700",
     },
     {
-      label: "Unique Client Names",
-      value: kpis?.activeClientNames ?? 0,
-      Icon: IconUsers,
+      label: "Net Premium",
+      value: formatCurrency(kpis?.netPremium),
+      Icon: IconCurrencyRupee,
       tone: "bg-violet-100 text-violet-700",
     },
     ...(data?.permissions?.commission
@@ -518,13 +517,11 @@ export default function HomePage() {
           {...initialProps}
         >
           {({ data, drillDown: open }) => {
-            const rows = (data?.insurers ?? [])
-              .slice(0, 9)
-              .map((row) => ({
-                ...row,
-                fullName: row.name,
-                name: companyFirstWord(row.name),
-              }));
+            const rows = (data?.insurers ?? []).slice(0, 9).map((row) => ({
+              ...row,
+              fullName: row.name,
+              name: companyFirstWord(row.name),
+            }));
             return rows.length ? (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart
@@ -623,6 +620,52 @@ export default function HomePage() {
           )}
         </DashboardPanel>
       </div>
+      {initialData?.permissions?.commission && (
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+          <DashboardPanel
+            heading="Received vs Pending Commission"
+            section="commission-status"
+            years={years}
+            onDrillDown={drillDown}
+            {...initialProps}
+          >
+            {({ data }) => (
+              <Ranking rows={data?.commissionStatus ?? []} onSelect={() => {}} />
+            )}
+          </DashboardPanel>
+          <DashboardPanel
+            heading="Monthly Premium vs Commission"
+            section="monthly-commission"
+            years={years}
+            onDrillDown={drillDown}
+            {...initialProps}
+          >
+            {({ data }) => {
+              const rows = (data?.monthly ?? []).map((row) => ({ ...row, label: monthLabel(row.month) }));
+              return rows.length ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={rows}>
+                    <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                    <YAxis tickFormatter={formatCompactCurrency} width={72} tick={{ fontSize: 11 }} />
+                    <Tooltip content={<PremiumTooltip />} cursor={false} />
+                    <Bar dataKey="premium" name="Premium" fill="#0f6b8d" radius={[4, 4, 0, 0]} activeBar={false} />
+                    <Bar dataKey="commission" name="Commission" fill="#c38a29" radius={[4, 4, 0, 0]} activeBar={false} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : <EmptyChart />;
+            }}
+          </DashboardPanel>
+          <DashboardPanel
+            heading="OD vs TP Commission"
+            section="od-tp-commission"
+            years={years}
+            onDrillDown={drillDown}
+            {...initialProps}
+          >
+            {({ data }) => <Ranking rows={data?.odTpCommission ?? []} onSelect={() => {}} />}
+          </DashboardPanel>
+        </div>
+      )}
     </div>
   );
 }

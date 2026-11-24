@@ -110,8 +110,10 @@ export default function TransactionDetailPage() {
         <Detail label="Office Code">{t.officeCode}</Detail>
         <Detail label="Business Type">{t.businessType?.name}</Detail>
         <Detail label="Line of Business">{t.lob?.name}</Detail>
+        <Detail label="Group Name">{t.groupName?.name}</Detail>
         <Detail label="Product Type">{t.productType}</Detail>
         <Detail label="Agent">{t.agent?.name}</Detail>
+        <Detail label="BQP">{t.bqp?.name}</Detail>
         <Detail label="Source">{t.source}</Detail>
         <Detail label="Reference">{t.reference}</Detail>
       </Section>

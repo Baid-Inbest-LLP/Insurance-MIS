@@ -4,7 +4,7 @@ import inbestTextLogo from '../../assets/inbest_text_logo.png';
 import inbestWhiteLogo from '../../assets/white_inbest_logo.png';
 import { useMe } from '../../hooks/useAuth';
 import { ROUTES } from '../../constants';
-import { COMMISSION_VIEW_ROLES, roleLabel } from '../../constants/roles';
+import { COMMISSION_VIEW_ROLES, MASTER_VIEW_ROLES, roleLabel } from '../../constants/roles';
 import {
   ChevronRightIcon,
   ControlCenterIcon,
@@ -27,6 +27,8 @@ const navItems = [
       { to: ROUTES.REPORT_OFFICE_WISE, label: 'Office Wise Report' },
       { to: ROUTES.REPORT_AGENT_WISE, label: 'Agent Wise Report' },
       { to: ROUTES.REPORT_INSURER_WISE, label: 'Insurer Wise Report' },
+      { to: ROUTES.REPORT_GROUP_WISE, label: 'Group Wise Report' },
+      { to: ROUTES.REPORT_BQP_WISE, label: 'BQP Wise Report' },
       { to: ROUTES.REPORT_SOURCE_WISE, label: 'Source Wise Report' },
       { to: ROUTES.REPORT_COMMISSION, label: 'Commission Report', roles: COMMISSION_VIEW_ROLES },
     ],
@@ -36,6 +38,7 @@ const navItems = [
     basePath: ROUTES.CONTROL_CENTER,
     label: 'Control Center',
     Icon: ControlCenterIcon,
+    roles: MASTER_VIEW_ROLES,
   },
   { to: ROUTES.SETTINGS, label: 'Settings', Icon: SettingsIcon },
 ];
@@ -92,6 +95,7 @@ const Sidebar = ({ isOpen = true }) => {
         }`}
       >
         {navItems.map((item) => {
+          if (item.roles && !item.roles.includes(user?.role)) return null;
           const { Icon } = item;
           if (item.children) {
             const isGroupActive = location.pathname.startsWith(item.basePath);

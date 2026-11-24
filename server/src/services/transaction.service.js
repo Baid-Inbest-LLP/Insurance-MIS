@@ -13,7 +13,7 @@ import { MASTER_FIELDS, TRANSACTION_KINDS } from "../constants/transactions.js";
 import { assertActiveDepartments } from "./department.service.js";
 
 // Fields a user may leave empty; an update that leaves one out clears it.
-const SHARED_OPTIONAL_FIELDS = ["agent", "officeCode", "reference", "productType"];
+const SHARED_OPTIONAL_FIELDS = ["agent", "officeCode", "reference", "productType", "groupName", "bqp"];
 const OPTIONAL_FIELDS = {
 	[TRANSACTION_KINDS.GI]: [
 		...SHARED_OPTIONAL_FIELDS,
@@ -36,7 +36,7 @@ const DETAIL_POPULATE = [
 
 // The table only shows these fields; the full record comes from the details endpoint.
 const LIST_FIELDS =
-	"kind department branch policyDate policyNo clientName insurer businessType lob source premium createdBy";
+	"kind department branch policyDate policyNo clientName insurer businessType lob groupName bqp source premium createdBy";
 const LIST_POPULATE = [{ path: "branch", select: "label" }];
 
 const hasDepartment = (actor, departmentId) =>
@@ -201,6 +201,8 @@ const toListItem = ({ branch, ...transaction }, names) => ({
 	insurer: masterItem(transaction, "insurer", names, transaction.department),
 	businessType: masterItem(transaction, "businessType", names, transaction.department),
 	lob: masterItem(transaction, "lob", names, transaction.department),
+	groupName: masterItem(transaction, "groupName", names, transaction.department),
+	bqp: masterItem(transaction, "bqp", names, transaction.department),
 });
 
 // `transactions` are plain records; the references named in `populate` are filled in
@@ -234,7 +236,7 @@ export const listTransactions = async ({ actor, filters }) => {
 		query.department = department;
 	}
 	if (kind) query.kind = kind;
-	for (const field of ["branch", "insurer", "businessType", "lob", "agent", "source", "productType"])
+	for (const field of ["branch", "insurer", "businessType", "lob", "groupName", "bqp", "agent", "source", "productType"])
 		if (filters[field]) query[field] = filters[field];
 	if (from || endExclusive)
 		query.policyDate = { ...(from && { $gte: from }), ...(endExclusive && { $lt: endExclusive }) };

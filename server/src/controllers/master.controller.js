@@ -115,7 +115,6 @@ export const updateUser = asyncHandler(async (req, res) => {
 	) {
 		await assertNoOtherHod(user.departments, user._id);
 	}
-
 	await user.save();
 	ApiResponse.success(res, null, "User updated");
 });

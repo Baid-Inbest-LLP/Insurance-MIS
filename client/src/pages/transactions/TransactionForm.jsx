@@ -42,7 +42,7 @@ const AMOUNT_RULES = {
 const sum = (...values) => values.reduce((total, value) => total + (Number(value) || 0), 0).toFixed(2);
 const READ_ONLY_CLASS = 'input-field bg-gray-50 text-gray-500 cursor-default';
 // The dropdowns whose options load after the form opens.
-const SELECT_FIELDS = ['department', 'branch', 'insurer', 'businessType', 'lob'];
+const SELECT_FIELDS = ['department', 'branch', 'insurer', 'businessType', 'lob', 'groupName', 'bqp'];
 
 // A dropdown of one master list; keeps the saved value visible even if that item is now inactive.
 function MasterSelect({ label, name, register, error, items = [], current, disabled = false }) {
@@ -188,7 +188,7 @@ export default function TransactionForm({ transaction, draft, onClose }) {
   }, [onlyDepartmentId, setValue]);
 
   const resetMasters = () => {
-    for (const name of ['insurer', 'businessType', 'lob']) setValue(name, '');
+    for (const name of ['insurer', 'businessType', 'lob', 'groupName', 'bqp']) setValue(name, '');
   };
 
   // Admins and HODs can add an agent that is not in the list yet; others pick from what exists.
@@ -354,6 +354,7 @@ export default function TransactionForm({ transaction, draft, onClose }) {
 
             <MasterSelect label="Business Type" name="businessType" items={masters.businessType} error={errors.businessType} current={transaction?.businessType} disabled={noDepartment} register={register} />
             <MasterSelect label="Line of Business" name="lob" items={masters.lob} error={errors.lob} current={transaction?.lob} disabled={noDepartment} register={register} />
+            <MasterSelect label="Group Name" name="groupName" items={masters.groupName} error={errors.groupName} current={transaction?.groupName} disabled={noDepartment} register={register} />
             <TextField label="Product Type" name="productType" maxLength={100} {...sharedProps} />
             <FormField label="Source" required error={errors.source}>
               <select className="input-field" {...register('source', { required: 'Source is required' })}>
@@ -368,6 +369,7 @@ export default function TransactionForm({ transaction, draft, onClose }) {
             {values.source === AGENT_SOURCE && (
               <SearchableSelect label="Agent" name="agent" control={control} items={options?.agents} current={transaction?.agent} required onCreate={canAddAgent ? addAgent : undefined} />
             )}
+            <MasterSelect label="BQP" name="bqp" items={masters.bqp} error={errors.bqp} current={transaction?.bqp} disabled={noDepartment} register={register} />
             <TextField label="Reference" name="reference" maxLength={200} {...sharedProps} />
           </FormGrid>
         </FormSection>

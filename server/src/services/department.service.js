@@ -3,8 +3,11 @@ import { ApiError } from "../utils/ApiError.js";
 import { ROLES } from "../constants/roles.js";
 
 // Returns departments sorted by name, optionally including inactive ones.
-export const listDepartments = ({ includeInactive = false }) =>
-	Department.find(includeInactive ? {} : { isActive: true })
+export const listDepartments = ({ includeInactive = false, departmentIds }) =>
+	Department.find({
+		...(includeInactive ? {} : { isActive: true }),
+		...(departmentIds && { _id: { $in: departmentIds } }),
+	})
 		.select("name code isActive")
 		.sort({ name: 1 })
 		.lean();

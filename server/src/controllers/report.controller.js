@@ -24,10 +24,17 @@ const reportMeta = (filters) => {
 };
 
 const agentReportPeriod = (filters) => {
-	const date = filters.from || filters.to || new Date();
-	const month = date.toLocaleString("en-US", { month: "long", timeZone: "UTC" }).toUpperCase();
-	const year = String(date.getUTCFullYear()).slice(-2);
-	return `${month}'${year} (F.Y.- ${getFinancialYear(date)})`;
+	const format = (date) =>
+		date.toLocaleDateString("en-GB", {
+			day: "2-digit",
+			month: "short",
+			year: "numeric",
+			timeZone: "UTC",
+		});
+	if (filters.from && filters.to) return `${format(filters.from)} to ${format(filters.to)}`;
+	if (filters.from) return `From ${format(filters.from)}`;
+	if (filters.to) return `Up to ${format(filters.to)}`;
+	return `F.Y. ${getFinancialYear(new Date())}`;
 };
 
 const premiumColumns = (groupHeader, groupKey, includeCommission) => [
@@ -188,6 +195,43 @@ export const exportInsurerWisePdfReport = exportGroupedPdfReport({
 	filename: "insurer-wise-report.pdf",
 	groupKey: "insurer",
 	columns: (actor) => premiumColumns("Insurer", "insurer", canViewCommission(actor)),
+});
+
+// Group Name and BQP are optional master values on a policy. Dedicated summary
+// reports keep them available in screen, Excel and PDF exports without making
+// the fixed client-wise operational report too wide.
+export const getGroupWiseReport = reportHandler(reportService.getGroupWiseReport);
+export const exportGroupWiseReport = exportGroupedReport({
+	getReport: reportService.getGroupWiseReport,
+	sheetName: "Group Wise",
+	title: "Group Wise Report",
+	filename: "group-wise-report.xlsx",
+	groupKey: "groupName",
+	columns: (actor) => premiumColumns("Group Name", "groupName", canViewCommission(actor)),
+});
+export const exportGroupWisePdfReport = exportGroupedPdfReport({
+	getReport: reportService.getGroupWiseReport,
+	title: "GROUP WISE REPORT",
+	filename: "group-wise-report.pdf",
+	groupKey: "groupName",
+	columns: (actor) => premiumColumns("Group Name", "groupName", canViewCommission(actor)),
+});
+
+export const getBqpWiseReport = reportHandler(reportService.getBqpWiseReport);
+export const exportBqpWiseReport = exportGroupedReport({
+	getReport: reportService.getBqpWiseReport,
+	sheetName: "BQP Wise",
+	title: "BQP Wise Report",
+	filename: "bqp-wise-report.xlsx",
+	groupKey: "bqp",
+	columns: (actor) => premiumColumns("BQP", "bqp", canViewCommission(actor)),
+});
+export const exportBqpWisePdfReport = exportGroupedPdfReport({
+	getReport: reportService.getBqpWiseReport,
+	title: "BQP WISE REPORT",
+	filename: "bqp-wise-report.pdf",
+	groupKey: "bqp",
+	columns: (actor) => premiumColumns("BQP", "bqp", canViewCommission(actor)),
 });
 
 // The same figures per source for one department.

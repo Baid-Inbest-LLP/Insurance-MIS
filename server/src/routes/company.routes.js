@@ -6,7 +6,7 @@ const router = Router();
 
 router.use(authenticate);
 
-router.get("/", companyController.getCompanies);
+router.get("/", authorize("superadmin", "admin", "hod"), companyController.getCompanies);
 router.post("/", authorize("superadmin"), companyController.createCompany);
 router.put("/:id", authorize("superadmin"), companyController.updateCompany);
 router.delete("/:id", authorize("superadmin"), companyController.deleteCompany);

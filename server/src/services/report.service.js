@@ -219,6 +219,13 @@ export const getAgentWiseReport = premiumReport("agent", agentNames, { scope: { 
 
 export const getInsurerWiseReport = premiumReport("insurer", masterNames("insurer"));
 
+// These values are maintained in the department's master catalog. Keeping
+// them as their own reports also avoids widening the operational client-wise
+// Agent PDF, whose fixed layout is used by the business team.
+export const getGroupWiseReport = premiumReport("groupName", masterNames("groupName"));
+
+export const getBqpWiseReport = premiumReport("bqp", masterNames("bqp"));
+
 // A source is stored by name, so each group is named by its own value.
 export const getSourceWiseReport = premiumReport(
 	"source",
