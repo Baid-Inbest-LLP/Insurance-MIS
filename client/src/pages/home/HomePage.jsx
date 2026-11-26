@@ -78,10 +78,52 @@ const nonEmptyParams = (params) =>
   Object.fromEntries(Object.entries(params).filter(([, value]) => value));
 const monthLabel = (month) =>
   new Date(`${month}-01T00:00:00Z`).toLocaleString("en-IN", { month: "short" });
-const companyFirstWord = (name) =>
+const companyNameWords = (name) =>
   String(name || "Unspecified")
     .trim()
-    .split(/\s+/)[0];
+    .split(/\s+/)
+    .filter(Boolean);
+
+// Use the shortest word prefix that distinguishes each insurer in the visible ranking.
+// "Bajaj General" and "Bajaj Allianz" therefore stay distinct without filling the axis
+// with every legal-company suffix; the complete name remains available in the tooltip.
+const companyChartRows = (insurers) => {
+  const sourceRows = insurers.slice(0, 9);
+  const words = sourceRows.map((row) => companyNameWords(row.name));
+  const lengths = words.map(() => 1);
+  let hasCollisions = true;
+
+  while (hasCollisions) {
+    const groups = new Map();
+    words.forEach((parts, index) => {
+      const label = parts.slice(0, lengths[index]).join(" ");
+      groups.set(label, [...(groups.get(label) ?? []), index]);
+    });
+
+    hasCollisions = false;
+    groups.forEach((indexes) => {
+      if (indexes.length < 2) return;
+      const canExpand = indexes.some((index) => lengths[index] < words[index].length);
+      if (!canExpand) return;
+      hasCollisions = true;
+      indexes.forEach((index) => {
+        if (lengths[index] < words[index].length) lengths[index] += 1;
+      });
+    });
+  }
+
+  const occurrences = new Map();
+  return sourceRows.map((row, index) => {
+    const baseLabel = words[index].slice(0, lengths[index]).join(" ");
+    const occurrence = (occurrences.get(baseLabel) ?? 0) + 1;
+    occurrences.set(baseLabel, occurrence);
+    return {
+      ...row,
+      fullName: row.name,
+      name: occurrence === 1 ? baseLabel : `${baseLabel} ${occurrence}`,
+    };
+  });
+};
 
 const topProductsWithOthers = (rows) => {
   const top = rows.slice(0, 9);
@@ -529,11 +571,7 @@ export default function HomePage() {
           {...initialProps}
         >
           {({ data, drillDown: open }) => {
-            const rows = (data?.insurers ?? []).slice(0, 9).map((row) => ({
-              ...row,
-              fullName: row.name,
-              name: companyFirstWord(row.name),
-            }));
+            const rows = companyChartRows(data?.insurers ?? []);
             return rows.length ? (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart
@@ -545,7 +583,7 @@ export default function HomePage() {
                   <YAxis
                     type="category"
                     dataKey="name"
-                    width={96}
+                    width={150}
                     tick={{ fontSize: 11 }}
                   />
                   <Tooltip content={<PremiumTooltip />} cursor={false} />
