@@ -93,11 +93,23 @@ export default function TransactionListPage() {
     ...(debouncedSearch && { search: debouncedSearch }),
     ...scope.params,
   };
-  const { data, isLoading, isFetching } = useTransactions(params, scope.ready);
+  const { data, isLoading, isFetching, isError, error, refetch } = useTransactions(params, scope.ready);
   const transactions = data?.transactions ?? [];
   const deleteTransaction = useDeleteTransaction();
   const prefetchTransaction = usePrefetchTransaction();
-  const { data: drafts = [] } = useDrafts();
+  const {
+    data: drafts = [],
+    isError: draftsError,
+    error: draftsLoadError,
+    refetch: refetchDrafts,
+  } = useDrafts();
+
+  // A delete or external change can remove the current page. Never leave the
+  // user stranded on a page which no longer exists.
+  useEffect(() => {
+    const pages = data?.pagination?.pages;
+    if (pages && page > pages) setPage(pages);
+  }, [data?.pagination?.pages, page]);
 
   const staff = isStaffRole(user?.role);
   const departmentIds = (user?.departments ?? []).map(
@@ -231,7 +243,16 @@ export default function TransactionListPage() {
         onSearchChange={setSearch}
         searchPlaceholder="Search policy no. or client..."
         actions={
-          drafts.length > 0 && (
+          draftsError ? (
+            <button
+              type="button"
+              className="btn-secondary whitespace-nowrap w-full sm:w-auto"
+              onClick={() => refetchDrafts()}
+              title={getApiErrorMessage(draftsLoadError, "Could not load drafts")}
+            >
+              Retry drafts
+            </button>
+          ) : drafts.length > 0 && (
             <button
               type="button"
               className="btn-secondary whitespace-nowrap w-full sm:w-auto"
@@ -251,12 +272,25 @@ export default function TransactionListPage() {
       <DataTable
         columns={columns}
         data={transactions}
-        loading={isLoading || !scope.ready}
+        loading={isLoading || (!scope.ready && !scope.isError)}
         autoLayout
         noWrap
         serialNumber
-        emptyTitle="No policies found"
-        emptyDescription="Add a policy or change the filters"
+        emptyTitle={scope.isError || isError ? "Unable to load policies" : "No policies found"}
+        emptyDescription={
+          scope.isError
+            ? getApiErrorMessage(scope.error, "Could not load policy filters")
+            : isError
+              ? getApiErrorMessage(error, "Could not load policies")
+              : "Add a policy or change the filters"
+        }
+        emptyAction={
+          scope.isError
+            ? { label: "Try again", onClick: () => scope.refetch() }
+            : isError
+              ? { label: "Try again", onClick: () => refetch() }
+              : undefined
+        }
         pagination={
           data?.pagination && { ...data.pagination, onPageChange: setPage }
         }
@@ -264,7 +298,7 @@ export default function TransactionListPage() {
 
       {editing === "new" && <TransactionForm onClose={closeForm} />}
       {editing && editing !== "new" && (
-        <EditTransactionForm id={editing} onClose={closeForm} />
+        <EditTransactionForm key={editing} id={editing} onClose={closeForm} />
       )}
 
       {showDrafts && (

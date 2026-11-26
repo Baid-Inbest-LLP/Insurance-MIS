@@ -46,6 +46,8 @@ export default function GroupedReport({ title, report, groupKey, groupHeader, me
   );
   const exportReport = useExportReport();
   const exportPdfReport = useExportPdfReport();
+  const hasLoadError = scope.isError || isError;
+  const loadError = scope.isError ? scope.error : error;
 
   const withCommission = canViewCommission(scope.user);
   const shown = measures.filter((measure) => !measure.commission || withCommission);
@@ -113,16 +115,23 @@ export default function GroupedReport({ title, report, groupKey, groupHeader, me
         columns={columns}
         data={data?.rows ?? []}
         rowKey={(row) => row[groupKey]._id ?? 'none'}
-        loading={isLoading || !scope.ready}
+        loading={isLoading || (!scope.ready && !scope.isError)}
         autoLayout
         noWrap
         serialNumber
         footer={footer}
-        emptyTitle={isError ? 'Unable to load report' : 'No policies found'}
+        emptyTitle={hasLoadError ? 'Unable to load report' : 'No policies found'}
         emptyDescription={
-          isError ? reportErrorMessage(error) : 'Change the filters to see other policies'
+          hasLoadError ? reportErrorMessage(loadError) : 'Change the filters to see other policies'
         }
-        emptyAction={isError ? { label: 'Try again', onClick: () => refetch() } : undefined}
+        emptyAction={
+          hasLoadError
+            ? {
+                label: 'Try again',
+                onClick: () => (scope.isError ? scope.refetch() : refetch()),
+              }
+            : undefined
+        }
       />
     </div>
   );

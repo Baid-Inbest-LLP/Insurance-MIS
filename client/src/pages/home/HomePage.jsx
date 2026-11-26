@@ -16,6 +16,7 @@ import {
 } from "recharts";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ROUTES } from "../../constants";
 import { useDashboard } from "../../hooks/useDashboard";
 import {
   formatCompactCurrency,
@@ -244,7 +245,7 @@ function RecentPolicies({ rows, onSelect }) {
         <button
           type="button"
           key={row._id}
-          onClick={() => onSelect({})}
+          onClick={() => onSelect(row)}
           className="dashboard-recent-row w-full py-2 text-left grid grid-cols-[1fr_auto] gap-3"
         >
           <span className="min-w-0">
@@ -276,6 +277,7 @@ function DashboardPanel({
   initialData,
   initialLoading,
   initialError,
+  initialRefetch,
 }) {
   const [period, setPeriod] = useState(() => String(currentFinancialYear()));
   const params = useMemo(() => nonEmptyParams(periodParams(period)), [period]);
@@ -287,6 +289,7 @@ function DashboardPanel({
   const data = useInitialData ? initialData : sectionQuery.data;
   const isLoading = useInitialData ? initialLoading : sectionQuery.isLoading;
   const isError = useInitialData ? initialError : sectionQuery.isError;
+  const retry = useInitialData ? initialRefetch : sectionQuery.refetch;
   const title = (
     <>
       <h2 className="dashboard-heading text-sm font-semibold text-gray-800">
@@ -303,8 +306,11 @@ function DashboardPanel({
       Loading&hellip;
     </div>
   ) : isError ? (
-    <div className="h-56 grid place-items-center text-sm text-red-500">
-      Could not load this panel. Please retry.
+    <div className="h-56 grid place-items-center content-center gap-3 text-sm text-red-500">
+      <p>Could not load this panel.</p>
+      <button type="button" className="btn-secondary" onClick={() => retry?.()}>
+        Try again
+      </button>
     </div>
   ) : (
     children({ data, drillDown: (extra = {}) => onDrillDown(params, extra) })
@@ -322,6 +328,7 @@ function Overview({
   initialData,
   initialLoading,
   initialError,
+  initialRefetch,
 }) {
   const [period, setPeriod] = useState(() => String(currentFinancialYear()));
   const params = useMemo(() => nonEmptyParams(periodParams(period)), [period]);
@@ -333,6 +340,7 @@ function Overview({
   const data = useInitialData ? initialData : overviewQuery.data;
   const isLoading = useInitialData ? initialLoading : overviewQuery.isLoading;
   const isError = useInitialData ? initialError : overviewQuery.isError;
+  const retry = useInitialData ? initialRefetch : overviewQuery.refetch;
   const kpis = data?.kpis;
   const cards = [
     {
@@ -370,8 +378,11 @@ function Overview({
         <PeriodSelect value={period} onChange={setPeriod} years={years} />
       </div>
       {isError ? (
-        <div className="card p-4 text-sm text-red-500">
-          Dashboard overview could not be loaded. Please retry.
+        <div className="card p-4 flex flex-wrap items-center justify-between gap-3 text-sm text-red-500">
+          <p>Dashboard overview could not be loaded.</p>
+          <button type="button" className="btn-secondary" onClick={() => retry?.()}>
+            Try again
+          </button>
         </div>
       ) : (
         <div className="dashboard-grid-4">
@@ -410,6 +421,7 @@ export default function HomePage() {
     initialData,
     initialLoading: initialQuery.isLoading,
     initialError: initialQuery.isError,
+    initialRefetch: initialQuery.refetch,
   };
   const drillDown = (params, extra = {}) =>
     navigate(
@@ -615,8 +627,11 @@ export default function HomePage() {
           onDrillDown={drillDown}
           {...initialProps}
         >
-          {({ data, drillDown: open }) => (
-            <RecentPolicies rows={data?.recentPolicies ?? []} onSelect={open} />
+          {({ data }) => (
+            <RecentPolicies
+              rows={data?.recentPolicies ?? []}
+              onSelect={(row) => navigate(`${ROUTES.TRANSACTIONS}/${row._id}`)}
+            />
           )}
         </DashboardPanel>
       </div>

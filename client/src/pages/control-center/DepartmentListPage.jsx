@@ -9,6 +9,7 @@ import {
 } from "../../hooks/useMasters";
 import { getApiErrorMessage } from "../../lib/queryClient";
 import ControlCenterToolbar from "./ControlCenterToolbar";
+import ConfirmModal from "../../components/common/ConfirmModal";
 import RowActions from "../../components/common/RowActions";
 import FormField from "../../components/common/form/FormField";
 import FormModal from "../../components/common/form/FormModal";
@@ -22,9 +23,16 @@ export default function DepartmentListPage() {
 	const [search, setSearch] = useState("");
 	// "new" while adding, the department being edited, or null when the modal is closed.
 	const [editing, setEditing] = useState(null);
+	const [confirmDiscard, setConfirmDiscard] = useState(false);
 	const isNew = editing === "new";
 
-	const { data: departments = [], isLoading: loading } = useDepartments({
+	const {
+		data: departments = [],
+		isLoading: loading,
+		isError,
+		error: loadError,
+		refetch,
+	} = useDepartments({
 		includeInactive: canManage,
 	});
 	const createDepartment = useCreateDepartment();
@@ -58,6 +66,19 @@ export default function DepartmentListPage() {
 	const closeModal = () => {
 		setEditing(null);
 		reset(EMPTY_FORM);
+	};
+
+	const requestClose = () => {
+		if (isDirty && !isSubmitting) {
+			setConfirmDiscard(true);
+			return;
+		}
+		closeModal();
+	};
+
+	const discardChanges = () => {
+		setConfirmDiscard(false);
+		closeModal();
 	};
 
 	const onSubmit = async (data) => {
@@ -109,7 +130,15 @@ export default function DepartmentListPage() {
 			/>
 
 			<div className="card overflow-hidden">
-				{loading ? (
+				{isError ? (
+					<div className="text-center py-16 px-6">
+						<p className="company-empty-title">Unable to load departments</p>
+						<p className="company-empty-desc">{getApiErrorMessage(loadError, "Please try again.")}</p>
+						<button type="button" className="btn-primary mt-4" onClick={() => refetch()}>
+							Try again
+						</button>
+					</div>
+				) : loading ? (
 					<div className="p-6 space-y-3">
 						{[0, 1, 2].map((row) => (
 							<Skeleton key={row} className="h-4 w-full" />
@@ -176,6 +205,17 @@ export default function DepartmentListPage() {
 				)}
 			</div>
 
+			<ConfirmModal
+				open={confirmDiscard}
+				title="Discard unsaved changes?"
+				message="Your changes to this department have not been saved."
+				confirmLabel="Discard changes"
+				cancelLabel="Keep editing"
+				variant="warning"
+				onConfirm={discardChanges}
+				onCancel={() => setConfirmDiscard(false)}
+			/>
+
 			<FormModal
 				open={Boolean(editing)}
 				title={isNew ? "Add Department" : "Edit Department"}
@@ -184,7 +224,7 @@ export default function DepartmentListPage() {
 						? "Create a new department"
 						: "Update the name, code or status of this department"
 				}
-				onClose={closeModal}
+				onClose={requestClose}
 				onSubmit={handleSubmit(onSubmit)}
 				submitting={isSubmitting}
 				submitLabel={isNew ? "Add Department" : "Save changes"}
