@@ -146,8 +146,23 @@ export const useUpdateUser = () => {
 	return useMutation({
 		mutationFn: async ({ id, data }) =>
 			(await masterApi.updateUser(id, data)).data.data,
-		onSuccess: () =>
-			queryClient.invalidateQueries({ queryKey: queryKeys.users }),
+		onSuccess: async (_data, { id }) => {
+			const currentUser = queryClient.getQueryData(queryKeys.me);
+			const invalidations = [
+				queryClient.invalidateQueries({ queryKey: queryKeys.users }),
+			];
+
+			// The update endpoint deliberately returns no user payload. When the
+			// active user edits their own name/role/scope, fetch their authoritative
+			// profile again so navigation and permission checks update immediately.
+			if (currentUser?._id === id) {
+				invalidations.push(
+					queryClient.invalidateQueries({ queryKey: queryKeys.me }),
+				);
+			}
+
+			await Promise.all(invalidations);
+		},
 	});
 };
 
