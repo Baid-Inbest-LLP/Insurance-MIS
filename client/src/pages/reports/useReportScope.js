@@ -55,16 +55,22 @@ export default function useReportScope({ allTypes = false, onChange } = {}) {
     departments.find((item) => item._id === department) ?? (allTypes && departments.length > 1 ? undefined : departments[0]);
   const {
     data: lookups,
+    isLoading: isDepartmentLookupLoading,
     isPlaceholderData,
     isError: isDepartmentLookupError,
     error: departmentLookupError,
     refetch: refetchDepartmentLookups,
   } = useTransactionOptions(selected?._id, Boolean(selected));
+  // Do not let reports run with the previous department's placeholder lookup
+  // data while the newly selected department is still loading.
+  const departmentOptionsReady =
+    !selected ||
+    (Boolean(lookups) && !isDepartmentLookupLoading && !isPlaceholderData);
 
   return {
     user,
     allTypes,
-    ready: Boolean(base),
+    ready: Boolean(base) && departmentOptionsReady,
     loading: isBaseLoading,
     isError: isLookupError || (Boolean(selected) && isDepartmentLookupError),
     error: lookupError ?? departmentLookupError,

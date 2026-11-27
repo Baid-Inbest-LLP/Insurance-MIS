@@ -42,7 +42,7 @@ export default function GroupedReport({ title, report, groupKey, groupHeader, me
   const { data, isLoading, isFetching, isError, error, refetch } = useReport(
     report,
     scope.params,
-    Boolean(scope.selected),
+    Boolean(scope.selected) && scope.ready && !scope.isError,
   );
   const exportReport = useExportReport();
   const exportPdfReport = useExportPdfReport();
