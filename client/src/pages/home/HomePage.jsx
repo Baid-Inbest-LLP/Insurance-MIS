@@ -14,8 +14,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ROUTES } from "../../constants";
 import { useDashboard } from "../../hooks/useDashboard";
 import {
@@ -76,6 +76,26 @@ const financialYearRange = (year) =>
 const periodParams = (year) => financialYearRange(Number(year));
 const nonEmptyParams = (params) =>
   Object.fromEntries(Object.entries(params).filter(([, value]) => value));
+const dashboardPeriodParam = (key) => `fy-${key}`;
+
+// Each dashboard card owns a financial-year URL parameter. This retains the
+// intentionally independent cards across reloads, shared links, and browser
+// navigation without populating the URL with default/current-year values.
+const useDashboardPeriod = (key) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentYear = String(currentFinancialYear());
+  const storedYear = searchParams.get(dashboardPeriodParam(key));
+  const period = /^\d{4}$/.test(storedYear ?? "") ? storedYear : currentYear;
+
+  const setPeriod = (year) => {
+    const next = new URLSearchParams(searchParams);
+    if (year === currentYear) next.delete(dashboardPeriodParam(key));
+    else next.set(dashboardPeriodParam(key), year);
+    setSearchParams(next);
+  };
+
+  return [period, setPeriod];
+};
 const monthLabel = (month) =>
   new Date(`${month}-01T00:00:00Z`).toLocaleString("en-IN", { month: "short" });
 const companyNameWords = (name) =>
@@ -312,6 +332,7 @@ function RecentPolicies({ rows, onSelect }) {
 function DashboardPanel({
   heading,
   section,
+  periodKey,
   years,
   className,
   children,
@@ -321,7 +342,7 @@ function DashboardPanel({
   initialError,
   initialRefetch,
 }) {
-  const [period, setPeriod] = useState(() => String(currentFinancialYear()));
+  const [period, setPeriod] = useDashboardPeriod(periodKey);
   const params = useMemo(() => nonEmptyParams(periodParams(period)), [period]);
   const useInitialData = period === String(currentFinancialYear());
   const sectionQuery = useDashboard(
@@ -372,7 +393,7 @@ function Overview({
   initialError,
   initialRefetch,
 }) {
-  const [period, setPeriod] = useState(() => String(currentFinancialYear()));
+  const [period, setPeriod] = useDashboardPeriod("overview");
   const params = useMemo(() => nonEmptyParams(periodParams(period)), [period]);
   const useInitialData = period === String(currentFinancialYear());
   const overviewQuery = useDashboard(
@@ -477,6 +498,7 @@ export default function HomePage() {
         <DashboardPanel
           heading="Monthly Premium Collection"
           section="monthly"
+          periodKey="monthly"
           years={years}
           onDrillDown={drillDown}
           {...initialProps}
@@ -520,6 +542,7 @@ export default function HomePage() {
         <DashboardPanel
           heading="Product Types"
           section="products"
+          periodKey="products"
           years={years}
           onDrillDown={drillDown}
           {...initialProps}
@@ -565,6 +588,7 @@ export default function HomePage() {
         <DashboardPanel
           heading="Companies Wise Premium"
           section="companies"
+          periodKey="companies"
           years={years}
           className="xl:col-span-2"
           onDrillDown={drillDown}
@@ -616,6 +640,7 @@ export default function HomePage() {
           <DashboardPanel
             heading="Top 8 Sources by Premium"
             section="sources"
+            periodKey="sources"
             years={years}
             onDrillDown={drillDown}
             {...initialProps}
@@ -630,6 +655,7 @@ export default function HomePage() {
           <DashboardPanel
             heading="Top 8 Offices by Premium"
             section="offices"
+            periodKey="offices"
             years={years}
             onDrillDown={drillDown}
             {...initialProps}
@@ -647,6 +673,7 @@ export default function HomePage() {
         <DashboardPanel
           heading="Top 8 Business Types by Premium"
           section="business-types"
+          periodKey="business-types"
           years={years}
           onDrillDown={drillDown}
           {...initialProps}
@@ -661,6 +688,7 @@ export default function HomePage() {
         <DashboardPanel
           heading="Recent Policies"
           section="recent"
+          periodKey="recent"
           years={years}
           onDrillDown={drillDown}
           {...initialProps}
@@ -678,6 +706,7 @@ export default function HomePage() {
           <DashboardPanel
             heading="Received vs Pending Commission"
             section="commission-status"
+            periodKey="commission-status"
             years={years}
             onDrillDown={drillDown}
             {...initialProps}
@@ -689,6 +718,7 @@ export default function HomePage() {
           <DashboardPanel
             heading="Monthly Premium vs Commission"
             section="monthly-commission"
+            periodKey="monthly-commission"
             years={years}
             onDrillDown={drillDown}
             {...initialProps}
@@ -711,6 +741,7 @@ export default function HomePage() {
           <DashboardPanel
             heading="OD vs TP Commission"
             section="od-tp-commission"
+            periodKey="od-tp-commission"
             years={years}
             onDrillDown={drillDown}
             {...initialProps}

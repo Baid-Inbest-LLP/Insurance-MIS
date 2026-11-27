@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { notifications } from "@mantine/notifications";
 import { useMe } from "../../hooks/useAuth";
 import {
@@ -66,10 +66,12 @@ function EditTransactionForm({ id, onClose }) {
 
 export default function TransactionListPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: user } = useMe();
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const urlSearch = searchParams.get("search") ?? "";
+  const pageValue = Number(searchParams.get("page"));
+  const page = Number.isSafeInteger(pageValue) && pageValue > 0 ? pageValue : 1;
+  const [search, setSearch] = useState(urlSearch);
   // "new" while adding, the id of the transaction being edited, or null when the form is closed.
   const [editing, setEditing] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -77,20 +79,46 @@ export default function TransactionListPage() {
   // The draft being finished in the form, or null.
   const [resumingDraft, setResumingDraft] = useState(null);
 
+  const updateListParams = useCallback(
+    (changes, { replace = false } = {}) => {
+      const next = new URLSearchParams(searchParams);
+      Object.entries(changes).forEach(([key, value]) => {
+        if (value === "" || value === null || value === undefined) next.delete(key);
+        else next.set(key, String(value));
+      });
+      if (next.toString() !== searchParams.toString()) {
+        setSearchParams(next, { replace });
+      }
+    },
+    [searchParams, setSearchParams],
+  );
+
+  // Keep the input in sync when Back/Forward restores a previous list state.
   useEffect(() => {
+    setSearch(urlSearch);
+  }, [urlSearch]);
+
+  // Search changes are URL-backed after the existing debounce. Replacing the
+  // entry keeps browser history useful while still preserving a return from a
+  // policy detail page to the exact filtered list.
+  useEffect(() => {
+    const term = search.trim();
+    if (term === urlSearch) return undefined;
     const timer = setTimeout(() => {
-      setDebouncedSearch(search.trim());
-      setPage(1);
+      updateListParams({ search: term, page: "" }, { replace: true });
     }, 300);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, urlSearch, updateListParams]);
 
   // Type, filters and dates; changing one goes back to the first page.
-  const scope = useReportScope({ allTypes: true, onChange: () => setPage(1) });
+  const scope = useReportScope({
+    allTypes: true,
+    onChange: () => updateListParams({ page: "" }, { replace: true }),
+  });
   const params = {
     page,
     limit: LIMIT,
-    ...(debouncedSearch && { search: debouncedSearch }),
+    ...(urlSearch && { search: urlSearch }),
     ...scope.params,
   };
   const { data, isLoading, isFetching, isError, error, refetch } = useTransactions(params, scope.ready);
@@ -108,8 +136,8 @@ export default function TransactionListPage() {
   // user stranded on a page which no longer exists.
   useEffect(() => {
     const pages = data?.pagination?.pages;
-    if (pages && page > pages) setPage(pages);
-  }, [data?.pagination?.pages, page]);
+    if (pages && page > pages) updateListParams({ page: pages > 1 ? pages : "" }, { replace: true });
+  }, [data?.pagination?.pages, page, updateListParams]);
 
   const staff = isStaffRole(user?.role);
   const departmentIds = (user?.departments ?? []).map(
@@ -292,7 +320,10 @@ export default function TransactionListPage() {
               : undefined
         }
         pagination={
-          data?.pagination && { ...data.pagination, onPageChange: setPage }
+          data?.pagination && {
+            ...data.pagination,
+            onPageChange: (nextPage) => updateListParams({ page: nextPage > 1 ? nextPage : "" }),
+          }
         }
       />
 

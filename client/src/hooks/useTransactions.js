@@ -32,7 +32,7 @@ export const usePrefetchTransaction = () => {
   const queryClient = useQueryClient();
   return (id) =>
     queryClient
-      .query({
+      .prefetchQuery({
         queryKey: queryKeys.transaction(id),
         queryFn: () => fetchTransaction(id),
         staleTime: TRANSACTION_STALE_TIME,
