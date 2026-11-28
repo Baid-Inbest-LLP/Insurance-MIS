@@ -1,16 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '../api/auth.api';
 import { queryKeys } from '../lib/queryKeys';
-import { clearSession, getStoredUser, isAuthenticated, saveSession } from '../lib/session';
+import { clearSession, isAuthenticated, saveSession } from '../lib/session';
 import { isSuperAdmin } from '../constants/roles';
 
-// The authenticated user. Source of truth for `user` across the app.
+// The authenticated user. A stored token is not treated as a verified profile:
+// protected routes wait for this request on a reload before rendering any private UI.
 export const useMe = () =>
   useQuery({
     queryKey: queryKeys.me,
     queryFn: async () => (await authApi.getMe()).data.data,
     enabled: isAuthenticated(),
-    initialData: getStoredUser() ?? undefined,
     staleTime: 5 * 60 * 1000,
   });
 

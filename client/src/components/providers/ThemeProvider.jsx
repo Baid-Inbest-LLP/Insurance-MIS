@@ -1,15 +1,21 @@
 import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { useMantineColorScheme } from '@mantine/core';
+import { MantineProvider } from '@mantine/core';
+import { lightTheme, darkTheme } from '../../theme';
 
 export default function ThemeProvider({ children }) {
   const theme = useSelector((state) => state.common.theme);
-  const { setColorScheme } = useMantineColorScheme();
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    setColorScheme(theme);
-  }, [theme, setColorScheme]);
+  }, [theme]);
 
-  return children;
+  return (
+    <MantineProvider
+      theme={theme === 'dark' ? darkTheme : lightTheme}
+      forceColorScheme={theme}
+    >
+      {children}
+    </MantineProvider>
+  );
 }

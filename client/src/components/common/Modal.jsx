@@ -1,4 +1,5 @@
-import { useId } from 'react';
+import { useId, useRef } from 'react';
+import useDialogAccessibility from './useDialogAccessibility';
 
 const SIZES = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' };
 
@@ -17,16 +18,21 @@ export default function Modal({
   children,
 }) {
   const titleId = useId();
+  const dialogRef = useRef(null);
+  useDialogAccessibility(open, dialogRef, { onClose, closeDisabled });
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div
+        ref={dialogRef}
         className={`company-form-panel ${SIZES[size]} ${scrollBody ? 'flex flex-col max-h-full mb-0' : ''}`.trim()}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        tabIndex={-1}
+        data-dialog-root="true"
       >
         <div className="company-form-header shrink-0">
           <div>

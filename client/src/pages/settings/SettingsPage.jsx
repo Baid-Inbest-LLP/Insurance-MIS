@@ -42,9 +42,22 @@ export default function SettingsPage() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmResetPassword, setConfirmResetPassword] = useState(null);
   const [generatedPassword, setGeneratedPassword] = useState(null);
+  const [discardForm, setDiscardForm] = useState(null);
 
-  const { data: users = [], isLoading: loading, refetch: refetchUsers } = useUsers(canManageUsers);
-  const { data: departments = [] } = useDepartments({
+  const {
+    data: users = [],
+    isLoading: usersLoading,
+    isError: usersError,
+    error: usersLoadError,
+    refetch: refetchUsers,
+  } = useUsers(canManageUsers);
+  const {
+    data: departments = [],
+    isLoading: departmentsLoading,
+    isError: departmentsError,
+    error: departmentsLoadError,
+    refetch: refetchDepartments,
+  } = useDepartments({
     includeInactive: true,
     enabled: canManageUsers,
   });
@@ -60,7 +73,7 @@ export default function SettingsPage() {
     reset: resetCreate,
     watch: watchCreate,
     control: controlCreate,
-    formState: { errors: createErrors, isSubmitting: createSubmitting },
+    formState: { errors: createErrors, isSubmitting: createSubmitting, isDirty: createDirty },
   } = useForm({
     defaultValues: {
       name: '',
@@ -77,7 +90,7 @@ export default function SettingsPage() {
     handleSubmit: handleSubmitPwd,
     reset: resetPwd,
     watch: watchPwd,
-    formState: { errors: pwdErrors, isSubmitting: pwdSubmitting },
+    formState: { errors: pwdErrors, isSubmitting: pwdSubmitting, isDirty: pwdDirty },
   } = useForm({
     defaultValues: {
       currentPassword: '',
@@ -154,9 +167,25 @@ export default function SettingsPage() {
     resetCreate({ name: '', userName: '', password: '', role: '', departments: [] });
   };
 
+  const requestCloseCreateModal = () => {
+    if (createDirty && !createSubmitting) {
+      setDiscardForm('create');
+      return;
+    }
+    closeCreateModal();
+  };
+
   const closePasswordModal = () => {
     setShowPasswordModal(false);
     resetPwd();
+  };
+
+  const requestClosePasswordModal = () => {
+    if (pwdDirty && !pwdSubmitting) {
+      setDiscardForm('password');
+      return;
+    }
+    closePasswordModal();
   };
 
   const openEditUser = (u) => {
@@ -179,6 +208,22 @@ export default function SettingsPage() {
       isActive: true,
       departments: [],
     });
+  };
+
+  const requestCloseEditUser = () => {
+    if (editDirty && !editSubmitting) {
+      setDiscardForm('edit');
+      return;
+    }
+    closeEditUser();
+  };
+
+  const discardUnsavedForm = () => {
+    const form = discardForm;
+    setDiscardForm(null);
+    if (form === 'create') closeCreateModal();
+    if (form === 'edit') closeEditUser();
+    if (form === 'password') closePasswordModal();
   };
 
   const onUpdateUser = async (data) => {
@@ -256,6 +301,12 @@ export default function SettingsPage() {
   };
 
   const disabledReason = 'Superadmin accounts cannot be modified here';
+  const settingsLoadFailed = usersError || departmentsError;
+  const settingsLoadError = usersError ? usersLoadError : departmentsLoadError;
+  const retrySettingsLoad = () => {
+    refetchUsers();
+    refetchDepartments();
+  };
 
   return (
     <div>
@@ -265,7 +316,11 @@ export default function SettingsPage() {
         subtitle={isSuperadmin ? 'User management and account security' : 'Account security'}
         action={[
           { onClick: () => setShowPasswordModal(true), label: 'Change password', icon: 'key' },
-          ...(canManageUsers ? [{ onClick: () => setShowCreate(true), label: 'Create User' }] : []),
+          ...(
+            canManageUsers
+              ? [{ onClick: () => setShowCreate(true), label: 'Create User', disabled: settingsLoadFailed }]
+              : []
+          ),
         ]}
       />
 
@@ -301,7 +356,7 @@ export default function SettingsPage() {
             open={showCreate}
             title="Create User"
             subtitle="Create a user account"
-            onClose={closeCreateModal}
+            onClose={requestCloseCreateModal}
             onSubmit={handleSubmitCreate(onCreateUser)}
             submitting={createSubmitting}
             submitLabel="Create User"
@@ -362,7 +417,17 @@ export default function SettingsPage() {
           </FormModal>
 
           <div className="card overflow-hidden">
-            {loading ? (
+            {settingsLoadFailed ? (
+              <div className="text-center py-16 px-6">
+                <p className="company-empty-title">Unable to load Settings data</p>
+                <p className="company-empty-desc">
+                  {getApiErrorMessage(settingsLoadError, 'Please try again.')}
+                </p>
+                <button type="button" className="btn-primary mt-4" onClick={retrySettingsLoad}>
+                  Try again
+                </button>
+              </div>
+            ) : usersLoading || departmentsLoading ? (
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <Skeleton className="h-4 w-32" />
@@ -494,7 +559,7 @@ export default function SettingsPage() {
             open={Boolean(editingUser)}
             title="Edit user"
             subtitle="Update name, user name, role, or account status"
-            onClose={closeEditUser}
+            onClose={requestCloseEditUser}
             onSubmit={handleSubmitEdit(onUpdateUser)}
             submitting={editSubmitting}
             submitLabel="Save changes"
@@ -603,7 +668,7 @@ export default function SettingsPage() {
         open={showPasswordModal}
         title="Change password"
         subtitle="Enter your current password, then choose a new one (min. 6 characters)."
-        onClose={closePasswordModal}
+        onClose={requestClosePasswordModal}
         onSubmit={handleSubmitPwd(onChangePassword)}
         submitting={pwdSubmitting}
         submitLabel="Update password"
@@ -636,6 +701,21 @@ export default function SettingsPage() {
           />
         </FormField>
       </FormModal>
+
+      <ConfirmModal
+        open={Boolean(discardForm)}
+        title="Discard unsaved changes?"
+        message={
+          discardForm === 'password'
+            ? 'Your new password details have not been saved.'
+            : 'Your form changes have not been saved.'
+        }
+        confirmLabel="Discard changes"
+        cancelLabel="Keep editing"
+        variant="warning"
+        onConfirm={discardUnsavedForm}
+        onCancel={() => setDiscardForm(null)}
+      />
 
       <Modal
         open={Boolean(generatedPassword)}

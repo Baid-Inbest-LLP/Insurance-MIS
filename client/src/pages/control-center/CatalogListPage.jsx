@@ -27,20 +27,38 @@ export default function CatalogListPage({ slug, title }) {
 	// "new" while adding, the item being edited, or null when the modal is closed.
 	const [editing, setEditing] = useState(null);
 	const [confirmDelete, setConfirmDelete] = useState(null);
+	const [confirmDiscard, setConfirmDiscard] = useState(false);
 	const isNew = editing === "new";
 
-	const { data: departments = [], isLoading: departmentsLoading } =
-		useDepartments({ includeInactive: canManage });
+	const {
+		data: departments = [],
+		isLoading: departmentsLoading,
+		isError: departmentsError,
+		error: departmentsLoadError,
+		refetch: refetchDepartments,
+	} = useDepartments({ includeInactive: canManage });
 	const departmentId = pickedDepartmentId || departments[0]?._id || "";
 	const department = departments.find((d) => d._id === departmentId);
 	const activeDepartments = departments.filter((d) => d.isActive);
 
-	const { data: items = [], isLoading: itemsLoading } = useMasterItems(
+	const {
+		data: items = [],
+		isLoading: itemsLoading,
+		isError: itemsError,
+		error: itemsLoadError,
+		refetch: refetchItems,
+	} = useMasterItems(
 		departmentId,
 		slug,
 		{ activeOnly: false },
 	);
 	const loading = departmentsLoading || (Boolean(departmentId) && itemsLoading);
+	const loadFailed = departmentsError || (Boolean(departmentId) && itemsError);
+	const loadError = departmentsError ? departmentsLoadError : itemsLoadError;
+	const retryLoad = () => {
+		refetchDepartments();
+		if (departmentId) refetchItems();
+	};
 
 	const createItem = useCreateMasterItem();
 	const updateItem = useUpdateMasterItem();
@@ -70,6 +88,19 @@ export default function CatalogListPage({ slug, title }) {
 	const closeModal = () => {
 		setEditing(null);
 		reset(EMPTY_FORM);
+	};
+
+	const requestClose = () => {
+		if (isDirty && !isSubmitting) {
+			setConfirmDiscard(true);
+			return;
+		}
+		closeModal();
+	};
+
+	const discardChanges = () => {
+		setConfirmDiscard(false);
+		closeModal();
 	};
 
 	const onSubmit = async (data) => {
@@ -152,7 +183,15 @@ export default function CatalogListPage({ slug, title }) {
 			/>
 
 			<div className="card overflow-hidden">
-				{loading ? (
+				{loadFailed ? (
+					<div className="text-center py-16 px-6">
+						<p className="company-empty-title">Unable to load {title.toLowerCase()}</p>
+						<p className="company-empty-desc">{getApiErrorMessage(loadError, "Please try again.")}</p>
+						<button type="button" className="btn-primary mt-4" onClick={retryLoad}>
+							Try again
+						</button>
+					</div>
+				) : loading ? (
 					<div className="p-6 space-y-3">
 						{[0, 1, 2].map((row) => (
 							<Skeleton key={row} className="h-4 w-full" />
@@ -235,11 +274,22 @@ export default function CatalogListPage({ slug, title }) {
 				onCancel={() => setConfirmDelete(null)}
 			/>
 
+			<ConfirmModal
+				open={confirmDiscard}
+				title="Discard unsaved changes?"
+				message={`Your changes to this ${title.toLowerCase()} have not been saved.`}
+				confirmLabel="Discard changes"
+				cancelLabel="Keep editing"
+				variant="warning"
+				onConfirm={discardChanges}
+				onCancel={() => setConfirmDiscard(false)}
+			/>
+
 			<FormModal
 				open={Boolean(editing)}
 				title={isNew ? `Add ${title}` : `Edit ${title}`}
 				subtitle={isNew ? "Enter a name and choose the department" : department?.name}
-				onClose={closeModal}
+				onClose={requestClose}
 				onSubmit={handleSubmit(onSubmit)}
 				submitting={isSubmitting}
 				submitLabel={isNew ? `Add ${title}` : "Save changes"}

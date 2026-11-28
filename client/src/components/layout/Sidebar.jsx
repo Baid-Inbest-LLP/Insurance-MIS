@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import inbestTextLogo from '../../assets/inbest_text_logo.png';
 import inbestWhiteLogo from '../../assets/white_inbest_logo.png';
@@ -57,6 +57,14 @@ const Sidebar = ({ isOpen = true }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [reportsOpen, setReportsOpen] = useState(() => location.pathname.startsWith(ROUTES.REPORTS));
+
+  // The sidebar stays mounted while routes change. Re-open Reports whenever navigation
+  // lands on a report so programmatic navigation cannot leave the active item hidden.
+  useEffect(() => {
+    if (location.pathname.startsWith(ROUTES.REPORTS)) {
+      setReportsOpen(true);
+    }
+  }, [location.pathname]);
 
   return (
     <aside

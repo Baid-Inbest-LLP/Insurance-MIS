@@ -14,8 +14,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { ROUTES } from "../../constants";
 import { useDashboard } from "../../hooks/useDashboard";
 import {
   formatCompactCurrency,
@@ -75,12 +76,74 @@ const financialYearRange = (year) =>
 const periodParams = (year) => financialYearRange(Number(year));
 const nonEmptyParams = (params) =>
   Object.fromEntries(Object.entries(params).filter(([, value]) => value));
+const dashboardPeriodParam = (key) => `fy-${key}`;
+
+// Each dashboard card owns a financial-year URL parameter. This retains the
+// intentionally independent cards across reloads, shared links, and browser
+// navigation without populating the URL with default/current-year values.
+const useDashboardPeriod = (key) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentYear = String(currentFinancialYear());
+  const storedYear = searchParams.get(dashboardPeriodParam(key));
+  const period = /^\d{4}$/.test(storedYear ?? "") ? storedYear : currentYear;
+
+  const setPeriod = (year) => {
+    const next = new URLSearchParams(searchParams);
+    if (year === currentYear) next.delete(dashboardPeriodParam(key));
+    else next.set(dashboardPeriodParam(key), year);
+    setSearchParams(next);
+  };
+
+  return [period, setPeriod];
+};
 const monthLabel = (month) =>
   new Date(`${month}-01T00:00:00Z`).toLocaleString("en-IN", { month: "short" });
-const companyFirstWord = (name) =>
+const companyNameWords = (name) =>
   String(name || "Unspecified")
     .trim()
-    .split(/\s+/)[0];
+    .split(/\s+/)
+    .filter(Boolean);
+
+// Use the shortest word prefix that distinguishes each insurer in the visible ranking.
+// "Bajaj General" and "Bajaj Allianz" therefore stay distinct without filling the axis
+// with every legal-company suffix; the complete name remains available in the tooltip.
+const companyChartRows = (insurers) => {
+  const sourceRows = insurers.slice(0, 9);
+  const words = sourceRows.map((row) => companyNameWords(row.name));
+  const lengths = words.map(() => 1);
+  let hasCollisions = true;
+
+  while (hasCollisions) {
+    const groups = new Map();
+    words.forEach((parts, index) => {
+      const label = parts.slice(0, lengths[index]).join(" ");
+      groups.set(label, [...(groups.get(label) ?? []), index]);
+    });
+
+    hasCollisions = false;
+    groups.forEach((indexes) => {
+      if (indexes.length < 2) return;
+      const canExpand = indexes.some((index) => lengths[index] < words[index].length);
+      if (!canExpand) return;
+      hasCollisions = true;
+      indexes.forEach((index) => {
+        if (lengths[index] < words[index].length) lengths[index] += 1;
+      });
+    });
+  }
+
+  const occurrences = new Map();
+  return sourceRows.map((row, index) => {
+    const baseLabel = words[index].slice(0, lengths[index]).join(" ");
+    const occurrence = (occurrences.get(baseLabel) ?? 0) + 1;
+    occurrences.set(baseLabel, occurrence);
+    return {
+      ...row,
+      fullName: row.name,
+      name: occurrence === 1 ? baseLabel : `${baseLabel} ${occurrence}`,
+    };
+  });
+};
 
 const topProductsWithOthers = (rows) => {
   const top = rows.slice(0, 9);
@@ -244,7 +307,7 @@ function RecentPolicies({ rows, onSelect }) {
         <button
           type="button"
           key={row._id}
-          onClick={() => onSelect({})}
+          onClick={() => onSelect(row)}
           className="dashboard-recent-row w-full py-2 text-left grid grid-cols-[1fr_auto] gap-3"
         >
           <span className="min-w-0">
@@ -269,6 +332,7 @@ function RecentPolicies({ rows, onSelect }) {
 function DashboardPanel({
   heading,
   section,
+  periodKey,
   years,
   className,
   children,
@@ -276,8 +340,9 @@ function DashboardPanel({
   initialData,
   initialLoading,
   initialError,
+  initialRefetch,
 }) {
-  const [period, setPeriod] = useState(() => String(currentFinancialYear()));
+  const [period, setPeriod] = useDashboardPeriod(periodKey);
   const params = useMemo(() => nonEmptyParams(periodParams(period)), [period]);
   const useInitialData = period === String(currentFinancialYear());
   const sectionQuery = useDashboard(
@@ -287,6 +352,7 @@ function DashboardPanel({
   const data = useInitialData ? initialData : sectionQuery.data;
   const isLoading = useInitialData ? initialLoading : sectionQuery.isLoading;
   const isError = useInitialData ? initialError : sectionQuery.isError;
+  const retry = useInitialData ? initialRefetch : sectionQuery.refetch;
   const title = (
     <>
       <h2 className="dashboard-heading text-sm font-semibold text-gray-800">
@@ -303,8 +369,11 @@ function DashboardPanel({
       Loading&hellip;
     </div>
   ) : isError ? (
-    <div className="h-56 grid place-items-center text-sm text-red-500">
-      Could not load this panel. Please retry.
+    <div className="h-56 grid place-items-center content-center gap-3 text-sm text-red-500">
+      <p>Could not load this panel.</p>
+      <button type="button" className="btn-secondary" onClick={() => retry?.()}>
+        Try again
+      </button>
     </div>
   ) : (
     children({ data, drillDown: (extra = {}) => onDrillDown(params, extra) })
@@ -322,8 +391,9 @@ function Overview({
   initialData,
   initialLoading,
   initialError,
+  initialRefetch,
 }) {
-  const [period, setPeriod] = useState(() => String(currentFinancialYear()));
+  const [period, setPeriod] = useDashboardPeriod("overview");
   const params = useMemo(() => nonEmptyParams(periodParams(period)), [period]);
   const useInitialData = period === String(currentFinancialYear());
   const overviewQuery = useDashboard(
@@ -333,6 +403,7 @@ function Overview({
   const data = useInitialData ? initialData : overviewQuery.data;
   const isLoading = useInitialData ? initialLoading : overviewQuery.isLoading;
   const isError = useInitialData ? initialError : overviewQuery.isError;
+  const retry = useInitialData ? initialRefetch : overviewQuery.refetch;
   const kpis = data?.kpis;
   const cards = [
     {
@@ -370,8 +441,11 @@ function Overview({
         <PeriodSelect value={period} onChange={setPeriod} years={years} />
       </div>
       {isError ? (
-        <div className="card p-4 text-sm text-red-500">
-          Dashboard overview could not be loaded. Please retry.
+        <div className="card p-4 flex flex-wrap items-center justify-between gap-3 text-sm text-red-500">
+          <p>Dashboard overview could not be loaded.</p>
+          <button type="button" className="btn-secondary" onClick={() => retry?.()}>
+            Try again
+          </button>
         </div>
       ) : (
         <div className="dashboard-grid-4">
@@ -410,6 +484,7 @@ export default function HomePage() {
     initialData,
     initialLoading: initialQuery.isLoading,
     initialError: initialQuery.isError,
+    initialRefetch: initialQuery.refetch,
   };
   const drillDown = (params, extra = {}) =>
     navigate(
@@ -423,6 +498,7 @@ export default function HomePage() {
         <DashboardPanel
           heading="Monthly Premium Collection"
           section="monthly"
+          periodKey="monthly"
           years={years}
           onDrillDown={drillDown}
           {...initialProps}
@@ -466,6 +542,7 @@ export default function HomePage() {
         <DashboardPanel
           heading="Product Types"
           section="products"
+          periodKey="products"
           years={years}
           onDrillDown={drillDown}
           {...initialProps}
@@ -511,17 +588,14 @@ export default function HomePage() {
         <DashboardPanel
           heading="Companies Wise Premium"
           section="companies"
+          periodKey="companies"
           years={years}
           className="xl:col-span-2"
           onDrillDown={drillDown}
           {...initialProps}
         >
           {({ data, drillDown: open }) => {
-            const rows = (data?.insurers ?? []).slice(0, 9).map((row) => ({
-              ...row,
-              fullName: row.name,
-              name: companyFirstWord(row.name),
-            }));
+            const rows = companyChartRows(data?.insurers ?? []);
             return rows.length ? (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart
@@ -533,7 +607,7 @@ export default function HomePage() {
                   <YAxis
                     type="category"
                     dataKey="name"
-                    width={96}
+                    width={150}
                     tick={{ fontSize: 11 }}
                   />
                   <Tooltip content={<PremiumTooltip />} cursor={false} />
@@ -566,6 +640,7 @@ export default function HomePage() {
           <DashboardPanel
             heading="Top 8 Sources by Premium"
             section="sources"
+            periodKey="sources"
             years={years}
             onDrillDown={drillDown}
             {...initialProps}
@@ -580,6 +655,7 @@ export default function HomePage() {
           <DashboardPanel
             heading="Top 8 Offices by Premium"
             section="offices"
+            periodKey="offices"
             years={years}
             onDrillDown={drillDown}
             {...initialProps}
@@ -597,6 +673,7 @@ export default function HomePage() {
         <DashboardPanel
           heading="Top 8 Business Types by Premium"
           section="business-types"
+          periodKey="business-types"
           years={years}
           onDrillDown={drillDown}
           {...initialProps}
@@ -611,12 +688,16 @@ export default function HomePage() {
         <DashboardPanel
           heading="Recent Policies"
           section="recent"
+          periodKey="recent"
           years={years}
           onDrillDown={drillDown}
           {...initialProps}
         >
-          {({ data, drillDown: open }) => (
-            <RecentPolicies rows={data?.recentPolicies ?? []} onSelect={open} />
+          {({ data }) => (
+            <RecentPolicies
+              rows={data?.recentPolicies ?? []}
+              onSelect={(row) => navigate(`${ROUTES.TRANSACTIONS}/${row._id}`)}
+            />
           )}
         </DashboardPanel>
       </div>
@@ -625,6 +706,7 @@ export default function HomePage() {
           <DashboardPanel
             heading="Received vs Pending Commission"
             section="commission-status"
+            periodKey="commission-status"
             years={years}
             onDrillDown={drillDown}
             {...initialProps}
@@ -636,6 +718,7 @@ export default function HomePage() {
           <DashboardPanel
             heading="Monthly Premium vs Commission"
             section="monthly-commission"
+            periodKey="monthly-commission"
             years={years}
             onDrillDown={drillDown}
             {...initialProps}
@@ -658,6 +741,7 @@ export default function HomePage() {
           <DashboardPanel
             heading="OD vs TP Commission"
             section="od-tp-commission"
+            periodKey="od-tp-commission"
             years={years}
             onDrillDown={drillDown}
             {...initialProps}

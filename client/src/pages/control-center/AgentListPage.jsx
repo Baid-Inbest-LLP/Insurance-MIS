@@ -25,9 +25,16 @@ export default function AgentListPage() {
 	// "new" while adding, the agent being edited, or null when the modal is closed.
 	const [editing, setEditing] = useState(null);
 	const [confirmDelete, setConfirmDelete] = useState(null);
+	const [confirmDiscard, setConfirmDiscard] = useState(false);
 	const isNew = editing === "new";
 
-	const { data: agents = [], isLoading: loading } = useAgents({
+	const {
+		data: agents = [],
+		isLoading: loading,
+		isError,
+		error: loadError,
+		refetch,
+	} = useAgents({
 		includeInactive: canManage,
 	});
 	const createAgent = useCreateAgent();
@@ -58,6 +65,19 @@ export default function AgentListPage() {
 	const closeModal = () => {
 		setEditing(null);
 		reset(EMPTY_FORM);
+	};
+
+	const requestClose = () => {
+		if (isDirty && !isSubmitting) {
+			setConfirmDiscard(true);
+			return;
+		}
+		closeModal();
+	};
+
+	const discardChanges = () => {
+		setConfirmDiscard(false);
+		closeModal();
 	};
 
 	const onSubmit = async (data) => {
@@ -113,7 +133,15 @@ export default function AgentListPage() {
 			/>
 
 			<div className="card overflow-hidden">
-				{loading ? (
+				{isError ? (
+					<div className="text-center py-16 px-6">
+						<p className="company-empty-title">Unable to load agents</p>
+						<p className="company-empty-desc">{getApiErrorMessage(loadError, "Please try again.")}</p>
+						<button type="button" className="btn-primary mt-4" onClick={() => refetch()}>
+							Try again
+						</button>
+					</div>
+				) : loading ? (
 					<div className="p-6 space-y-3">
 						{[0, 1, 2].map((row) => (
 							<Skeleton key={row} className="h-4 w-full" />
@@ -189,11 +217,22 @@ export default function AgentListPage() {
 				onCancel={() => setConfirmDelete(null)}
 			/>
 
+			<ConfirmModal
+				open={confirmDiscard}
+				title="Discard unsaved changes?"
+				message="Your changes to this agent have not been saved."
+				confirmLabel="Discard changes"
+				cancelLabel="Keep editing"
+				variant="warning"
+				onConfirm={discardChanges}
+				onCancel={() => setConfirmDiscard(false)}
+			/>
+
 			<FormModal
 				open={Boolean(editing)}
 				title={isNew ? "Add Agent" : "Edit Agent"}
 				subtitle={isNew ? "Enter the agent's name" : editing?.name}
-				onClose={closeModal}
+				onClose={requestClose}
 				onSubmit={handleSubmit(onSubmit)}
 				submitting={isSubmitting}
 				submitLabel={isNew ? "Add Agent" : "Save changes"}
