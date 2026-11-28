@@ -27,7 +27,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no "$EC2_USER@$EC2_HOST" << 'EOF'
           set -e
-          cd ~/app
+          cd ~/Insurance-MIS
           git pull origin main
           docker compose -f docker-compose.prod.yml up -d --build
           docker compose -f docker-compose.prod.yml logs server | tail -20
@@ -46,13 +46,3 @@ jobs:
           done
           echo "❌ API health check failed"
           exit 1
-
-      - name: Deployment result
-        if: always()
-        run: |
-          if [ $? -eq 0 ]; then
-            echo "✅ Deployment successful!"
-          else
-            echo "❌ Deployment failed!"
-            exit 1
-          fi
