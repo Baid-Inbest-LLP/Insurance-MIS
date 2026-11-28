@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import useDialogAccessibility from './useDialogAccessibility';
 
 export default function ConfirmModal({
   open,
@@ -18,25 +19,22 @@ export default function ConfirmModal({
   const isOpen = open ?? opened;
   const handleCancel = onCancel || onClose;
   const confirmRef = useRef(null);
+  const dialogRef = useRef(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       requestAnimationFrame(() => setVisible(true));
-      confirmRef.current?.focus();
     } else {
       setVisible(false);
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e) => {
-      if (e.key === 'Escape') handleCancel?.();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, handleCancel]);
+  useDialogAccessibility(isOpen, dialogRef, {
+    onClose: handleCancel,
+    closeDisabled: loading,
+    initialFocusRef: confirmRef,
+  });
 
   if (!isOpen) return null;
 
@@ -117,7 +115,7 @@ export default function ConfirmModal({
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-      onClick={handleCancel}
+      onClick={loading ? undefined : handleCancel}
     >
       <div
         className={`absolute inset-0 bg-gray-900/60 backdrop-blur-[6px] transition-opacity duration-300 ${
@@ -126,11 +124,16 @@ export default function ConfirmModal({
       />
 
       <div
+        ref={dialogRef}
         className={`relative bg-white rounded-3xl w-full max-w-[380px] overflow-hidden transition-all duration-300 ease-out ${
           visible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'
         }`}
         style={{ boxShadow: '0 25px 60px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.05)' }}
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
+        data-dialog-root="true"
       >
         <div className="h-1 w-full">
           <div

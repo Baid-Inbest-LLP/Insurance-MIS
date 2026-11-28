@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useMe } from '../../hooks/useAuth';
 import { useTransactionOptions } from '../../hooks/useTransactions';
@@ -16,37 +16,68 @@ const DEPARTMENT_FILTERS = ['lob', 'insurer', 'businessType', 'groupName', 'bqp'
 // `onChange` runs after any filter changes, e.g. to go back to the first page.
 export default function useReportScope({ allTypes = false, onChange } = {}) {
   const { data: user } = useMe();
-  const [searchParams] = useSearchParams();
-  const defaultDateRange = getFinancialYearRange();
-  // Dashboard chart clicks pass their filters in the URL.  Initialise the
-  // shared report scope from it so the Transactions page is a real drill-down.
-  const [department, setDepartment] = useState(() => searchParams.get('department') ?? '');
-  const [from, setFrom] = useState(() => searchParams.get('from') ?? defaultDateRange.from);
-  const [to, setTo] = useState(() => searchParams.get('to') ?? defaultDateRange.to);
-  const [filters, setFilters] = useState(() =>
-    Object.fromEntries(Object.keys(NO_FILTERS).map((key) => [key, searchParams.get(key) ?? ''])),
+  const [searchParams, setSearchParams] = useSearchParams();
+  const defaultDateRange = useMemo(() => getFinancialYearRange(), []);
+  // The URL is the source of truth so dashboard drill-down links and the
+  // browser Back/Forward buttons cannot leave stale filters on screen.
+  const department = searchParams.get('department') ?? '';
+  const from = searchParams.get('from') ?? defaultDateRange.from;
+  const to = searchParams.get('to') ?? defaultDateRange.to;
+  const filters = useMemo(
+    () => Object.fromEntries(Object.keys(NO_FILTERS).map((key) => [key, searchParams.get(key) ?? ''])),
+    [searchParams],
   );
+
+  const changeParams = (changes) => {
+    const next = new URLSearchParams(searchParams);
+    for (const [key, value] of Object.entries(changes)) {
+      if (value) next.set(key, value);
+      else next.delete(key);
+    }
+    setSearchParams(next, { replace: true });
+    onChange?.();
+  };
 
   // The lookups are asked for once: with the user's only department when there is one (its master items come
   // along), then again for another department only when the user has more than one.
   const onlyDepartment = user?.departments?.length === 1 ? user.departments[0]._id : undefined;
   // It waits for the user, so a page reload does not first ask without the department.
-  const { data: base } = useTransactionOptions(onlyDepartment, Boolean(user));
+  const {
+    data: base,
+    isLoading: isBaseLoading,
+    isError: isLookupError,
+    error: lookupError,
+    refetch: refetchLookups,
+  } = useTransactionOptions(onlyDepartment, Boolean(user));
 
   const departments = base?.departments ?? [];
   const selected =
     departments.find((item) => item._id === department) ?? (allTypes && departments.length > 1 ? undefined : departments[0]);
-  const { data: lookups, isPlaceholderData } = useTransactionOptions(selected?._id, Boolean(selected));
-
-  const changed = (change) => (...args) => {
-    change(...args);
-    onChange?.();
-  };
+  const {
+    data: lookups,
+    isLoading: isDepartmentLookupLoading,
+    isPlaceholderData,
+    isError: isDepartmentLookupError,
+    error: departmentLookupError,
+    refetch: refetchDepartmentLookups,
+  } = useTransactionOptions(selected?._id, Boolean(selected));
+  // Do not let reports run with the previous department's placeholder lookup
+  // data while the newly selected department is still loading.
+  const departmentOptionsReady =
+    !selected ||
+    (Boolean(lookups) && !isDepartmentLookupLoading && !isPlaceholderData);
 
   return {
     user,
     allTypes,
-    ready: Boolean(base),
+    ready: Boolean(base) && departmentOptionsReady,
+    loading: isBaseLoading,
+    isError: isLookupError || (Boolean(selected) && isDepartmentLookupError),
+    error: lookupError ?? departmentLookupError,
+    refetch: () => Promise.all([
+      refetchLookups(),
+      selected ? refetchDepartmentLookups() : Promise.resolve(),
+    ]),
     departments,
     selected,
     // The previous department's lookups are not shown while the new ones load; with no type chosen there are none.
@@ -54,13 +85,14 @@ export default function useReportScope({ allTypes = false, onChange } = {}) {
     from,
     to,
     filters,
-    changeType: changed((value) => {
-      setDepartment(value);
-      setFilters((current) => ({ ...current, ...Object.fromEntries(DEPARTMENT_FILTERS.map((key) => [key, ''])) }));
-    }),
-    changeFilter: changed((key, value) => setFilters((current) => ({ ...current, [key]: value }))),
-    changeFrom: changed((value) => setFrom(value ?? '')),
-    changeTo: changed((value) => setTo(value ?? '')),
+    changeType: (value) =>
+      changeParams({
+        department: value,
+        ...Object.fromEntries(DEPARTMENT_FILTERS.map((key) => [key, ''])),
+      }),
+    changeFilter: (key, value) => changeParams({ [key]: value }),
+    changeFrom: (value) => changeParams({ from: value ?? '' }),
+    changeTo: (value) => changeParams({ to: value ?? '' }),
     // The query sent to the server: the type, the date range and the filters that are set.
     params: {
       ...(selected && { department: selected._id }),

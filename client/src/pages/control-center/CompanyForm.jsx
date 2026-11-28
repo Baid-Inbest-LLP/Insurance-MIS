@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { notifications } from '@mantine/notifications';
 import { useCreateCompany, useUpdateCompany } from '../../hooks/useCompanies';
@@ -7,6 +8,7 @@ import FormField from '../../components/common/form/FormField';
 import FormGrid from '../../components/common/form/FormGrid';
 import FormModal from '../../components/common/form/FormModal';
 import FormSection from '../../components/common/form/FormSection';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 const PHONE_REGEX = /^(\+91|91)?[6-9]\d{9}$/;
 const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
@@ -41,6 +43,7 @@ export default function CompanyForm({ company, onClose }) {
   const updateCompany = useUpdateCompany();
   const { data: locationCities = [] } = useLocationCities();
   const submitting = createCompany.isPending || updateCompany.isPending;
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   const {
     register,
@@ -48,7 +51,7 @@ export default function CompanyForm({ company, onClose }) {
     handleSubmit,
     getValues,
     setValue,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm({ defaultValues: buildDefaultValues(company) });
 
   const { fields, append, remove } = useFieldArray({ control, name: 'branches' });
@@ -118,9 +121,23 @@ export default function CompanyForm({ company, onClose }) {
     }
   };
 
+  const requestClose = () => {
+    if (isDirty && !submitting) {
+      setConfirmDiscard(true);
+      return;
+    }
+    onClose();
+  };
+
+  const discardChanges = () => {
+    setConfirmDiscard(false);
+    onClose();
+  };
+
   const inputCls = (err) => `input-field text-sm ${err ? 'border-red-400 focus:ring-red-400' : ''}`;
 
   return (
+    <>
     <FormModal
       open
       size="lg"
@@ -129,7 +146,7 @@ export default function CompanyForm({ company, onClose }) {
       subtitle={
         isEdit ? 'Update company info and branches' : 'Add company details and branches'
       }
-      onClose={onClose}
+      onClose={requestClose}
       onSubmit={handleSubmit(onSubmit)}
       submitting={submitting}
       submitLabel={isEdit ? 'Update Company' : 'Create Company'}
@@ -339,5 +356,16 @@ export default function CompanyForm({ company, onClose }) {
         </div>
       </FormSection>
     </FormModal>
+    <ConfirmModal
+      open={confirmDiscard}
+      title="Discard unsaved changes?"
+      message="Your changes to this company have not been saved."
+      confirmLabel="Discard changes"
+      cancelLabel="Keep editing"
+      variant="warning"
+      onConfirm={discardChanges}
+      onCancel={() => setConfirmDiscard(false)}
+    />
+    </>
   );
 }

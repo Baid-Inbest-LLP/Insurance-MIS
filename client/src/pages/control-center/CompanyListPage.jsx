@@ -18,6 +18,7 @@ export default function CompanyListPage() {
 		isLoading: loading,
 		isError,
 		error: queryError,
+		refetch,
 	} = useCompanies();
 	const companies = data?.companies ?? [];
 	const error = isError
@@ -57,11 +58,15 @@ export default function CompanyListPage() {
 
 	return (
 		<div>
-			{error && (
-				<div className="card p-4 mb-4 company-error-alert">{error}</div>
-			)}
-
-			{loading ? (
+			{isError ? (
+				<div className="card text-center py-16 px-6">
+					<p className="company-empty-title">Unable to load companies</p>
+					<p className="company-empty-desc">{error}</p>
+					<button type="button" className="btn-primary mt-4" onClick={() => refetch()}>
+						Try again
+					</button>
+				</div>
+			) : loading ? (
 				<div className="space-y-4">
 					{[0, 1].map((card) => (
 						<div key={card} className="card p-5">
